@@ -7,134 +7,192 @@ import {
     VStack,
     HStack,
     Icon,
+    Card,
+    CardHeader,
+    CardBody,
+    Progress,
 } from "@chakra-ui/react";
 import { FaCheck, FaTimes } from "react-icons/fa";
-
-interface QuizQuestion {
-    question: string;
-    options: string[];
-    correctOptionIndex: number;
-}
+import type { Quiz } from "../types";
+import { useColorModeValue } from "./ui/color-mode";
 
 interface ModuleQuizProps {
-    quiz: QuizQuestion[];
+    quiz: Quiz;
     setShowQuiz: (show: boolean) => void;
     onQuizSubmit?: () => void;
 }
 
-const ModuleQuiz: React.FC<ModuleQuizProps> = ({ quiz, setShowQuiz, onQuizSubmit }) => {
-    const [selectedAnswers, setSelectedAnswers] = useState<(number)[]>(
-        Array(quiz.length).fill(null)
+const ModuleQuiz: React.FC<ModuleQuizProps> = ({
+    quiz,
+    setShowQuiz,
+    onQuizSubmit,
+}) => {
+    const [selectedAnswers, setSelectedAnswers] = useState<(number | null)[]>(
+        Array(quiz.questions.length).fill(null)
     );
+    const [currentQ, setCurrentQ] = useState(0);
     const [submitted, setSubmitted] = useState(false);
-    console.log(quiz);
-    const handleSelect = (qIdx: number, oIdx: number) => {
+
+    const handleSelect = (oIdx: number) => {
         if (!submitted) {
             const newAnswers = [...selectedAnswers];
-            newAnswers[qIdx] = oIdx;
+            newAnswers[currentQ] = oIdx;
             setSelectedAnswers(newAnswers);
         }
     };
 
     const handleSubmit = () => {
         setSubmitted(true);
-        if (onQuizSubmit) onQuizSubmit();
+        // if (onQuizSubmit) onQuizSubmit();
     };
+
     const handleClose = () => {
         setShowQuiz(false);
     };
 
-    const score = selectedAnswers.reduce((acc, ans, idx) => {
-        if (ans === quiz[idx].correctOptionIndex) return acc + 1;
+    const score = selectedAnswers.reduce((acc: number, ans, idx) => {
+        if (ans === quiz.questions[idx].correctOptionIndex) return acc + 1;
         return acc;
     }, 0);
 
-    return (
-        <Box
-            mt={6}
-            w="full"
-            p={4}
-            borderRadius="md"
-            bg="gray.50"
-            _dark={{ bg: "gray.700" }}
-        >
-            <Heading size="md" mb={4}>
-                Module Quiz
-            </Heading>
+    const progressValue = ((currentQ + 1) / quiz.questions.length) * 100;
 
-            {quiz.map((q, qIdx) => (
-                <Box
-                    key={qIdx}
-                    mb={4}
-                    p={3}
-                    borderRadius="md"
-                    bg="white"
-                    _dark={{ bg: "gray.800" }}
-                    shadow="sm"
-                    transition="transform 0.1s"
-                    _hover={{ transform: !submitted ? "scale(1.01)" : undefined }}
-                >
-                    <Text fontWeight="semibold" mb={2}>
-                        Q{qIdx + 1}: {q.question}
-                    </Text>
+    const currentQuestion = quiz.questions[currentQ];
 
-                    <VStack align="start" gap={2}>
-                        {q.options.map((option, oIdx) => {
-                            const isSelected = selectedAnswers[qIdx] === oIdx;
-                            const isCorrect = q.correctOptionIndex === oIdx;
-                            const showResult = submitted && (isSelected || isCorrect);
+    if (!submitted) {
+        // Per-question navigation view
+        return (
+            <Box mt={6} w="full">
+                <Heading size="md" mb={4}>
+                    Module Quiz
+                </Heading>
 
-                            let bgColor;
-                            if (submitted) {
-                                if (isCorrect) bgColor = "green.300";
-                                else if (isSelected && !isCorrect) bgColor = "red.300";
-                            } else if (isSelected) {
-                                bgColor = "blue.200";
-                            }
+                {/* Progress */}
+                <Progress.Root value={progressValue} size="sm" mb={6} rounded="full">
+                    <Progress.Track>
+                        <Progress.Range />
+                    </Progress.Track>
+                </Progress.Root>
 
-                            return (
-                                <Button
-                                    key={oIdx}
-                                    w="full"
-                                    justifyContent="flex-start"
-                                    bg={bgColor}
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handleSelect(qIdx, oIdx)}
-                                    disabled={submitted}
-                                    _hover={{ bg: !submitted ? "blue.300" : undefined }}
-                                    borderColor={showResult ? "transparent" : undefined}
-                                >
-                                    <HStack w="full" justifyContent="space-between">
-                                        <Text>{option}</Text>
-                                        {showResult && (
-                                            <Icon
-                                                as={isCorrect ? FaCheck : FaTimes}
-                                                color={isCorrect ? "green.600" : "red.600"}
-                                            />
-                                        )}
-                                    </HStack>
-                                </Button>
-                            );
-                        })}
-                    </VStack>
-                </Box>
-            ))}
+                <Card.Root shadow="sm" borderRadius="lg">
+                    <CardHeader>
+                        <Text fontWeight="semibold" color={useColorModeValue("teal.800", "teal.500")}>
+                            Q{currentQ + 1}: {currentQuestion.question}
+                        </Text>
+                    </CardHeader>
+                    <CardBody>
+                        <VStack align="start" gap={3}>
+                            {currentQuestion.options.map((option, oIdx) => {
+                                const isSelected = selectedAnswers[currentQ] === oIdx;
+                                const bgColor = isSelected
+                                    ? useColorModeValue("blue.100", "blue.700")
+                                    : "transparent";
+                                return (
+                                    <Button
+                                        key={oIdx}
+                                        w="full"
+                                        justifyContent="flex-start"
+                                        bg={bgColor}
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handleSelect(oIdx)}
+                                    >
+                                        {option}
+                                    </Button>
+                                );
+                            })}
+                        </VStack>
+                    </CardBody>
+                </Card.Root>
 
-            {!submitted ? (
-                <Button mt={4} colorScheme="teal" onClick={handleSubmit}>
-                    Submit Quiz
-                </Button>
-            ) : (
-                <>
-                    <Text mt={4} fontWeight="bold" fontSize="lg">
-                        You scored {score} out of {quiz.length}
-                    </Text>
-                    <Button mt={4} colorScheme="teal" onClick={handleClose}>
+                {/* Navigation */}
+                <HStack mt={6} justify="">
+                    <Button
+                        onClick={() => setCurrentQ((q) => q - 1)}
+                        disabled={currentQ === 0}
+                    >
+                        Previous
+                    </Button>
+
+                    {currentQ < quiz.questions.length - 1 ? (
+                        <Button
+                            onClick={() => setCurrentQ((q) => q + 1)}
+                            colorScheme="teal"
+                            disabled={selectedAnswers[currentQ] === null}
+                        >
+                            Next
+                        </Button>
+                    ) : (
+                        <Button
+                            onClick={handleSubmit}
+                            colorScheme="teal"
+                            disabled={selectedAnswers[currentQ] === null}
+                        >
+                            Submit Quiz
+                        </Button>
+                    )}
+                    <Button colorScheme="teal" onClick={handleClose}>
                         Close
                     </Button>
-                </>
-            )}
+                </HStack>
+
+            </Box>
+        );
+    }
+
+    // Review mode (all questions with correct/incorrect)
+    return (
+        <Box mt={6} w="full">
+            <Heading size="md" mb={4} textAlign="center">
+                Quiz Review
+            </Heading>
+
+            <Text fontWeight="bold" fontSize="lg" mb={6} textAlign="center">
+                You scored {score} out of {quiz.questions.length}
+            </Text>
+
+            <VStack gap={6} align="stretch">
+                {quiz.questions.map((q, qIdx) => (
+                    <Card.Root key={qIdx} shadow="sm" borderRadius="lg">
+                        <CardHeader>
+                            <Text fontWeight="semibold">
+                                Q{qIdx + 1}: {q.question}
+                            </Text>
+                        </CardHeader>
+                        <CardBody>
+                            <VStack align="start" gap={3}>
+                                {q.options.map((option, oIdx) => {
+                                    const isSelected = selectedAnswers[qIdx] === oIdx;
+                                    const isCorrect = q.correctOptionIndex === oIdx;
+
+                                    let bg = useColorModeValue("transparent", "transparent");
+                                    if (isCorrect) bg = useColorModeValue("green.100", "green.700");
+                                    else if (isSelected && !isCorrect)
+                                        bg = useColorModeValue("red.100", "red.700");
+
+                                    return (
+                                        <HStack
+                                            key={oIdx}
+                                            p={2}
+                                            borderRadius="md"
+                                            bg={bg}
+                                            justifyContent="space-between"
+                                        >
+                                            <Text>{option}</Text>
+                                            {isCorrect && <Icon as={FaCheck} color="green.500" />}
+                                            {isSelected && !isCorrect && <Icon as={FaTimes} color="red.500" />}
+                                        </HStack>
+                                    );
+                                })}
+                            </VStack>
+                        </CardBody>
+                    </Card.Root>
+                ))}
+            </VStack>
+            <Button mt={6} colorScheme="teal" onClick={handleClose}>
+                Close
+            </Button>
+
         </Box>
     );
 };

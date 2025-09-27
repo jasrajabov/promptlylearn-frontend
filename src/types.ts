@@ -4,34 +4,34 @@ export interface Course {
   description: string;
   modules: Module[];
   fullyGenerated: boolean;
+  status: Status;
 }
+
+export type Status = "not_generated" | "loading" | "in_progress" | "completed";
 
 export interface Module {
   id: string;
   title: string;
   lessons: Lesson[];
   quiz?: [];
-  status:
-    | "not-generated"
-    | "not-started"
-    | "loading"
-    | "generated"
-    | "in-progress"
-    | "complete";
+  status: Status;
   estimatedTime?: number; // in minutes
 }
 
-export type InteractiveElement = {
-  type: "quiz" | "exercise";
-  question: string;
+export type ClarificationAnswer = {
+  text: string;
+  code: string;
+  codeLanguage: string | null;
 };
 
 export type ClarificationBlock = {
   question: string;
-  answer: string;
+  answers: ClarificationAnswer[];
 };
 
 export type ContentBlock = {
+  id: string;
+  title: string | null;
   content: string;
   code: string | null;
   expectedOutput: string | null;
@@ -40,13 +40,22 @@ export type ContentBlock = {
   clarifications?: ClarificationBlock[];
 };
 
+export interface Quiz {
+  questions: [
+    {
+      question: string;
+      options: string[];
+      correctOptionIndex: number;
+    }
+  ];
+}
+
 export type Lesson = {
   id: string;
   title: string;
-  status: "not-started" | "in-progress" | "complete";
-  content?: ContentBlock[];
+  status: Status;
+  content_blocks?: ContentBlock[];
   isProgrammingLesson: boolean;
-  quiz?: [];
 };
 
 export interface Progress {
@@ -65,6 +74,11 @@ export type { CourseRendererProps };
 
 export interface ClarifyLessonRequest {
   question: string;
-  lessonName: string;
+  content_block_id: string;
   content: string;
+}
+
+export interface GenerateQuizRequest {
+  lessonName: string;
+  content: string[];
 }

@@ -9,16 +9,22 @@ const Header: React.FC = () => {
   const { colorMode, toggleColorMode } = useColorMode();
   const { user, logout } = useUser();
   const navigate = useNavigate();
-
+  console.log("Header user:", user);
   return (
     <Flex justify="space-between" p={2} w="100%" align="center">
-      {/* Home button */}
-      <Button size="sm" variant="ghost" onClick={() => navigate("/")}>
-        <HStack gap={2}>
-          <FaHome />
-          <span>Home</span>
-        </HStack>
-      </Button>
+      <HStack gap={2}>
+        <Button size="sm" variant="ghost" onClick={() => navigate("/")}>
+          <HStack gap={2}>
+            <FaHome />
+            <span>Home</span>
+          </HStack>
+        </Button>
+        <Button size="sm" variant="ghost" onClick={() => navigate("/my-courses")}>
+          <HStack gap={2}>
+            <span>My Courses</span>
+          </HStack>
+        </Button>
+      </HStack>
 
       <HStack gap={3}>
         {user ? (

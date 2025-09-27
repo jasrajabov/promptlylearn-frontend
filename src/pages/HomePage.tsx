@@ -69,7 +69,10 @@ const HomePage = () => {
         endpoint,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${user.token}`
+          },
           body: JSON.stringify({ topic, level }),
         },
         600000

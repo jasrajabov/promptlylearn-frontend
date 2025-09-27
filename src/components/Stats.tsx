@@ -1,97 +1,92 @@
-import { useEffect, useState } from "react";
-import { HStack, Stat, StatLabel, Icon } from "@chakra-ui/react";
+import { HStack, VStack, Collapsible, Text, Icon, Progress } from "@chakra-ui/react";
 import { FaBook, FaClock, FaTasks, FaLayerGroup } from "react-icons/fa";
+import { motion } from "framer-motion";
 import type { Course } from "../types";
+
+import { useColorModeValue } from "../components/ui/color-mode"
+import { BiCollapse } from "react-icons/bi";
 
 interface StatsProps {
     courseState: Course;
 }
 
+const MotionText = motion(Text);
+
 export const Stats = ({ courseState }: StatsProps) => {
-    const [totalLessons, setTotalLessons] = useState(0);
-    const [estimatedTime, setEstimatedTime] = useState(0);
-    const [completedModules, setCompletedModules] = useState(0);
+    if (!courseState) return null;
 
-    useEffect(() => {
-        const lessons = courseState?.modules?.reduce(
-            (sum, m) => sum + (m.lessons?.length || 0),
-            0
-        );
-        setTotalLessons(lessons);
-
-        const time = courseState?.modules?.reduce(
-            (sum, m) => sum + (m.estimatedTime || 15),
-            0
-        );
-        setEstimatedTime(time);
-
-        const completed = courseState?.modules?.filter(
-            (m) => m.status === "complete"
-        ).length;
-        setCompletedModules(completed);
-    }, [courseState]);
+    const totalLessons = courseState.modules.reduce((sum, m) => sum + (m.lessons?.length || 0), 0);
+    const estimatedTime = courseState.modules.reduce((sum, m) => sum + (m.estimatedTime || 15), 0);
+    const completedModules = courseState.modules.filter((m) => m.status === "completed").length;
+    const totalModules = courseState.modules.length;
+    const completedPercentage = totalModules > 0 ? (completedModules / totalModules) * 100 : 0;
 
     const statsData = [
-        {
-            label: "Modules",
-            value: courseState.modules.length,
-            icon: FaLayerGroup,
-            color: "blue.500",
-            bgColor: "blue.50",
-            darkBg: "blue.900",
-        },
-        {
-            label: "Lessons",
-            value: totalLessons,
-            icon: FaBook,
-            color: "purple.500",
-            bgColor: "purple.50",
-            darkBg: "purple.900",
-        },
-        {
-            label: "Time",
-            value: `${estimatedTime} min`,
-            icon: FaClock,
-            color: "orange.500",
-            bgColor: "orange.50",
-            darkBg: "orange.900",
-        },
-        {
-            label: "Completed",
-            value: completedModules,
-            icon: FaTasks,
-            color: "green.500",
-            bgColor: "green.50",
-            darkBg: "green.900",
-        },
+        { label: "Modules", value: totalModules, icon: FaLayerGroup },
+        { label: "Lessons", value: totalLessons, icon: FaBook },
+        { label: "Time", value: `${estimatedTime} min`, icon: FaClock },
+        { label: "Completed", value: completedModules, icon: FaTasks, isProgress: true, progress: completedPercentage },
     ];
 
-    return (
-        <HStack gap={3} wrap="wrap">
-            {statsData.map((stat, idx) => (
-                <Stat.Root
-                    key={idx}
-                    p={2}
-                    borderRadius="sm"
-                    shadow="sm"
-                    bg={stat.bgColor}
-                    _dark={{ bg: stat.darkBg }}
-                    borderWidth="1px"
-                    borderColor="gray.200"
-                    _hover={{ shadow: "md", transform: "scale(1.02)", transition: "0.2s" }}
-                    flex="1"
-                    minW="10px"
-                >
-                    <HStack mb={1} gap={1}>
-                        <Icon as={stat.icon} boxSize={4} color={stat.color} />
-                        <StatLabel fontSize="xs" color={stat.color}>
-                            {stat.label}
-                        </StatLabel>
-                        <Stat.ValueText fontSize="lg">{stat.value}</Stat.ValueText>
-                    </HStack>
+    const cardBg = useColorModeValue("white", "gray.800");
+    const borderColor = useColorModeValue("gray.200", "gray.600");
 
-                </Stat.Root>
-            ))}
-        </HStack>
+    return (
+        <Collapsible.Root defaultOpen>
+            <Collapsible.Trigger>
+                <Text fontSize="xl" color="teal.500" fontWeight="bold" mb={4} cursor="pointer">
+                    {courseState.title}
+                </Text>
+            </Collapsible.Trigger>
+            <Collapsible.Content>
+                <HStack gap={3} wrap="wrap">
+                    {statsData.map((stat, idx) => (
+                        <VStack
+                            key={idx}
+                            p={3}
+                            borderRadius="md"
+                            bg={cardBg}
+                            border="1px solid"
+                            borderColor={borderColor}
+                            shadow="sm"
+                            minW="120px"
+                            align="start"
+                            gap={1}
+                            _hover={{ shadow: "md", transform: "scale(1.03)", transition: "0.2s" }}
+                        >
+                            <HStack gap={2}>
+                                <Icon
+                                    as={stat.icon}
+                                    boxSize={4}
+                                    color={stat.label === "Completed" ? "green.500" : "teal.500"}
+                                />
+                                <Text fontSize="xs" fontWeight="semibold" color={stat.label === "Completed" ? "green.500" : "gray.500"}>
+                                    {stat.label}
+                                </Text>
+                            </HStack>
+
+                            <MotionText
+                                key={stat.value}
+                                fontSize="lg"
+                                fontWeight="bold"
+                                initial={{ opacity: 0, y: -5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.25 }}
+                            >
+                                {stat.value}
+                            </MotionText>
+
+                            {stat.isProgress && (
+                                <Progress.Root value={stat.progress} size="xs" width="100%" borderRadius="sm">
+                                    <Progress.Range><Progress.Track bg="green.500" /></Progress.Range>
+
+                                </Progress.Root>
+                            )}
+                        </VStack>
+                    ))}
+                </HStack>
+            </Collapsible.Content>
+
+        </Collapsible.Root>
     );
 };

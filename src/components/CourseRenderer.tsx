@@ -7,43 +7,54 @@ import {
   Button,
   Tag,
   Text,
+  Spinner,
 } from "@chakra-ui/react";
-import type { Course, Module } from "../types";
+import type { Course, Module, Status } from "../types";
 import LessonCard from "./LessonCard";
 import { HiChevronRight } from "react-icons/hi";
 import ModuleQuiz from "./Quiz";
+import fetchWithTimeout from "../utils/fetcherWithTimeout";
+import type { Quiz } from "../types";
+import { useUser } from "../contexts/UserContext";
+
 
 interface CourseRendererProps {
-  course: Course;
-  module: Module;
+  courseState: Course;
   currentModuleIndex: number;
   currentLessonIndex: number;
   showQuiz: boolean;
   onLessonChange: (lessonIndex: number, moduleIndex: number) => void;
   setShowQuiz: (show: boolean) => void;
   onModuleComplete?: (nextModuleIndex: number) => void;
+  setCourseState: React.Dispatch<React.SetStateAction<Course>>;
 }
 
 const CourseRenderer: React.FC<CourseRendererProps> = ({
-  course,
-  module,
+  courseState,
   currentModuleIndex,
   currentLessonIndex,
   onLessonChange,
   showQuiz,
   setShowQuiz,
   onModuleComplete,
+  setCourseState,
 }) => {
-  const [moduleComplete, setModuleComplete] = useState(module.status === "complete");
-  const contentRef = useRef<HTMLDivElement | null>(null);
 
+  const { user } = useUser();
+  const module = courseState.modules[currentModuleIndex];
   const lesson = module.lessons[currentLessonIndex];
-  const nextLesson =
-    currentLessonIndex < module.lessons.length - 1
-      ? module.lessons[currentLessonIndex + 1]
+  const nextLesson = module.lessons[currentLessonIndex + 1];
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  const moduleComplete = module.status === "completed";
+
+  const [quiz, setQuiz] = useState<Quiz | null>(null);
+  const [loadingQuiz, setLoadingQuiz] = useState(false);
+  const nextModule =
+    currentModuleIndex < courseState.modules.length - 1
+      ? courseState.modules[currentModuleIndex + 1]
       : null;
 
-  // Scroll content to top when lesson changes
   useEffect(() => {
     contentRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   }, [currentLessonIndex, module.id]);
@@ -54,75 +65,123 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
     }
   };
 
-  const handleCompleteLesson = () => {
-    if (currentLessonIndex < module.lessons.length - 1) {
-      lesson.status = "complete";
-      onLessonChange(currentLessonIndex + 1, currentModuleIndex);
-    } else {
-      module.status = "complete";
-      setModuleComplete(true);
-      setShowQuiz(true);
+  const updateLessonStatusDb = async (
+    lessonId: string,
+    status: Status
+  ) => {
+    if (!user) {
+      console.log("User not logged in");
+      return;
     }
+
+    try {
+      const response = await fetchWithTimeout(
+        `http://localhost:8000/lessons/${lessonId}/status`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${user.token}`,
+          },
+          body: JSON.stringify({ status }),
+        },
+        60000
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to update lesson status");
+      }
+
+      const data = await response.json();
+      console.log("Lesson status updated:", data);
+      return data;
+    } catch (error) {
+      console.error("Error updating lesson status:", error);
+    }
+  };
+
+  const handleCompleteLesson = () => {
+    setCourseState(prev => {
+      const updatedModules = [...prev.modules];
+      const updatedModule = { ...updatedModules[currentModuleIndex] };
+
+      // mark current lesson complete
+      updatedModule.lessons = updatedModule.lessons.map((l, i) =>
+        i === currentLessonIndex ? { ...l, status: "completed" } : l
+      );
+
+      // check if all lessons are complete
+      const allLessonsComplete = updatedModule.lessons.every(l => l.status === "completed");
+      updatedModule.status = allLessonsComplete ? "completed" : "in_progress";
+
+      updatedModules[currentModuleIndex] = updatedModule;
+      // Update lesson status in the backend
+      updateLessonStatusDb(lesson.id, "completed");
+      return { ...prev, modules: updatedModules };
+    });
+  };
+
+  const handleGenerateQuiz = () => {
+    console.log("Generating quiz for lesson:", lesson);
+    setLoadingQuiz(true);
+    fetchWithTimeout("http://localhost:8000/generate-quiz", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        lessonName: lesson.title,
+        content: lesson.content_blocks ? lesson.content_blocks.map(c => c.content) : [],
+      }),
+    })
+      .then(res => res.json())
+      .then(data => {
+        console.log("Response data:", data);
+        console.log("Generated quiz:", data);
+        if (data) {
+          // Update the course state with the new quiz
+          setQuiz(data);
+          setShowQuiz(true);
+
+        }
+        setLoadingQuiz(false);
+      });
   };
 
   const handleQuizSubmit = () => {
-    module.status = "complete";
-    setModuleComplete(true);
-    setShowQuiz(false);
+    setCourseState(prev => {
+      const updatedModules = [...prev.modules];
+      updatedModules[currentModuleIndex] = {
+        ...updatedModules[currentModuleIndex],
+        status: "completed",
+      };
+      return { ...prev, modules: updatedModules };
+    });
 
-    if (onModuleComplete && currentModuleIndex < course.modules.length - 1) {
+    setShowQuiz(false);
+    if (onModuleComplete && currentModuleIndex < courseState.modules.length - 1) {
       onModuleComplete(currentModuleIndex + 1);
     }
   };
-
+  console.log("Quiz:", quiz);
   return (
-    <Box
-      ref={contentRef}
-      w="100%"
-      maxH="80vh"
-      overflowY="auto"
-      p={{ base: 4, md: 6 }}
-      borderLeft="1px solid"
-      borderColor="gray.200"
-    >
+    <Box ref={contentRef} w="100%" overflowY="auto" p={{ base: 4, md: 6 }}>
       <VStack align="start" gap={6}>
-        {/* Module Info */}
+        {/* Header */}
         <VStack align="start" gap={2}>
-          <Heading size="md">{course.title}</Heading>
           <Heading size="lg">
             Module {currentModuleIndex + 1}: {module.title}
           </Heading>
         </VStack>
 
-        {/* Lesson Progress */}
         {!showQuiz && (
           <Text fontSize="sm" color="gray.500">
             Lesson {currentLessonIndex + 1} of {module.lessons.length}
           </Text>
         )}
 
-        <HStack fontSize="sm" align="center">
-          <Text>Module Status:</Text>
-          <Tag.Root
-            fontWeight="bold"
-            color="white"
-            bg={
-              module.status === "complete"
-                ? "green.500"
-                : module.status === "in-progress"
-                  ? "blue.500"
-                  : "gray.500"
-            }
-          >
-            {module.status}
-          </Tag.Root>
-        </HStack>
-
-        {/* Current Lesson */}
         {!showQuiz && <LessonCard lesson={lesson} />}
 
-        {/* Upcoming Lesson Preview */}
-        {!showQuiz && nextLesson && (
+        {/* Upcoming Module Preview */}
+        {!showQuiz && moduleComplete && nextModule && (
           <Box
             w="full"
             p={4}
@@ -132,46 +191,71 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
             boxShadow="sm"
             cursor="pointer"
             _hover={{ bg: "blue.50", _dark: { bg: "blue.900" } }}
-            onClick={() => onLessonChange(currentLessonIndex + 1, currentModuleIndex)}
+            onClick={() => onLessonChange(0, currentModuleIndex + 1)} // jump to first lesson of next module
             transition="background 0.2s ease"
           >
             <Text fontSize="sm" color="gray.500" mb={1}>
-              Upcoming Lesson
+              Upcoming Module
             </Text>
             <HStack justify="space-between" align="center">
               <Heading size="sm" color="blue.600" _dark={{ color: "blue.300" }}>
-                {nextLesson.title}
+                {nextModule.title}
               </Heading>
               <HiChevronRight color="blue.400" />
             </HStack>
           </Box>
         )}
 
-        {/* Quiz */}
-        {showQuiz && module.quiz && (
-          <ModuleQuiz
-            quiz={module.quiz}
-            setShowQuiz={setShowQuiz}
-            onQuizSubmit={handleQuizSubmit}
-          />
+
+        {showQuiz && quiz && (
+          <ModuleQuiz quiz={quiz} setShowQuiz={setShowQuiz} onQuizSubmit={handleQuizSubmit} />
         )}
 
-        {/* Navigation Buttons */}
         {!showQuiz && (
           <HStack w="full" justify="space-between" flexWrap="wrap">
             <Button onClick={handlePrevLesson} disabled={currentLessonIndex === 0}>
               Previous
             </Button>
-            <Button onClick={handleCompleteLesson}>
-              {currentLessonIndex === module.lessons.length - 1 && !moduleComplete
-                ? "Complete Module"
-                : "Complete Lesson"}
-            </Button>
+            {moduleComplete && (
+              <HStack>
+                {loadingQuiz ? (
+                  <>
+                    <Spinner />
+                    <Text>Generating Quiz...</Text>
+                  </>
+                ) : (
+
+                  <Button onClick={handleGenerateQuiz}>Test your knowledge</Button>
+                )}
+              </HStack>
+            )}
+            {lesson.status !== "completed" && module.status !== "not_generated" && (
+              <Button onClick={handleCompleteLesson}>Complete Lesson</Button>
+            )}
+            {!showQuiz && lesson.status === "completed" && nextLesson && (
+              <Box
+                role="button"
+                tabIndex={0}
+                onClick={() => onLessonChange(currentLessonIndex + 1, currentModuleIndex)}
+                p={4}
+                borderRadius="lg"
+                bg="gray.50"
+                _dark={{ bg: "gray.700" }}
+                _hover={{ bg: "blue.50", _dark: { bg: "blue.900" } }}
+              >
+                <Text fontSize="sm" color="gray.500" mb={1}>
+                  Next Lesson
+                </Text>
+                <HStack justify="space-between">
+                  <Heading size="sm">{nextLesson.title}</Heading>
+                  <HiChevronRight />
+                </HStack>
+              </Box>
+            )}
           </HStack>
         )}
       </VStack>
     </Box>
   );
 };
-
 export default CourseRenderer;
