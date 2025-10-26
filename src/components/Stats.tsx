@@ -17,7 +17,7 @@ export const Stats = ({ courseState }: StatsProps) => {
 
     const totalLessons = courseState.modules.reduce((sum, m) => sum + (m.lessons?.length || 0), 0);
     const estimatedTime = courseState.modules.reduce((sum, m) => sum + (m.estimatedTime || 15), 0);
-    const completedModules = courseState.modules.filter((m) => m.status === "completed").length;
+    const completedModules = courseState.modules.filter((m) => m.status === "COMPLETED").length;
     const totalModules = courseState.modules.length;
     const completedPercentage = totalModules > 0 ? (completedModules / totalModules) * 100 : 0;
 

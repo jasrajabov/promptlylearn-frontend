@@ -1,6 +1,5 @@
 /* Global styles */
 html, body, #root {
-  /* height: 100%; */
   overflow-x: hidden;  /* prevents double scrollbar */
-  /* overflow-y: hidden;    allows vertical scrolling */
+  
 }

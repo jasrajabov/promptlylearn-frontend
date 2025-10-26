@@ -22,13 +22,14 @@ export default function CourseTimeline() {
     console.log("Course ID from params:", id);
     const { user } = useUser();
 
-    const [activeModuleIndex, setActiveModuleIndex] = useState<number | null>(null);
+    const [activeModuleIndex, setActiveModuleIndex] = useState<number | null>(0);
     const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
     const [showQuiz, setShowQuiz] = useState(false);
     const [courseState, setCourseState] = useState<Course>({} as Course);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        if (!user) return;
         const fetchCourse = async () => {
             setLoading(true);
             try {

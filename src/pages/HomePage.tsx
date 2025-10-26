@@ -64,7 +64,9 @@ const HomePage = () => {
         mode === "course"
           ? "http://localhost:8000/generate-course-outline"
           : "http://localhost:8000/generate-roadmap";
-
+      console.log("user token:", user.token);
+      console.log("request body:", { topic, level });
+      console.log("level:", level);
       const response = await fetchWithTimeout(
         endpoint,
         {
@@ -73,7 +75,7 @@ const HomePage = () => {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${user.token}`
           },
-          body: JSON.stringify({ topic, level }),
+          body: JSON.stringify({ "topic": topic, "level": level }),
         },
         600000
       );
@@ -114,8 +116,6 @@ const HomePage = () => {
           value={topic}
           onChange={(e) => setTopic(e.target.value)}
           size="lg"
-          bg="gray.50"
-          _dark={{ bg: "gray.700" }}
           borderRadius="md"
           _selection={{ bg: "teal.200", color: "black" }}
         />
@@ -136,7 +136,9 @@ const HomePage = () => {
             <SlideFade in={mode === "course"} offsetY="10px">
               <RadioGroup.Root
                 defaultValue={level}
-                onValueChange={(val) => setLevel(val as unknown as "beginner" | "intermediate" | "advanced")}
+                onValueChange={(details) => {
+                  setLevel(details.value as "beginner" | "intermediate" | "advanced");
+                }}
               >
                 <HStack gap={6} justify="center" mt={4}>
                   {levelItems.map((item) => (
@@ -169,6 +171,7 @@ const HomePage = () => {
         {/* Generate button */}
         <Button
           colorScheme="teal"
+          variant="subtle"
           size="lg"
           onClick={handleGenerate}
           disabled={!topic || loading}

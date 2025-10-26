@@ -13,9 +13,10 @@ import type { Course, Module, Status } from "../types";
 import LessonCard from "./LessonCard";
 import { HiChevronRight } from "react-icons/hi";
 import ModuleQuiz from "./Quiz";
-import fetchWithTimeout from "../utils/fetcherWithTimeout";
+import fetchWithTimeout, { updateCourseStatusDb, updateLessonStatusDb, updateModulStatusDb } from "../utils/dbUtils";
 import type { Quiz } from "../types";
 import { useUser } from "../contexts/UserContext";
+
 
 
 interface CourseRendererProps {
@@ -46,10 +47,11 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
   const nextLesson = module.lessons[currentLessonIndex + 1];
   const contentRef = useRef<HTMLDivElement>(null);
 
-  const moduleComplete = module.status === "completed";
+  const moduleComplete = module.status === "COMPLETED";
 
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [loadingQuiz, setLoadingQuiz] = useState(false);
+  const [streaming, setStreaming] = useState(false);
   const nextModule =
     currentModuleIndex < courseState.modules.length - 1
       ? courseState.modules[currentModuleIndex + 1]
@@ -65,41 +67,7 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
     }
   };
 
-  const updateLessonStatusDb = async (
-    lessonId: string,
-    status: Status
-  ) => {
-    if (!user) {
-      console.log("User not logged in");
-      return;
-    }
-
-    try {
-      const response = await fetchWithTimeout(
-        `http://localhost:8000/lessons/${lessonId}/status`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${user.token}`,
-          },
-          body: JSON.stringify({ status }),
-        },
-        60000
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to update lesson status");
-      }
-
-      const data = await response.json();
-      console.log("Lesson status updated:", data);
-      return data;
-    } catch (error) {
-      console.error("Error updating lesson status:", error);
-    }
-  };
-
+  console.log("Course Sate:", courseState);
   const handleCompleteLesson = () => {
     setCourseState(prev => {
       const updatedModules = [...prev.modules];
@@ -107,19 +75,30 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
 
       // mark current lesson complete
       updatedModule.lessons = updatedModule.lessons.map((l, i) =>
-        i === currentLessonIndex ? { ...l, status: "completed" } : l
+        i === currentLessonIndex ? { ...l, status: "COMPLETED" } : l
       );
 
       // check if all lessons are complete
-      const allLessonsComplete = updatedModule.lessons.every(l => l.status === "completed");
-      updatedModule.status = allLessonsComplete ? "completed" : "in_progress";
+      const allLessonsComplete = updatedModule.lessons.every(l => l.status === "COMPLETED");
+      updatedModule.status = allLessonsComplete ? "COMPLETED" : "IN_PROGRESS";
+      if (updatedModule.status === "COMPLETED") {
+        updateModulStatusDb(user, updatedModule.id, "COMPLETED");
+      }
 
       updatedModules[currentModuleIndex] = updatedModule;
-      // Update lesson status in the backend
-      updateLessonStatusDb(lesson.id, "completed");
+      updateLessonStatusDb(user, lesson.id, "COMPLETED");
+
+      const courseComplete = prev.modules.every(m => m.status === "COMPLETED");
+      if (courseComplete) {
+        setCourseState(c => ({ ...c, status: "COMPLETED" }));
+        updateCourseStatusDb(user, courseState.id, "COMPLETED");
+      }
       return { ...prev, modules: updatedModules };
     });
   };
+
+
+
 
   const handleGenerateQuiz = () => {
     console.log("Generating quiz for lesson:", lesson);
@@ -128,14 +107,12 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        lessonName: lesson.title,
+        lesson_name: lesson.title,
         content: lesson.content_blocks ? lesson.content_blocks.map(c => c.content) : [],
       }),
     })
       .then(res => res.json())
       .then(data => {
-        console.log("Response data:", data);
-        console.log("Generated quiz:", data);
         if (data) {
           // Update the course state with the new quiz
           setQuiz(data);
@@ -146,24 +123,8 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
       });
   };
 
-  const handleQuizSubmit = () => {
-    setCourseState(prev => {
-      const updatedModules = [...prev.modules];
-      updatedModules[currentModuleIndex] = {
-        ...updatedModules[currentModuleIndex],
-        status: "completed",
-      };
-      return { ...prev, modules: updatedModules };
-    });
-
-    setShowQuiz(false);
-    if (onModuleComplete && currentModuleIndex < courseState.modules.length - 1) {
-      onModuleComplete(currentModuleIndex + 1);
-    }
-  };
-  console.log("Quiz:", quiz);
   return (
-    <Box ref={contentRef} w="100%" overflowY="auto" p={{ base: 4, md: 6 }}>
+    <Box ref={contentRef} wordWrap="break-word" w="100%" overflowY="auto" p={{ base: 4, md: 6 }}>
       <VStack align="start" gap={6}>
         {/* Header */}
         <VStack align="start" gap={2}>
@@ -178,7 +139,13 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
           </Text>
         )}
 
-        {!showQuiz && <LessonCard lesson={lesson} />}
+
+        {!showQuiz && <LessonCard
+          courseState={courseState}
+          setCourseState={setCourseState}
+          lessonIndex={currentLessonIndex}
+          moduleIndex={currentModuleIndex}
+        />}
 
         {/* Upcoming Module Preview */}
         {!showQuiz && moduleComplete && nextModule && (
@@ -208,7 +175,7 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
 
 
         {showQuiz && quiz && (
-          <ModuleQuiz quiz={quiz} setShowQuiz={setShowQuiz} onQuizSubmit={handleQuizSubmit} />
+          <ModuleQuiz quiz={quiz} setShowQuiz={setShowQuiz} />
         )}
 
         {!showQuiz && (
@@ -229,10 +196,10 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
                 )}
               </HStack>
             )}
-            {lesson.status !== "completed" && module.status !== "not_generated" && (
+            {lesson.status !== "COMPLETED" && module.status !== "NOT_GENERATED" && (
               <Button onClick={handleCompleteLesson}>Complete Lesson</Button>
             )}
-            {!showQuiz && lesson.status === "completed" && nextLesson && (
+            {!showQuiz && lesson.status === "COMPLETED" && nextLesson && (
               <Box
                 role="button"
                 tabIndex={0}

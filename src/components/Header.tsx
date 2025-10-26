@@ -4,6 +4,10 @@ import { FaHome, FaSignInAlt, FaSun, FaMoon } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../contexts/UserContext";
 import { useColorMode } from "./ui/color-mode";
+import { FaBook } from "react-icons/fa6";
+import { Separator } from "@chakra-ui/react"
+
+
 
 const Header: React.FC = () => {
   const { colorMode, toggleColorMode } = useColorMode();
@@ -19,11 +23,15 @@ const Header: React.FC = () => {
             <span>Home</span>
           </HStack>
         </Button>
-        <Button size="sm" variant="ghost" onClick={() => navigate("/my-courses")}>
-          <HStack gap={2}>
-            <span>My Courses</span>
-          </HStack>
-        </Button>
+        <Separator size="md" orientation="vertical" height="4" />
+        {user?.token && (
+          <Button size="sm" variant="ghost" onClick={() => navigate("/my-courses")}>
+            <HStack gap={2}>
+              <FaBook />
+              <span>My Courses</span>
+            </HStack>
+          </Button>
+        )}
       </HStack>
 
       <HStack gap={3}>
@@ -58,6 +66,7 @@ const Header: React.FC = () => {
           {colorMode === "light" ? <FaMoon /> : <FaSun />}
         </Button>
       </HStack>
+
     </Flex>
   );
 };

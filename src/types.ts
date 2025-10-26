@@ -7,7 +7,7 @@ export interface Course {
   status: Status;
 }
 
-export type Status = "not_generated" | "loading" | "in_progress" | "completed";
+export type Status = "NOT_GENERATED" | "LOADING" | "IN_PROGRESS" | "COMPLETED";
 
 export interface Module {
   id: string;
@@ -21,7 +21,8 @@ export interface Module {
 export type ClarificationAnswer = {
   text: string;
   code: string;
-  codeLanguage: string | null;
+  code_language: string | null;
+  output: string;
 };
 
 export type ClarificationBlock = {
@@ -34,10 +35,11 @@ export type ContentBlock = {
   title: string | null;
   content: string;
   code: string | null;
-  expectedOutput: string | null;
-  codeLanguage: string | null;
-  outputLanguage: string | null;
+  expected_output: string | null;
+  code_language: string | null;
+  output_language: string | null;
   clarifications?: ClarificationBlock[];
+  loading?: boolean;
 };
 
 export interface Quiz {
@@ -45,7 +47,7 @@ export interface Quiz {
     {
       question: string;
       options: string[];
-      correctOptionIndex: number;
+      correct_option_index: number;
     }
   ];
 }
@@ -55,7 +57,7 @@ export type Lesson = {
   title: string;
   status: Status;
   content_blocks?: ContentBlock[];
-  isProgrammingLesson: boolean;
+  is_programming_lesson: boolean;
 };
 
 export interface Progress {

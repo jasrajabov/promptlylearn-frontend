@@ -17,10 +17,12 @@ import { FaRobot } from "react-icons/fa";
 import { useLocation } from "react-router-dom";
 import type { Course, Status } from "../types";
 import { useUser } from "../contexts/UserContext";
-import fetchWithTimeout from "../utils/fetcherWithTimeout";
+import fetchWithTimeout, { generateModule, updateModulStatusDb } from "../utils/dbUtils";
 import { useColorModeValue } from "../components/ui/color-mode";
 import { Tooltip } from "../components/ui/tooltip";
 import type { Module } from "../types";
+import { SlRefresh } from "react-icons/sl";
+
 
 
 
@@ -51,7 +53,6 @@ export const TOC = ({
 }: TOCProps) => {
 
     const location = useLocation();
-    const { user } = useUser();
     const course = (location?.state as LocationState)?.course ?? null;
 
 
@@ -70,68 +71,14 @@ export const TOC = ({
 
 
 
-    const generateModule = async (id: number) => {
-        setCourseState((prev: Course) => {
-            const updated = [...prev.modules];
-            updated[id].status = "loading";
-            return { ...prev, modules: updated };
-        });
-
-        if (!user) return console.log("User not logged in");
-
-        try {
-            console.log("module:", courseState.modules[id]);
-            const response = await fetchWithTimeout(
-                "http://localhost:8000/generate-module-details",
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${user.token}`
-                    },
-                    body: JSON.stringify({
-                        course_id: courseState.id,
-                        course_title: courseState.title,
-                        module: courseState.modules[id],
-                    }),
-                },
-                600000
-            );
-
-            if (!response.ok) throw new Error("Failed to fetch module");
-
-            const data = await response.json();
-            if (data && data.lessons) {
-                setCourseState((prev) => {
-                    const updated = [...prev.modules];
-                    updated[id] = {
-                        ...updated[id],
-                        lessons: data.lessons,
-                        quiz: data.quiz,
-                        status: "in_progress",
-                        estimatedTime: data.estimatedTime || 15,
-                    };
-                    return { ...prev, modules: updated };
-                });
-            }
-        } catch (err) {
-            console.error(err);
-            setCourseState((prev) => {
-                const updated = [...prev.modules];
-                updated[id].status = "not_generated";
-                return { ...prev, modules: updated };
-            });
-        }
-    };
-
     const handleModuleOpen = (id: number) => {
         setActiveModuleIndex(id);
         setCurrentLessonIndex(0);
 
-        if (courseState.modules[id].status !== "completed") {
+        if (courseState.modules[id].status !== "COMPLETED") {
             setCourseState((prev: Course) => {
                 const updated = [...prev.modules];
-                updated[id].status = "in_progress";
+                updated[id].status = "IN_PROGRESS" as Status;
                 return { ...prev, modules: updated };
             });
         }
@@ -145,25 +92,25 @@ export const TOC = ({
 
     const getStatusIcon = (status: string) => {
         switch (status) {
-            case "completed":
+            case "COMPLETED":
                 return (
                     <Circle bg={useColorModeValue("green.100", "green.900")}>
                         <BiCheck size={30} color="green" />
                     </Circle>
                 );
-            case "in_progress":
+            case "IN_PROGRESS":
                 return (
                     <Circle bg={useColorModeValue("teal.100", "teal.900")}>
                         <BiTime size={30} color="teal" />
                     </Circle>
                 );
-            case "not_generated":
+            case "NOT_GENERATED":
                 return (
                     <Circle bg={useColorModeValue("gray.100", "gray.400")}>
                         <MdInfo size={30} color="gray.500" />
                     </Circle>
                 );
-            case "loading":
+            case "LOADING":
                 return (
                     <Circle bg={useColorModeValue("cyan.100", "cyan.900")}>
                         <Spinner size="lg" color="cyan.500" />
@@ -182,7 +129,6 @@ export const TOC = ({
         <Box
             minW={tocCollapsed ? "70px" : "400px"}
             maxW={tocCollapsed ? "70px" : "400px"}
-            // flex="none"           // ✅ instead of h="100%"
             overflowY="auto"   // independent scrolling
             borderRight="1px solid"
             borderColor={useColorModeValue("gray.200", "gray.600")}
@@ -197,7 +143,7 @@ export const TOC = ({
                 position="absolute"
                 variant="ghost"
                 top={2}
-                right={tocCollapsed ? "-20px" : "4px"}
+                right={tocCollapsed ? "10px" : "4px"}
                 onClick={() => setTocCollapsed(!tocCollapsed)}
             >
                 {tocCollapsed ? <BiChevronRight /> : <BiChevronLeft />}
@@ -217,25 +163,43 @@ export const TOC = ({
                                     <Timeline.Indicator>{getStatusIcon(module.status)}</Timeline.Indicator>
                                 </Timeline.Connector>
                                 <Timeline.Content>
-                                    <HStack justify="space-between" align="center" mb={2}>
+
+                                    {/* <HStack justify="space-between" align="center" mb={2}>
                                         <Heading size="sm">{module.title}</Heading>
-                                        {module.status === "not_generated" ? (
-                                            <Button size="xs" onClick={() => generateModule(idx)}>
+
+                                        {module.status === "NOT_GENERATED" ? (
+                                            <Button size="xs" variant="subtle" onClick={() => handleGenerateModule(idx)}>
                                                 <FaRobot /> Generate
                                             </Button>
-                                        ) : (module.status !== "loading" &&
-                                            <Button size="xs" onClick={() => handleModuleOpen(idx)}>
-                                                Open
-                                            </Button>
-                                        )}
+                                        ) : module.status !== "LOADING" &&
+                                            module.lessons &&
+                                            module.lessons.every(l => l?.content_blocks?.length && l.content_blocks.length > 0) ? (
+                                            <HStack gap={2}>
+                                                <Button size="xs" variant="subtle" onClick={() => handleModuleOpen(idx)}>
+                                                    Open
+                                                </Button>
+                                                <Tooltip content="Regenerate Module" showArrow>
+                                                    <Button size="xs" variant="subtle" onClick={() => handleGenerateModule(idx)}>
+                                                        <SlRefresh />
+                                                    </Button>
+                                                </Tooltip>
 
-                                    </HStack>
+                                            </HStack>
+
+                                        ) : (<Tooltip content="Regenerate Module" showArrow>
+                                            <Button size="xs" variant="subtle" onClick={() => handleGenerateModule(idx)}>
+                                                <SlRefresh />
+                                            </Button>
+                                        </Tooltip>)}
+
+
+                                    </HStack> */}
 
                                     {module.lessons && (
                                         <VStack align="start" gap={1} pl={6}>
                                             {module.lessons.map((lesson, i) => (
                                                 <HStack>
-                                                    {lesson.status === "completed" && (
+                                                    {lesson.status === "COMPLETED" && (
                                                         <Circle size={4} bg="green.500">
                                                             <BiCheck size={16} color="green" />
                                                         </Circle>

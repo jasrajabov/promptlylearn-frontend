@@ -1,6 +1,9 @@
+import { Spinner } from "@chakra-ui/react";
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import { Loader } from "../components/Loader";
 
-interface User {
+
+export interface User {
   name: string;
   email?: string;
   token: string;
@@ -9,6 +12,7 @@ interface User {
 
 interface UserContextType {
   user?: User;
+  loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
@@ -25,19 +29,23 @@ export const useUser = () => {
 
 export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | undefined>(undefined);
+  const [loading, setLoading] = useState(true); // start as loading
 
   useEffect(() => {
     const stored = localStorage.getItem("user");
-    if (stored) setUser(JSON.parse(stored));
+    if (stored) {
+      setUser(JSON.parse(stored));
+    }
+    setLoading(false); // done loading after checking localStorage
   }, []);
 
   const login = async (email: string, password: string) => {
+    console.log("email:", email, "password:", password)
     const res = await fetch("http://localhost:8000/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
-
     if (!res.ok) {
       const error = await res.json();
       throw new Error(error.detail || "Login failed");
@@ -74,7 +82,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <UserContext.Provider value={{ user, login, signup, logout }}>
+    <UserContext.Provider value={{ user, login, signup, logout, loading }}>
       {children}
     </UserContext.Provider>
   );
