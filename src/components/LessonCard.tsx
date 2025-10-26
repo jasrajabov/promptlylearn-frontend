@@ -12,7 +12,6 @@ import {
     Skeleton,
     Collapsible
 } from "@chakra-ui/react";
-// if you used Radix earlier; keep consistent with your project
 import { FaRobot } from "react-icons/fa";
 import { BiCollapse } from "react-icons/bi";
 import { useUser } from "../contexts/UserContext";
@@ -28,8 +27,6 @@ interface LessonCardProps {
     setCourseState: React.Dispatch<React.SetStateAction<Course>>;
     lessonIndex: number;
     moduleIndex: number;
-    // lesson: Lesson;
-    // setLesson?: React.Dispatch<React.SetStateAction<Lesson>>;
 }
 
 const LessonCard: React.FC<LessonCardProps> = ({ courseState, setCourseState, lessonIndex, moduleIndex }) => {
@@ -46,6 +43,7 @@ const LessonCard: React.FC<LessonCardProps> = ({ courseState, setCourseState, le
     );
     const [highlighted, setHighlighted] = useState<{ block: number; clar: number } | null>(null);
     const clarificationRefs = useRef<(HTMLDivElement | null)[]>([]);
+    const streamRef = useRef<EventSource | null>(null);
     const codeStyle = useColorModeValue(materialLight, materialDark);
 
     // Sync when lesson changes
@@ -86,7 +84,6 @@ const LessonCard: React.FC<LessonCardProps> = ({ courseState, setCourseState, le
         );
     };
 
-    // Ask AI for clarification about a specific content block
     const handleAsk = async (contentText: string, idx: number) => {
         if (!question.trim()) return;
         setLoading(true);
@@ -123,7 +120,6 @@ const LessonCard: React.FC<LessonCardProps> = ({ courseState, setCourseState, le
 
             setShowClarifications((prev) => {
                 const updated = [...prev];
-                // ensure array length
                 while (updated.length <= idx) updated.push(false);
                 updated[idx] = true;
                 return updated;
@@ -143,157 +139,100 @@ const LessonCard: React.FC<LessonCardProps> = ({ courseState, setCourseState, le
         }
     };
 
-    // Stream lesson content with per-block placeholders and keep clarifications state aligned
+
     const handleGenerateLessonStream = () => {
-        const source = new EventSource(
-            `http://localhost:8000/generate-lesson-details-stream?course_id=${courseState.id}&module_id=${courseState.modules[moduleIndex].id}&lesson_id=${lesson.id}&token=${user?.token}`
-        );
+        if (!user) return;
 
-        // clear and start with a placeholder
-        setContents([
-            { id: "placeholder-0", title: "", content: "", loading: true } as unknown as ContentBlock,
-        ]);
-        setShowClarifications([false]);
+        // Close any existing stream
+        if (streamRef.current) {
+            streamRef.current.close();
+        }
+
+        // Start fresh
+        setContents([]);
+        setShowClarifications([]);
+        setActiveIndex(null);
+
         setCourseState(prev => {
-            const updatedModules = [...prev.modules];
-            const updatedLessons = [...updatedModules[moduleIndex].lessons];
-
-            // Update lesson status
-            updatedLessons[lessonIndex] = { ...updatedLessons[lessonIndex], status: "IN_PROGRESS" };
-
-            // Determine new module status
-            let newModuleStatus = updatedModules[moduleIndex].status;
-            if (newModuleStatus === "NOT_GENERATED") {
-                newModuleStatus = "IN_PROGRESS";
-            }
-            updatedModules[moduleIndex] = {
-                ...updatedModules[moduleIndex],
-                lessons: updatedLessons,
-                status: newModuleStatus,
-            };
-
-            return { ...prev, modules: updatedModules };
+            const modulesCopy = [...prev.modules];
+            const lessonsCopy = [...modulesCopy[moduleIndex].lessons];
+            lessonsCopy[lessonIndex] = { ...lessonsCopy[lessonIndex], status: "IN_PROGRESS", content_blocks: [] };
+            modulesCopy[moduleIndex] = { ...modulesCopy[moduleIndex], lessons: lessonsCopy };
+            return { ...prev, modules: modulesCopy };
         });
 
+        const source = new EventSource(
+            `http://localhost:8000/generate-lesson-details-stream?course_id=${courseState.id}&module_id=${courseState.modules[moduleIndex].id}&lesson_id=${lesson.id}&token=${user.token}`
+        );
+
+        streamRef.current = source;
 
         source.onmessage = (event) => {
             if (!event.data) return;
             try {
                 const incomingBlock: ContentBlock = JSON.parse(event.data);
 
-                setContents((prev) => {
-                    const updated = [...prev];
-                    // find first placeholder
-                    const placeholderIndex = updated.findIndex((b) => (b as any).loading);
-                    if (placeholderIndex !== -1) {
-                        // replace placeholder with real block
-                        updated[placeholderIndex] = { ...incomingBlock, loading: false };
-                    } else {
-                        updated.push({ ...incomingBlock, loading: false });
-                    }
+                setContents(prev => {
+                    const nonPlaceholders = prev.filter(b => !(b as any).loading);
+                    const updated = [...nonPlaceholders, { ...incomingBlock, loading: false }];
+                    // Add a new placeholder for next block
+                    updated.push({ id: `placeholder-${Date.now()}`, title: "", content: "", loading: true } as any);
 
-                    // push a new placeholder anticipating the next block
-                    updated.push({
-                        id: `placeholder-${Date.now()}`,
-                        title: "",
-                        content: "",
-                        loading: true,
-                    } as unknown as ContentBlock);
-
-                    // update courseState with the non-placeholder content blocks
-                    const contentBlocksForCourse = updated.filter((b) => !(b as any).loading);
-                    setCourseState((coursePrev) => {
-                        const updatedModules = [...coursePrev.modules];
-                        const updatedLessons = [...updatedModules[moduleIndex].lessons];
-                        updatedLessons[lessonIndex] = {
-                            ...updatedLessons[lessonIndex],
-                            content_blocks: contentBlocksForCourse,
-                        };
-                        updatedModules[moduleIndex] = {
-                            ...updatedModules[moduleIndex],
-                            lessons: updatedLessons,
-                        };
-                        return { ...coursePrev, modules: updatedModules };
+                    // Persist finalized blocks to courseState
+                    const finalizedBlocks = updated.filter(b => !(b as any).loading);
+                    setCourseState(prevCourse => {
+                        const modulesCopy = [...prevCourse.modules];
+                        const lessonsCopy = [...modulesCopy[moduleIndex].lessons];
+                        lessonsCopy[lessonIndex] = { ...lessonsCopy[lessonIndex], content_blocks: finalizedBlocks };
+                        modulesCopy[moduleIndex] = { ...modulesCopy[moduleIndex], lessons: lessonsCopy };
+                        return { ...prevCourse, modules: modulesCopy };
                     });
 
                     return updated;
                 });
 
-                // keep showClarifications aligned: replace placeholder slot with false and add a new false for new placeholder
-                setShowClarifications((prev) => {
-                    const updated = [...prev];
-                    const placeholderIdx = updated.findIndex((v, i) => {
-                        // placeholder corresponds to content with loading === true at same index
-                        return contents[i]?.loading;
-                    });
-
-                    // Instead of relying on contents which is stale here, we'll align by index logic:
-                    // If there is a false/true mismatch lengthwise, expand as needed.
-                    // Simpler: ensure length matches contents after the setContents update (race-safe-ish).
-                    // We'll attempt to mirror the above changes conservatively:
-                    // Replace first occurrence that is undefined / false with false, else push a false.
-                    if (updated.length === 0) {
-                        updated.push(false);
-                    } else {
-                        // push false for incoming new placeholder
-                        updated.push(false);
-                    }
-                    return updated;
-                });
+                setShowClarifications(prev => [...prev, false]);
             } catch (err) {
-                console.error("Failed to parse block", err);
+                console.error("Failed to parse content block:", err);
             }
         };
 
-        source.addEventListener("error", (err) => {
+        source.onerror = (err) => {
             console.error("Stream error:", err);
-            // remove any placeholders
-            setContents((prev) => {
-                const final = prev.filter((b) => !(b as any).loading);
-                // persist final blocks to courseState
-                setCourseState((coursePrev) => {
-                    const updatedModules = [...coursePrev.modules];
-                    const updatedLessons = [...updatedModules[moduleIndex].lessons];
-                    updatedLessons[lessonIndex] = {
-                        ...updatedLessons[lessonIndex],
-                        content_blocks: final,
-                    };
-                    updatedModules[moduleIndex] = {
-                        ...updatedModules[moduleIndex],
-                        lessons: updatedLessons,
-                    };
-                    return { ...coursePrev, modules: updatedModules };
-                });
-                return final;
-            });
-            setShowClarifications((prev) => prev.slice(0, contents.filter((b) => !(b as any).loading).length));
+            setContents(prev => prev.filter(b => !(b as any).loading));
             source.close();
-        });
+            streamRef.current = null;
+        };
 
         source.addEventListener("complete", () => {
-            console.log("Stream completed");
-            setContents((prev) => {
-                const final = prev.filter((b) => !(b as any).loading);
-                // persist final blocks to courseState
-                setCourseState((coursePrev) => {
-                    const updatedModules = [...coursePrev.modules];
-                    const updatedLessons = [...updatedModules[moduleIndex].lessons];
-                    updatedLessons[lessonIndex] = {
-                        ...updatedLessons[lessonIndex],
-                        content_blocks: final,
-                    };
-                    updatedModules[moduleIndex] = {
-                        ...updatedModules[moduleIndex],
-                        lessons: updatedLessons,
-                    };
-                    return { ...coursePrev, modules: updatedModules };
-                });
-                return final;
-            });
-            setShowClarifications((prev) => prev.slice(0, contents.filter((b) => !(b as any).loading).length));
+            setContents(prev => prev.filter(b => !(b as any).loading));
+            setShowClarifications(prev => prev.slice(0, prev.filter((b) => !(b as any).loading).length));
             source.close();
+            streamRef.current = null;
         });
     };
+
+    const handleRegenerateLessonStream = async () => {
+        if (streamRef.current) {
+            streamRef.current.close();
+            streamRef.current = null;
+        }
+
+        // Clear content and state
+        setContents([]);
+        setShowClarifications([]);
+        setActiveIndex(null);
+
+        if (user) {
+            await fetch(`http://localhost:8000/lessons/${lesson.id}`, {
+                method: "DELETE",
+                headers: { "Authorization": `Bearer ${user.token}` },
+            });
+        }
+
+        handleGenerateLessonStream();
+    };
+
 
     return (
         <Box overflowX="hidden" overflow="hidden">
@@ -303,8 +242,8 @@ const LessonCard: React.FC<LessonCardProps> = ({ courseState, setCourseState, le
                 </Heading>
             )}
 
-            <Button mb={4} colorScheme="teal" onClick={handleGenerateLessonStream}>
-                Generate Lesson
+            <Button mb={4} colorScheme="teal" onClick={lesson.status === "NOT_GENERATED" ? handleGenerateLessonStream : handleRegenerateLessonStream}>
+                {lesson.status === "NOT_GENERATED" ? "Generate Lesson" : "Regenerate Lesson"}
             </Button>
 
             <AnimatePresence>
@@ -317,7 +256,6 @@ const LessonCard: React.FC<LessonCardProps> = ({ courseState, setCourseState, le
                         transition={{ duration: 0.3, ease: "easeOut" }}
                     >
                         {(content as any).loading ? (
-                            // Placeholder skeleton for currently generating block
                             <Box
                                 mb={8}
                                 p={5}
@@ -337,7 +275,6 @@ const LessonCard: React.FC<LessonCardProps> = ({ courseState, setCourseState, le
                                 <Skeleton height="120px" borderRadius="md" />
                             </Box>
                         ) : (
-                            // Real content block with clarifications UI
                             <Box
                                 mb={8}
                                 p={5}
