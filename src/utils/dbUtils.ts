@@ -1,7 +1,7 @@
 import type { Module, Status } from "../types";
 import type { User } from "../contexts/UserContext";
 
-const fetchWithTimeout = (
+export const fetchWithTimeout = (
   url: string,
   options: RequestInit,
   timeout = 600000

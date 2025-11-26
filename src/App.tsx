@@ -7,6 +7,8 @@ import LoginPage from "./pages/LoginPage";
 import CourseTimeline from "./pages/CoursePage";
 import { Provider } from "./components/ui/provider"
 import UserCourses from "./pages/UserCourses";
+import UserRoadmaps from "./pages/UserRoadmaps";
+import TrackRoadmap from "./pages/RoadmapPage";
 
 const App: React.FC = () => {
 
@@ -20,7 +22,10 @@ const App: React.FC = () => {
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/course/:id/" element={<CourseTimeline />} />
+            <Route path="/roadmap/:id/" element={<TrackRoadmap />} />
             <Route path="/my-courses" element={<UserCourses />} />
+            <Route path="/my-roadmaps" element={<UserRoadmaps />} />
+            <Route path="*" element={<div>404 Not Found</div>} />
           </Routes>
         </Box>
       </Box>

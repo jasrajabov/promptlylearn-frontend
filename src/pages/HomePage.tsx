@@ -8,29 +8,14 @@ import {
   Heading,
   HStack,
   Tabs,
-  RadioGroup
+  RadioGroup,
+  createToaster
 } from "@chakra-ui/react";
 import { Spinner } from '@chakra-ui/react';
 import { SlideFade } from "@chakra-ui/transition";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useUser } from "../contexts/UserContext";
-
-// --- helper function ---
-const fetchWithTimeout = (url: string, options: RequestInit, timeout = 600000) =>
-  new Promise<Response>((resolve, reject) => {
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), timeout);
-
-    fetch(url, { ...options, signal: controller.signal })
-      .then((res) => {
-        clearTimeout(id);
-        resolve(res);
-      })
-      .catch((err) => {
-        clearTimeout(id);
-        reject(err);
-      });
-  });
+import { fetchWithTimeout } from "../utils/dbUtils";
 
 // Level options
 const levelItems = [
@@ -50,6 +35,8 @@ const HomePage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+
+
   const handleGenerate = async () => {
     if (!user) {
       navigate("/login", { state: { returnTo: location.pathname } });
@@ -60,13 +47,17 @@ const HomePage = () => {
     setError(null);
 
     try {
+      console.log("mode", mode)
       const endpoint =
         mode === "course"
           ? "http://localhost:8000/generate-course-outline"
           : "http://localhost:8000/generate-roadmap";
+
+      const body = mode === "course"
+        ? { topic, level }
+        : { roadmap_name: topic };
       console.log("user token:", user.token);
-      console.log("request body:", { topic, level });
-      console.log("level:", level);
+      console.log("request body:", body);
       const response = await fetchWithTimeout(
         endpoint,
         {
@@ -75,7 +66,7 @@ const HomePage = () => {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${user.token}`
           },
-          body: JSON.stringify({ "topic": topic, "level": level }),
+          body: JSON.stringify(body),
         },
         600000
       );
@@ -83,11 +74,13 @@ const HomePage = () => {
       if (!response.ok) throw new Error("Failed to generate");
 
       const data = await response.json();
-
+      console.log("Generation response data:", data);
       if (mode === "course") {
-        navigate(`/course/${data.id}`, { state: { course: data } });
+        // navigate(`/course/${data.id}`, { state: { course: data } });
+
+        navigate("/my-courses");
       } else {
-        navigate(`/roadmap/${data.id}`, { state: { roadmap: data } });
+        navigate("/my-roadmaps");
       }
     } catch (err: any) {
       console.error("Error generating:", err);
@@ -96,7 +89,7 @@ const HomePage = () => {
       setLoading(false);
     }
   };
-
+  console.log("mode before generating:", mode);
   return (
     <Box maxW="600px" mx="auto" mt={20} textAlign="center">
       <Heading
@@ -123,7 +116,10 @@ const HomePage = () => {
         {/* Mode switch (Course / Roadmap) using new Tabs API */}
         <Tabs.Root
           value={mode}
-          onValueChange={(details) => setMode(details.value as "course" | "roadmap")}
+          onValueChange={(details) => {
+            console.log("Switching mode to:", details.value);
+            setMode(details.value as "course" | "roadmap")
+          }}
         >
           <Tabs.List justifyContent="center">
             <Tabs.Trigger value="course">📘 Course</Tabs.Trigger>

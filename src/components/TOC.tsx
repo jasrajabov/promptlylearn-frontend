@@ -164,36 +164,9 @@ export const TOC = ({
                                 </Timeline.Connector>
                                 <Timeline.Content>
 
-                                    {/* <HStack justify="space-between" align="center" mb={2}>
+                                    <HStack justify="space-between" align="center" mb={2}>
                                         <Heading size="sm">{module.title}</Heading>
-
-                                        {module.status === "NOT_GENERATED" ? (
-                                            <Button size="xs" variant="subtle" onClick={() => handleGenerateModule(idx)}>
-                                                <FaRobot /> Generate
-                                            </Button>
-                                        ) : module.status !== "LOADING" &&
-                                            module.lessons &&
-                                            module.lessons.every(l => l?.content_blocks?.length && l.content_blocks.length > 0) ? (
-                                            <HStack gap={2}>
-                                                <Button size="xs" variant="subtle" onClick={() => handleModuleOpen(idx)}>
-                                                    Open
-                                                </Button>
-                                                <Tooltip content="Regenerate Module" showArrow>
-                                                    <Button size="xs" variant="subtle" onClick={() => handleGenerateModule(idx)}>
-                                                        <SlRefresh />
-                                                    </Button>
-                                                </Tooltip>
-
-                                            </HStack>
-
-                                        ) : (<Tooltip content="Regenerate Module" showArrow>
-                                            <Button size="xs" variant="subtle" onClick={() => handleGenerateModule(idx)}>
-                                                <SlRefresh />
-                                            </Button>
-                                        </Tooltip>)}
-
-
-                                    </HStack> */}
+                                    </HStack>
 
                                     {module.lessons && (
                                         <VStack align="start" gap={1} pl={6}>

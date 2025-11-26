@@ -5,14 +5,17 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import { UserProvider } from "./contexts/UserContext";
 import { system } from './theme';
-import "./styles.css"
+// import "./styles.css"
+import { ColorModeProvider } from './components/ui/color-mode';
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <ChakraProvider value={system}>
       <UserProvider>
         <BrowserRouter>
-          <App />
+          <ColorModeProvider>
+            <App />
+          </ColorModeProvider>
         </BrowserRouter>
       </UserProvider>
     </ChakraProvider>

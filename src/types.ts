@@ -56,7 +56,7 @@ export type Lesson = {
   id: string;
   title: string;
   status: Status;
-  content_blocks?: ContentBlock[];
+  content: string;
   is_programming_lesson: boolean;
 };
 

@@ -19,15 +19,19 @@ import {
     Dialog,
     CloseButton,
     Tag,
-    Collapsible
+    Collapsible,
+    Stack,
+    Badge
 } from "@chakra-ui/react";
 import { useColorModeValue } from "../components/ui/color-mode";
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { FaBookOpen, FaTrash } from "react-icons/fa";
 import { FaSortAmountDown, FaSortAmountUp } from "react-icons/fa";
 import { MdFilterList, MdFilterListOff } from "react-icons/md";
 import { Loader } from "../components/Loader";
+import TagHandler from "../components/TagHandler";
+
 
 const UserCourses = () => {
     const { user, loading } = useUser();
@@ -38,7 +42,7 @@ const UserCourses = () => {
     const [sortKey, setSortKey] = useState<"created" | "modules" | "progress">("created");
     const [showFilters, setShowFilters] = useState(false);
     const headerColor = useColorModeValue("teal.700", "teal.300");
-    const cardBg = useColorModeValue("white", "gray.800");
+    const cardBg = useColorModeValue("white", "gray.900");
     const cardHoverBg = useColorModeValue("gray.50", "gray.700");
     const emptyTextColor = useColorModeValue("gray.600", "gray.400");
 
@@ -71,6 +75,118 @@ const UserCourses = () => {
         fetchCourses();
     }, [user]);
 
+    // Poll backend for updates while any course is in GENERATING state
+    // Poll each generating course by its task_id (one interval per task)
+    const pollersRef = useRef<Record<string, number | null>>({});
+
+    // helper to refresh the full course list (reuse existing fetch logic)
+    const refreshCourses = async () => {
+        if (!user) return;
+        try {
+            const response = await fetchWithTimeout("http://localhost:8000/get_all_courses", {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${user?.token}`,
+                },
+            });
+            if (!response.ok) return;
+            const data = await response.json();
+            setCourses(data);
+        } catch (err) {
+            console.error("Failed to refresh courses:", err);
+        }
+    };
+
+    const startPollingTask = (taskId: string) => {
+        if (!taskId || pollersRef.current[taskId]) return; // already polling
+        const id = window.setInterval(async () => {
+            try {
+                const res = await fetchWithTimeout(`http://localhost:8000/task-status/course_outline/${taskId}`, {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${user?.token}`,
+                    },
+                });
+                if (!res.ok) {
+                    console.warn("task-status returned non-ok for", taskId);
+                    return;
+                }
+                const data = await res.json();
+                console.log("data", data)
+                // data expected to include status (and possibly course_id)
+                if (data.status === "SUCCESS" || data.status === "COMPLETED") {
+                    // refresh course list so UI shows completed/generated course
+                    await refreshCourses();
+                    // stop polling this task
+                    if (pollersRef.current[taskId]) {
+                        clearInterval(pollersRef.current[taskId] as number);
+                        pollersRef.current[taskId] = null;
+                    }
+                } else if (data.status === "FAILURE") {
+                    console.error("Task failed:", taskId, data);
+                    // refresh to reflect failure state as well
+                    await refreshCourses();
+                    if (pollersRef.current[taskId]) {
+                        clearInterval(pollersRef.current[taskId] as number);
+                        pollersRef.current[taskId] = null;
+                    }
+                }
+                // else keep polling
+            } catch (err) {
+                console.error("Error polling task", taskId, err);
+                // on repeated errors you might clear the interval — optional
+            }
+        }, 3000);
+        pollersRef.current[taskId] = id;
+    };
+
+    const stopPollingTask = (taskId: string) => {
+        const id = pollersRef.current[taskId];
+        if (id) {
+            clearInterval(id);
+            pollersRef.current[taskId] = null;
+        }
+    };
+
+    useEffect(() => {
+        if (!user) return;
+        // start polling for each generating course that has a task_id
+        const generatingTasks = new Set(
+            courses.filter((c) => c.status === "GENERATING" && c.task_id).map((c) => c.task_id)
+        );
+        console.log("Generating tasks", generatingTasks)
+        // start new pollers
+        generatingTasks.forEach((taskId) => {
+            startPollingTask(taskId);
+        });
+
+        // stop pollers for tasks that are no longer generating
+        Object.keys(pollersRef.current).forEach((taskId) => {
+            if (!generatingTasks.has(taskId) && pollersRef.current[taskId]) {
+                stopPollingTask(taskId);
+            }
+        });
+
+        return () => {
+            // cleanup: clear any intervals created during this effect run
+            // (we don't fully teardown all pollers here because other renders may restart them)
+        };
+    }, [user, courses]);
+
+    // clear all pollers on unmount
+    useEffect(() => {
+        return () => {
+            Object.keys(pollersRef.current).forEach((taskId) => {
+                if (pollersRef.current[taskId]) {
+                    clearInterval(pollersRef.current[taskId] as number);
+                    pollersRef.current[taskId] = null;
+                }
+            });
+        };
+    }, []);
+
     const formatDate = (dateStr: string) =>
         new Date(dateStr).toLocaleDateString(undefined, {
             year: "numeric",
@@ -80,10 +196,6 @@ const UserCourses = () => {
             minute: "2-digit",
         });
 
-    const formatStatus = (status: string) =>
-        status
-            ? status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
-            : "Unknown";
 
     const getProgress = (course: any) => {
         if (!course.modules || course.modules.length === 0) return 0;
@@ -92,7 +204,7 @@ const UserCourses = () => {
     };
 
     const filteredCourses = courses
-        .filter((c) => c.title.toLowerCase().includes(searchTerm.toLowerCase()))
+        .filter((c) => c.title?.toLowerCase().includes(searchTerm.toLowerCase()))
         .sort((a, b) => {
             let valA: number | Date;
             let valB: number | Date;
@@ -135,23 +247,27 @@ const UserCourses = () => {
         <>
             {loading ? (
                 <Loader />
-            ) : (<VStack gap={6} align="stretch" w="full" px={6}>
+            ) : (<Box maxW="7xl" mx="auto" px={6} py={10}>
                 {/* Header + Controls */}
-                <HStack justify="space-between">
-                    <Heading color={headerColor} size="lg">
-                        My Courses
-                    </Heading>
-                    <Button colorScheme="teal" variant="subtle" onClick={() => navigate("/")}>
-                        Create Course
-                    </Button>
-                </HStack>
+                <Heading mb={2} textAlign="center" color="brand.fg">
+                    My Courses
+                </Heading>
+                <Text textAlign="center" color="brand.fg" mb={10}>
+                    Explore and continue your learning journeys
+                </Text>
+                {/* <Button textAlign="center" variant="ghost" onClick={() => navigate("/")}>
+                    <IoAddOutline />
+                    Create Course
+                </Button> */}
+
 
                 {/* Search + Sort */}
                 <Collapsible.Root>
                     <Collapsible.Trigger paddingY="3">
-                        <HStack gap={2} align="center">
+                        <HStack gap={2} align="center" justify="space-between" w="100%">
+
                             <Button variant="ghost" onClick={() => setShowFilters(!showFilters)}>
-                                {showFilters ? <MdFilterListOff /> : <MdFilterList />} Filters
+                                {showFilters ? <MdFilterListOff /> : <MdFilterList />}
                             </Button>
                         </HStack>
                     </Collapsible.Trigger>
@@ -182,15 +298,12 @@ const UserCourses = () => {
                                 placeholder="Search by course title..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                maxW="400px"
+                                maxW="70%"
                             />
-
-
                         </HStack>
 
                     </Collapsible.Content>
                 </Collapsible.Root>
-
 
                 {/* Loading */}
                 {
@@ -241,6 +354,7 @@ const UserCourses = () => {
                                     _hover={{ transform: "translateY(-4px)" }}
                                     onClick={() => navigate(`/course/${course.id}`)}
                                     display="flex"
+                                    marginTop={10}
                                 >
                                     <Card.Root
                                         bg={cardBg}
@@ -252,9 +366,11 @@ const UserCourses = () => {
                                         flexDirection="column"
                                         flex="1"
                                         minH="250px"
+                                        minW="300px"
+                                        borderRadius="xl"
                                     >
                                         <Card.Header>
-                                            <Card.Title color={headerColor}>{course.title}</Card.Title>
+                                            <Card.Title>{course.title}</Card.Title>
                                         </Card.Header>
                                         <Card.Body flex="1" display="flex" flexDirection="column">
                                             <VStack align="start" gap={2} flex="1">
@@ -264,20 +380,7 @@ const UserCourses = () => {
                                                 <Text fontSize="sm" color="gray.500">
                                                     Modules: {course.modules?.length || 0}
                                                 </Text>
-                                                <Tag.Root
-                                                    colorPalette={
-                                                        course.status === "COMPLETED"
-                                                            ? "green"
-                                                            : course.status === "IN_PROGRESS"
-                                                                ? "yellow"
-                                                                : "gray"
-                                                    }
-                                                    variant="solid"
-                                                >
-                                                    <Tag.Label>
-                                                        {formatStatus(course.status)}
-                                                    </Tag.Label>
-                                                </Tag.Root>
+                                                <TagHandler status={course.status} />
                                                 {course.description && (
                                                     <Text fontSize="sm" color="gray.600" lineClamp={2}>
                                                         {course.description}
@@ -334,9 +437,7 @@ const UserCourses = () => {
                                                         </Dialog.Positioner>
                                                     </Portal>
                                                 </Dialog.Root>
-
                                             </VStack>
-
                                         </Card.Body>
                                     </Card.Root>
                                 </Box>
@@ -345,7 +446,7 @@ const UserCourses = () => {
                         </Box>
                     )
                 }
-            </VStack >)}
+            </Box >)}
         </>
     );
 };

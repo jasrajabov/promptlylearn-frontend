@@ -16,6 +16,9 @@ import ModuleQuiz from "./Quiz";
 import fetchWithTimeout, { updateCourseStatusDb, updateLessonStatusDb, updateModulStatusDb } from "../utils/dbUtils";
 import type { Quiz } from "../types";
 import { useUser } from "../contexts/UserContext";
+import { MdOutlineDoneAll, MdOutlineRemoveDone } from "react-icons/md";
+import { GiChoice } from "react-icons/gi";
+
 
 
 
@@ -51,7 +54,6 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
 
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [loadingQuiz, setLoadingQuiz] = useState(false);
-  const [streaming, setStreaming] = useState(false);
   const nextModule =
     currentModuleIndex < courseState.modules.length - 1
       ? courseState.modules[currentModuleIndex + 1]
@@ -67,34 +69,56 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
     }
   };
 
-  console.log("Course Sate:", courseState);
-  const handleCompleteLesson = () => {
-    setCourseState(prev => {
+
+  const handleUpdateStatus = () => {
+    const currentLessonStatus = lesson.status as Status;
+
+    let courseIdForDb: string | null = null;
+    let moduleIdForDb: string | null = null;
+    let moduleNewStatus: Status | null = null;
+    let courseNewStatus: Status | null = null;
+    let newLessonStatus: Status = currentLessonStatus === "COMPLETED" ? "IN_PROGRESS" : "COMPLETED";
+
+    setCourseState((prev) => {
+      courseIdForDb = prev.id;
       const updatedModules = [...prev.modules];
       const updatedModule = { ...updatedModules[currentModuleIndex] };
 
-      // mark current lesson complete
+      // toggle current lesson status
       updatedModule.lessons = updatedModule.lessons.map((l, i) =>
-        i === currentLessonIndex ? { ...l, status: "COMPLETED" } : l
+        i === currentLessonIndex ? { ...l, status: newLessonStatus } : l
       );
 
-      // check if all lessons are complete
-      const allLessonsComplete = updatedModule.lessons.every(l => l.status === "COMPLETED");
-      updatedModule.status = allLessonsComplete ? "COMPLETED" : "IN_PROGRESS";
-      if (updatedModule.status === "COMPLETED") {
-        updateModulStatusDb(user, updatedModule.id, "COMPLETED");
-      }
+      // compute module status from the updated lessons
+      const allLessonsComplete = updatedModule.lessons.every((l) => l.status === "COMPLETED");
+      const anyLessonStarted = updatedModule.lessons.some((l) => l.status === "IN_PROGRESS" || l.status === "COMPLETED");
+      updatedModule.status = allLessonsComplete ? ("COMPLETED" as Status) : (anyLessonStarted ? ("IN_PROGRESS" as Status) : ("NOT_GENERATED" as Status));
+
+      moduleIdForDb = updatedModule.id;
+      moduleNewStatus = updatedModule.status;
 
       updatedModules[currentModuleIndex] = updatedModule;
-      updateLessonStatusDb(user, lesson.id, "COMPLETED");
 
-      const courseComplete = prev.modules.every(m => m.status === "COMPLETED");
-      if (courseComplete) {
-        setCourseState(c => ({ ...c, status: "COMPLETED" }));
-        updateCourseStatusDb(user, courseState.id, "COMPLETED");
-      }
-      return { ...prev, modules: updatedModules };
+      // compute course completeness from the UPDATED modules array
+      const courseComplete = updatedModules.every((m) => m.status === "COMPLETED");
+      const anyModuleInProgress = updatedModules.some((m) => m.status === "IN_PROGRESS");
+      courseNewStatus = courseComplete ? ("COMPLETED" as Status) : (anyModuleInProgress ? ("IN_PROGRESS" as Status) : ("NOT_GENERATED" as Status));
+
+      return {
+        ...prev,
+        modules: updatedModules,
+        status: courseNewStatus,
+      };
     });
+
+    // persist changes to DB (do side-effects after updater)
+    updateLessonStatusDb(user, lesson.id, newLessonStatus);
+    if (moduleIdForDb && moduleNewStatus) {
+      updateModulStatusDb(user, moduleIdForDb, moduleNewStatus);
+    }
+    if (courseIdForDb && courseNewStatus) {
+      updateCourseStatusDb(user, courseIdForDb, courseNewStatus);
+    }
   };
 
 
@@ -108,7 +132,7 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         lesson_name: lesson.title,
-        content: lesson.content_blocks ? lesson.content_blocks.map(c => c.content) : [],
+        content: [],
       }),
     })
       .then(res => res.json())
@@ -134,9 +158,28 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
         </VStack>
 
         {!showQuiz && (
-          <Text fontSize="sm" color="gray.500">
-            Lesson {currentLessonIndex + 1} of {module.lessons.length}
-          </Text>
+          <HStack w="full" justify="flex-start" align="center">
+            <Text fontSize="sm" color="gray.500">
+              Lesson {currentLessonIndex + 1} of {module.lessons.length}
+            </Text>
+            {
+              <Button size="sm" variant="ghost" onClick={handleUpdateStatus}>
+                {lesson.status === "COMPLETED" ? <MdOutlineRemoveDone /> : <MdOutlineDoneAll />}
+                {lesson.status === "COMPLETED" ? "Incomplete" : "Complete"}
+              </Button>
+            }
+            {loadingQuiz ? (
+              <>
+                <Spinner />
+                <Text>Generating Quiz...</Text>
+              </>
+            ) : (
+
+              <Button size="sm" variant="ghost" onClick={handleGenerateQuiz}>Generate Quiz
+                <GiChoice />
+              </Button>
+            )}
+          </HStack>
         )}
 
 
@@ -180,25 +223,10 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
 
         {!showQuiz && (
           <HStack w="full" justify="space-between" flexWrap="wrap">
-            <Button onClick={handlePrevLesson} disabled={currentLessonIndex === 0}>
+            <Button variant="subtle" onClick={handlePrevLesson} disabled={currentLessonIndex === 0}>
               Previous
             </Button>
-            {moduleComplete && (
-              <HStack>
-                {loadingQuiz ? (
-                  <>
-                    <Spinner />
-                    <Text>Generating Quiz...</Text>
-                  </>
-                ) : (
 
-                  <Button onClick={handleGenerateQuiz}>Test your knowledge</Button>
-                )}
-              </HStack>
-            )}
-            {lesson.status !== "COMPLETED" && module.status !== "NOT_GENERATED" && (
-              <Button onClick={handleCompleteLesson}>Complete Lesson</Button>
-            )}
             {!showQuiz && lesson.status === "COMPLETED" && nextLesson && (
               <Box
                 role="button"

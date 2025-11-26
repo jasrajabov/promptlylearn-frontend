@@ -1,0 +1,133 @@
+.tutorial-md {
+  font-family: "Inter", system-ui, sans-serif;
+  line-height: 1.7;
+  font-size: 1rem;
+  padding: 0.5rem;
+}
+
+[data-theme="dark"] .tutorial-md,
+.tutorial-md[data-dark="true"] {
+  color: #e5e5e5;           /* dark mode text */
+}
+
+/* HEADINGS */
+.tutorial-md h1,
+.tutorial-md h2,
+.tutorial-md h3 {
+  font-weight: 600;
+  line-height: 1.3;
+  margin-top: 1.6rem;
+  margin-bottom: 0.8rem;
+}
+
+.tutorial-md h1 {
+  font-size: 1.85rem;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 0.3rem;
+}
+
+.tutorial-md h2 {
+  font-size: 1.45rem;
+}
+
+.tutorial-md h3 {
+  font-size: 1.22rem;
+}
+
+/* PARAGRAPHS */
+.tutorial-md p {
+  margin: 1rem 0;
+}
+
+/* LISTS */
+.tutorial-md ul,
+.tutorial-md ol {
+  margin: 1rem 0 1.1rem 1.4rem;
+}
+
+.tutorial-md li {
+  margin: 0.35rem 0;
+}
+
+/* INLINE CODE */
+.tutorial-md code {
+  background: #f4f4f4;
+  color: #d63384;
+  padding: 2px 5px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-family: "Fira Code", monospace;
+}
+
+[data-theme="dark"] .tutorial-md code,
+.tutorial-md[data-dark="true"] code {
+  background: #2a2d33;
+  color: #f472b6;
+}
+
+/* CODE BLOCKS */
+/* .tutorial-md pre {
+  margin: 1.2rem 0 !important;
+  border-radius: 8px;
+  overflow-x: auto;
+  border: 1px solid #e5e7eb;
+  padding: 0.8rem !important;
+  background: #f6f8fa;
+  color: #1a1a1a;
+} */
+
+[data-theme="dark"] .tutorial-md pre,
+.tutorial-md[data-dark="true"] pre {
+  background: #1e1e1e;
+  border: 1px solid #2d3748;
+  color: #e5e5e5;
+}
+
+/* BLOCKQUOTES */
+.tutorial-md blockquote {
+  border-left: 3px solid #cbd5e1;
+  background: #f8fafc;
+  padding: 0.7rem 1rem;
+  margin: 1.1rem 0;
+  border-radius: 4px;
+  color: #4a5568;
+  font-style: italic;
+}
+
+[data-theme="dark"] .tutorial-md blockquote,
+.tutorial-md[data-dark="true"] blockquote {
+  background: #1b1f23;
+  border-left-color: #4a5568;
+  color: #cbd5e1;
+}
+
+/* TABLES */
+.tutorial-md table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.3rem 0;
+  font-size: 0.96rem;
+}
+
+.tutorial-md th,
+.tutorial-md td {
+  padding: 0.6rem 0.8rem;
+  border: 1px solid #e5e7eb;
+}
+
+[data-theme="dark"] .tutorial-md th,
+[data-theme="dark"] .tutorial-md td,
+.tutorial-md[data-dark="true"] th,
+.tutorial-md[data-dark="true"] td {
+  border-color: #2d3748;
+}
+
+.tutorial-md th {
+  background: #f1f5f9;
+  font-weight: 600;
+}
+
+[data-theme="dark"] .tutorial-md th,
+.tutorial-md[data-dark="true"] th {
+  background: #2a2d33;
+}
