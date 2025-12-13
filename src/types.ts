@@ -3,11 +3,18 @@ export interface Course {
   title: string;
   description: string;
   modules: Module[];
-  fullyGenerated: boolean;
   status: Status;
+  task_id: string;
+  created_at: string;
+  updated_at: string;
 }
 
-export type Status = "NOT_GENERATED" | "LOADING" | "IN_PROGRESS" | "COMPLETED";
+export type Status =
+  | "NOT_GENERATED"
+  | "LOADING"
+  | "IN_PROGRESS"
+  | "COMPLETED"
+  | "GENERATING";
 
 export interface Module {
   id: string;
@@ -48,6 +55,7 @@ export interface Quiz {
       question: string;
       options: string[];
       correct_option_index: number;
+      explanation: string;
     }
   ];
 }
@@ -83,4 +91,10 @@ export interface ClarifyLessonRequest {
 export interface GenerateQuizRequest {
   lessonName: string;
   content: string[];
+}
+
+export interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+  timestamp: Date;
 }

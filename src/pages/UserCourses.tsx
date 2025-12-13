@@ -11,44 +11,42 @@ import {
     SkeletonText,
     Icon,
     Button,
-    Input,
     Progress,
     createListCollection,
-    Select,
     Portal,
     Dialog,
     CloseButton,
-    Tag,
-    Collapsible,
-    Stack,
-    Badge
 } from "@chakra-ui/react";
 import { useColorModeValue } from "../components/ui/color-mode";
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { FaBookOpen, FaTrash } from "react-icons/fa";
-import { FaSortAmountDown, FaSortAmountUp } from "react-icons/fa";
-import { MdFilterList, MdFilterListOff } from "react-icons/md";
 import { Loader } from "../components/Loader";
 import TagHandler from "../components/TagHandler";
+import FilterControls from "../components/Filters.tsx";
+import { formatDate } from "../utils/utils";
+import { type Course } from "../types";
 
+export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
-const UserCourses = () => {
+const UserCourses: React.FC = () => {
     const { user, loading } = useUser();
-    const [courses, setCourses] = useState<any[]>([]);
+    const [courses, setCourses] = useState<Course[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
-    const [sortAsc, setSortAsc] = useState(true);
+    const [sortAsc, setSortAsc] = useState(false);
     const [sortKey, setSortKey] = useState<"created" | "modules" | "progress">("created");
-    const [showFilters, setShowFilters] = useState(false);
+
+    // UI Colors
     const headerColor = useColorModeValue("teal.700", "teal.300");
     const cardBg = useColorModeValue("white", "gray.900");
     const cardHoverBg = useColorModeValue("gray.50", "gray.700");
     const emptyTextColor = useColorModeValue("gray.600", "gray.400");
+    const cardBorderColor = useColorModeValue("teal.200", "teal.700");
 
     const navigate = useNavigate();
 
-    const sortKeys = createListCollection({
+    const sortKeysCollection = createListCollection({
         items: [
             { label: "Created Time", value: "created" },
             { label: "Number of Modules", value: "modules" },
@@ -56,11 +54,12 @@ const UserCourses = () => {
         ],
     });
 
+    // 1. Fetch Courses
     useEffect(() => {
         if (!user) return;
         const fetchCourses = async () => {
             setIsLoading(true);
-            const response = await fetchWithTimeout("http://localhost:8000/get_all_courses", {
+            const response = await fetchWithTimeout(`${BACKEND_URL}/get_all_courses`, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
@@ -75,15 +74,13 @@ const UserCourses = () => {
         fetchCourses();
     }, [user]);
 
-    // Poll backend for updates while any course is in GENERATING state
-    // Poll each generating course by its task_id (one interval per task)
+    // 2. Polling Logic
     const pollersRef = useRef<Record<string, number | null>>({});
 
-    // helper to refresh the full course list (reuse existing fetch logic)
     const refreshCourses = async () => {
         if (!user) return;
         try {
-            const response = await fetchWithTimeout("http://localhost:8000/get_all_courses", {
+            const response = await fetchWithTimeout(`${BACKEND_URL}/get_all_courses`, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
@@ -99,44 +96,34 @@ const UserCourses = () => {
     };
 
     const startPollingTask = (taskId: string) => {
-        if (!taskId || pollersRef.current[taskId]) return; // already polling
+        if (!taskId || pollersRef.current[taskId]) return;
         const id = window.setInterval(async () => {
             try {
-                const res = await fetchWithTimeout(`http://localhost:8000/task-status/course_outline/${taskId}`, {
+                const res = await fetchWithTimeout(`${BACKEND_URL}/task-status/course_outline/${taskId}`, {
                     method: "GET",
                     headers: {
                         "Content-Type": "application/json",
                         Authorization: `Bearer ${user?.token}`,
                     },
                 });
-                if (!res.ok) {
-                    console.warn("task-status returned non-ok for", taskId);
-                    return;
-                }
+                if (!res.ok) return;
                 const data = await res.json();
-                console.log("data", data)
-                // data expected to include status (and possibly course_id)
+
                 if (data.status === "SUCCESS" || data.status === "COMPLETED") {
-                    // refresh course list so UI shows completed/generated course
                     await refreshCourses();
-                    // stop polling this task
                     if (pollersRef.current[taskId]) {
                         clearInterval(pollersRef.current[taskId] as number);
                         pollersRef.current[taskId] = null;
                     }
                 } else if (data.status === "FAILURE") {
-                    console.error("Task failed:", taskId, data);
-                    // refresh to reflect failure state as well
                     await refreshCourses();
                     if (pollersRef.current[taskId]) {
                         clearInterval(pollersRef.current[taskId] as number);
                         pollersRef.current[taskId] = null;
                     }
                 }
-                // else keep polling
             } catch (err) {
                 console.error("Error polling task", taskId, err);
-                // on repeated errors you might clear the interval — optional
             }
         }, 3000);
         pollersRef.current[taskId] = id;
@@ -152,30 +139,21 @@ const UserCourses = () => {
 
     useEffect(() => {
         if (!user) return;
-        // start polling for each generating course that has a task_id
         const generatingTasks = new Set(
             courses.filter((c) => c.status === "GENERATING" && c.task_id).map((c) => c.task_id)
         );
-        console.log("Generating tasks", generatingTasks)
-        // start new pollers
+
         generatingTasks.forEach((taskId) => {
             startPollingTask(taskId);
         });
 
-        // stop pollers for tasks that are no longer generating
         Object.keys(pollersRef.current).forEach((taskId) => {
             if (!generatingTasks.has(taskId) && pollersRef.current[taskId]) {
                 stopPollingTask(taskId);
             }
         });
-
-        return () => {
-            // cleanup: clear any intervals created during this effect run
-            // (we don't fully teardown all pollers here because other renders may restart them)
-        };
     }, [user, courses]);
 
-    // clear all pollers on unmount
     useEffect(() => {
         return () => {
             Object.keys(pollersRef.current).forEach((taskId) => {
@@ -187,31 +165,50 @@ const UserCourses = () => {
         };
     }, []);
 
-    const formatDate = (dateStr: string) =>
-        new Date(dateStr).toLocaleDateString(undefined, {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-        });
-
-
     const getProgress = (course: any) => {
         if (!course.modules || course.modules.length === 0) return 0;
         const completed = course.modules.filter((m: any) => m.status === "COMPLETED").length;
         return Math.round((completed / course.modules.length) * 100);
     };
 
+    const handleDeleteCourse = async (courseId: string) => {
+        if (!user) return;
+        try {
+            const response = await fetchWithTimeout(`${BACKEND_URL}/courses/${courseId}`, {
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${user.token}`,
+                },
+            });
+            if (response.ok) {
+                setCourses((prev) => prev.filter((c) => c.id !== courseId));
+            }
+        } catch (error) {
+            console.error("Error deleting course:", error);
+        }
+    }
+    console.log("sortKey", sortKey, "sortAsc", sortAsc);
+
+    // 4. Filter & Sort Logic (UPDATED)
     const filteredCourses = courses
         .filter((c) => c.title?.toLowerCase().includes(searchTerm.toLowerCase()))
         .sort((a, b) => {
+            // Priority: Generating items always first
+            const isAGen = a.status === "GENERATING";
+            const isBGen = b.status === "GENERATING";
+
+            if (isAGen && !isBGen) return -1;
+            if (!isAGen && isBGen) return 1;
+
+            // Standard Sorting
             let valA: number | Date;
             let valB: number | Date;
 
             if (sortKey === "created") {
                 valA = new Date(a.created_at).getTime();
                 valB = new Date(b.created_at).getTime();
+                console.log("Sorting by created:", valA, valB);
             } else if (sortKey === "modules") {
                 valA = a.modules?.length || 0;
                 valB = b.modules?.length || 0;
@@ -223,96 +220,39 @@ const UserCourses = () => {
             return sortAsc ? (valA as number) - (valB as number) : (valB as number) - (valA as number);
         });
 
-    const handleDeleteCourse = async (courseId: string) => {
-        if (!user) return;
-        try {
-            const response = await fetchWithTimeout(`http://localhost:8000/courses/${courseId}`, {
-                method: "DELETE",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${user.token}`,
-                },
-            });
-            if (response.ok) {
-                setCourses((prev) => prev.filter((c) => c.id !== courseId));
-            } else {
-                console.error("Failed to delete course");
-            }
-        } catch (error) {
-            console.error("Error deleting course:", error);
-        }
-    }
-
     return (
         <>
             {loading ? (
                 <Loader />
-            ) : (<Box maxW="7xl" mx="auto" px={6} py={10}>
-                {/* Header + Controls */}
-                <Heading mb={2} textAlign="center" color="brand.fg">
-                    My Courses
-                </Heading>
-                <Text textAlign="center" color="brand.fg" mb={10}>
-                    Explore and continue your learning journeys
-                </Text>
-                {/* <Button textAlign="center" variant="ghost" onClick={() => navigate("/")}>
-                    <IoAddOutline />
-                    Create Course
-                </Button> */}
+            ) : (
+                <Box maxW="7xl" mx="auto" px={6} py={10}>
+                    {/* Header */}
+                    <Heading mb={2} textAlign="center" color="brand.fg">
+                        My Courses
+                    </Heading>
+                    <Text textAlign="center" color="brand.fg" mb={10}>
+                        Explore and continue your learning journeys
+                    </Text>
 
+                    {/* Controls */}
+                    <FilterControls
+                        searchTerm={searchTerm}
+                        setSearchTerm={setSearchTerm}
+                        sortKey={sortKey}
+                        setSortKey={setSortKey}
+                        sortAsc={sortAsc}
+                        setSortAsc={setSortAsc}
+                        sortKeysCollection={sortKeysCollection}
+                    />
 
-                {/* Search + Sort */}
-                <Collapsible.Root>
-                    <Collapsible.Trigger paddingY="3">
-                        <HStack gap={2} align="center" justify="space-between" w="100%">
-
-                            <Button variant="ghost" onClick={() => setShowFilters(!showFilters)}>
-                                {showFilters ? <MdFilterListOff /> : <MdFilterList />}
-                            </Button>
-                        </HStack>
-                    </Collapsible.Trigger>
-                    <Collapsible.Content>
-                        <HStack gap={2} mb={2} flexWrap="wrap">
-
-                            <Button variant="ghost" size="sm" onClick={() => setSortAsc(!sortAsc)} colorScheme="teal">
-                                {sortAsc ? <FaSortAmountUp /> : <FaSortAmountDown />}
-                            </Button>
-                            <Select.Root collection={sortKeys} onValueChange={(val: any) => setSortKey(val as any)} maxW="200px">
-                                <Select.Trigger>
-                                    <Select.ValueText placeholder="Sort by..." />
-                                </Select.Trigger>
-                                <Portal>
-                                    <Select.Positioner>
-                                        <Select.Content>
-                                            {sortKeys.items.map((sk) => (
-                                                <Select.Item item={sk} key={sk.value}>
-                                                    {sk.label}
-                                                    <Select.ItemIndicator />
-                                                </Select.Item>
-                                            ))}
-                                        </Select.Content>
-                                    </Select.Positioner>
-                                </Portal>
-                            </Select.Root>
-                            <Input
-                                placeholder="Search by course title..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                maxW="70%"
-                            />
-                        </HStack>
-
-                    </Collapsible.Content>
-                </Collapsible.Root>
-
-                {/* Loading */}
-                {
-                    isLoading ? (
+                    {/* Course Grid */}
+                    {isLoading ? (
                         <Box
                             display="grid"
                             gridTemplateColumns="repeat(auto-fill, minmax(280px, 1fr))"
                             gap={6}
                             alignItems="stretch"
+                            mt={8}
                         >
                             {[...Array(4)].map((_, idx) => (
                                 <Card.Root
@@ -321,14 +261,10 @@ const UserCourses = () => {
                                     shadow="md"
                                     rounded="lg"
                                     p={4}
-                                    display="flex"
-                                    flexDirection="column"
                                     minH="250px"
                                 >
                                     <Skeleton height="20px" width="70%" mb={3} />
                                     <SkeletonText mt="2" noOfLines={3} gap="2" />
-                                    <Skeleton height="16px" width="50%" mt={3} />
-                                    <Skeleton height="10px" width="100%" mt={4} />
                                 </Card.Root>
                             ))}
                         </Box>
@@ -345,108 +281,142 @@ const UserCourses = () => {
                             gridTemplateColumns="repeat(auto-fill, minmax(280px, 1fr))"
                             gap={6}
                             alignItems="stretch"
+                            mt={8} // Added Top Margin to separate from controls
                         >
-                            {filteredCourses.map((course) => (
-                                <Box
-                                    key={course.id}
-                                    cursor="pointer"
-                                    transition="all 0.2s"
-                                    _hover={{ transform: "translateY(-4px)" }}
-                                    onClick={() => navigate(`/course/${course.id}`)}
-                                    display="flex"
-                                    marginTop={10}
-                                >
-                                    <Card.Root
-                                        bg={cardBg}
-                                        _hover={{ bg: cardHoverBg }}
-                                        shadow="md"
-                                        rounded="lg"
-                                        p={4}
+                            {filteredCourses.map((course) => {
+                                const isGenerating = course.status === "GENERATING";
+
+                                return (
+                                    <Box
+                                        key={course.id}
+                                        cursor={isGenerating ? "wait" : "pointer"}
+                                        transition="all 0.2s"
+                                        _hover={{ transform: "translateY(-4px)" }}
+                                        onClick={() => !isGenerating && navigate(`/course/${course.id}`)}
                                         display="flex"
-                                        flexDirection="column"
-                                        flex="1"
-                                        minH="250px"
-                                        minW="300px"
-                                        borderRadius="xl"
                                     >
-                                        <Card.Header>
-                                            <Card.Title>{course.title}</Card.Title>
-                                        </Card.Header>
-                                        <Card.Body flex="1" display="flex" flexDirection="column">
-                                            <VStack align="start" gap={2} flex="1">
-                                                <Text fontSize="sm" color="gray.500">
-                                                    Created: {formatDate(course.created_at)}
-                                                </Text>
-                                                <Text fontSize="sm" color="gray.500">
-                                                    Modules: {course.modules?.length || 0}
-                                                </Text>
-                                                <TagHandler status={course.status} />
-                                                {course.description && (
-                                                    <Text fontSize="sm" color="gray.600" lineClamp={2}>
-                                                        {course.description}
-                                                    </Text>
+                                        <Card.Root
+                                            bg={cardBg}
+                                            borderColor={isGenerating ? "teal.400" : cardBorderColor}
+                                            borderWidth={isGenerating ? "2px" : "1px"}
+                                            boxShadow={isGenerating ? "0 0 10px var(--chakra-colors-teal-400)" : "md"}
+                                            _hover={{ bg: cardHoverBg }}
+                                            rounded="lg"
+                                            p={4}
+                                            display="flex"
+                                            flexDirection="column"
+                                            flex="1"
+                                            h="100%"
+                                            minH="250px"
+                                            borderRadius="xl"
+
+                                        >
+                                            <Card.Header pb={2}>
+                                                <Card.Title lineClamp={2}>{course.title}</Card.Title>
+                                            </Card.Header>
+
+                                            <Card.Body flex="1" display="flex" flexDirection="column" gap={3}>
+                                                {/* Logic to show simplified content if Generating */}
+                                                {isGenerating ? (
+                                                    <VStack align="start" justify="center" flex="1" gap={4}>
+                                                        <TagHandler status={course.status} />
+                                                        <Text fontSize="sm" color="gray.500" fontStyle="italic">
+                                                            AI is currently building your modules and curriculum.
+                                                        </Text>
+                                                    </VStack>
+                                                ) : (
+                                                    <VStack align="start" gap={1} flex="1">
+                                                        <Text fontSize="xs" color="gray.500">
+                                                            Created: {formatDate(course.created_at)}
+                                                        </Text>
+                                                        <Text fontSize="sm" fontWeight="medium" color="gray.600">
+                                                            Modules: {course.modules?.length || 0}
+                                                        </Text>
+                                                        <TagHandler status={course.status} />
+                                                        {course.description && (
+                                                            <Text fontSize="sm" color="gray.600" lineClamp={4} mt={1}>
+                                                                {course.description}
+                                                            </Text>
+                                                        )}
+                                                    </VStack>
                                                 )}
-                                                <Box w="100%" mt="auto">
+
+                                                <Box w="100%" mt="auto" pt={4}>
                                                     <Progress.Root
-                                                        value={getProgress(course)}
+                                                        value={isGenerating ? null : getProgress(course)}
                                                         size="sm"
                                                         colorScheme="teal"
                                                         borderRadius="md"
+                                                        striped={isGenerating}
+                                                        animated={isGenerating}
                                                     >
                                                         <Progress.Track>
-                                                            {getProgress(course) > 0 && (
+                                                            {(getProgress(course) > 0 || isGenerating) && (
                                                                 <Progress.Range bg="teal.500" />
                                                             )}
                                                         </Progress.Track>
                                                     </Progress.Root>
-                                                    <Text fontSize="xs" color="gray.500" mt={1}>
-                                                        {getProgress(course)}% completed
-                                                    </Text>
-                                                </Box>
-                                                <Dialog.Root>
-                                                    <Dialog.Trigger asChild>
-                                                        <Button onClick={(e) => e.stopPropagation()} variant="outline" size="sm">
-                                                            <FaTrash />
-                                                        </Button>
-                                                    </Dialog.Trigger>
-                                                    <Portal>
-                                                        <Dialog.Backdrop />
-                                                        <Dialog.Positioner>
-                                                            <Dialog.Content>
-                                                                <Dialog.Header>
-                                                                    <Dialog.Title>Delete Course</Dialog.Title>
-                                                                </Dialog.Header>
-                                                                <Dialog.Body>
-                                                                    <p>
-                                                                        Do you want to delete this course?
-                                                                    </p>
-                                                                </Dialog.Body>
-                                                                <Dialog.Footer>
-                                                                    <Dialog.ActionTrigger asChild>
-                                                                        <Button onClick={(e) => { e.stopPropagation() }} variant="outline">Cancel</Button>
-                                                                    </Dialog.ActionTrigger>
-                                                                    <Button onClick={(e) => {
-                                                                        e.stopPropagation()
-                                                                        handleDeleteCourse(course.id);
-                                                                    }}>Delete</Button>
-                                                                </Dialog.Footer>
-                                                                <Dialog.CloseTrigger asChild>
-                                                                    <CloseButton size="sm" />
-                                                                </Dialog.CloseTrigger>
-                                                            </Dialog.Content>
-                                                        </Dialog.Positioner>
-                                                    </Portal>
-                                                </Dialog.Root>
-                                            </VStack>
-                                        </Card.Body>
-                                    </Card.Root>
-                                </Box>
-                            ))}
+                                                    <HStack justify="space-between" mt={1}>
+                                                        <Text fontSize="xs" color="gray.500">
+                                                            {isGenerating ? "Processing..." : `${getProgress(course)}% completed`}
+                                                        </Text>
 
+                                                        {/* Hide Delete Button if Generating */}
+                                                        {!isGenerating && (
+                                                            <Dialog.Root>
+                                                                <Dialog.Trigger asChild>
+                                                                    <Button
+                                                                        onClick={(e) => e.stopPropagation()}
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        h="24px"
+                                                                    >
+                                                                        <FaTrash />
+                                                                    </Button>
+                                                                </Dialog.Trigger>
+                                                                <Portal>
+                                                                    <Dialog.Backdrop />
+                                                                    <Dialog.Positioner>
+                                                                        <Dialog.Content>
+                                                                            <Dialog.Header>
+                                                                                <Dialog.Title>Delete Course</Dialog.Title>
+                                                                            </Dialog.Header>
+                                                                            <Dialog.Body>
+                                                                                <Text>Do you want to delete this course?</Text>
+                                                                            </Dialog.Body>
+                                                                            <Dialog.Footer>
+                                                                                <Dialog.ActionTrigger asChild>
+                                                                                    <Button onClick={(e) => e.stopPropagation()} variant="outline">Cancel</Button>
+                                                                                </Dialog.ActionTrigger>
+                                                                                <Button
+                                                                                    colorPalette="red"
+                                                                                    onClick={(e) => {
+                                                                                        e.stopPropagation()
+                                                                                        handleDeleteCourse(course.id);
+                                                                                    }}
+                                                                                >
+                                                                                    Delete
+                                                                                </Button>
+                                                                            </Dialog.Footer>
+                                                                            <Dialog.CloseTrigger asChild>
+                                                                                <CloseButton size="sm" />
+                                                                            </Dialog.CloseTrigger>
+                                                                        </Dialog.Content>
+                                                                    </Dialog.Positioner>
+                                                                </Portal>
+                                                            </Dialog.Root>
+                                                        )}
+                                                    </HStack>
+                                                </Box>
+                                            </Card.Body>
+                                        </Card.Root>
+                                    </Box>
+                                );
+                            })}
                         </Box>
-                    )
-                }
-            </Box >)}
+                    )}
+                </Box >
+            )}
         </>
     );
 };

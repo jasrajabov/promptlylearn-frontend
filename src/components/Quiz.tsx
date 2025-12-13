@@ -16,6 +16,7 @@ import { FaCheck, FaTimes } from "react-icons/fa";
 import type { Quiz } from "../types";
 import { useColorModeValue } from "./ui/color-mode";
 
+
 interface ModuleQuizProps {
     quiz: Quiz;
     setShowQuiz: (show: boolean) => void;
@@ -28,9 +29,11 @@ const ModuleQuiz: React.FC<ModuleQuizProps> = ({
     const [selectedAnswers, setSelectedAnswers] = useState<(number | null)[]>(
         Array(quiz.questions?.length || 0).fill(null)
     );
+    console.log("Quiz component quiz prop:", quiz);
     const [currentQ, setCurrentQ] = useState(0);
     const [submitted, setSubmitted] = useState(false);
     const [score, setScore] = useState<number | null>(null);
+    const [explanationVisible, setExplanationVisible] = useState<boolean[]>(quiz.questions.map(() => false));
 
     if (!quiz?.questions?.length) return null;
 
@@ -59,7 +62,7 @@ const ModuleQuiz: React.FC<ModuleQuizProps> = ({
     const currentQuestion = quiz.questions[currentQ];
 
     return (
-        <Box mt={6} w="100%" maxW="100%">
+        <Box alignContent="center" alignItems="center" width="100%" maxW="70%" justifyContent="center" mt={6}>
             {!submitted ? (
                 <>
                     <Heading size="md" mb={4}>
@@ -78,7 +81,7 @@ const ModuleQuiz: React.FC<ModuleQuizProps> = ({
                                 fontWeight="semibold"
                                 color={useColorModeValue("teal.800", "teal.500")}
                             >
-                                Q{currentQ + 1}: {currentQuestion.question}
+                                Question {currentQ + 1}: {currentQuestion.question}
                             </Text>
                         </CardHeader>
                         <CardBody>
@@ -110,6 +113,7 @@ const ModuleQuiz: React.FC<ModuleQuizProps> = ({
                         <Button
                             onClick={() => setCurrentQ((q) => q - 1)}
                             disabled={currentQ === 0}
+                            variant={"ghost"}
                         >
                             Previous
                         </Button>
@@ -119,6 +123,7 @@ const ModuleQuiz: React.FC<ModuleQuizProps> = ({
                                 onClick={() => setCurrentQ((q) => q + 1)}
                                 colorScheme="teal"
                                 disabled={selectedAnswers[currentQ] === null}
+                                variant={"ghost"}
                             >
                                 Next
                             </Button>
@@ -127,6 +132,7 @@ const ModuleQuiz: React.FC<ModuleQuizProps> = ({
                                 onClick={handleSubmit}
                                 colorScheme="teal"
                                 disabled={selectedAnswers[currentQ] === null}
+                                variant={"ghost"}
                             >
                                 Submit Quiz
                             </Button>
@@ -155,8 +161,8 @@ const ModuleQuiz: React.FC<ModuleQuizProps> = ({
                         {quiz.questions.map((q, qIdx) => (
                             <Card.Root key={qIdx} shadow="sm" borderRadius="lg" w="100%">
                                 <CardHeader>
-                                    <Text fontWeight="semibold">
-                                        Q{qIdx + 1}: {q.question}
+                                    <Text fontWeight="semibold" fontSize={"lg"}>
+                                        Question: {qIdx + 1}: {q.question}
                                     </Text>
                                 </CardHeader>
                                 <CardBody>
@@ -172,35 +178,58 @@ const ModuleQuiz: React.FC<ModuleQuizProps> = ({
                                                 bg = useColorModeValue("red.100", "red.700");
 
                                             return (
-                                                <HStack
-                                                    key={oIdx}
-                                                    p={2}
-                                                    borderRadius="md"
-                                                    bg={bg}
-                                                    justifyContent="space-between"
-                                                    w="100%"
-                                                >
-                                                    <Text>{option}</Text>
-                                                    {isCorrect && (
-                                                        <Icon as={FaCheck} color="green.500" />
-                                                    )}
-                                                    {isSelected && !isCorrect && (
-                                                        <Icon as={FaTimes} color="red.500" />
-                                                    )}
-                                                </HStack>
+                                                <>
+                                                    <HStack
+                                                        key={oIdx}
+                                                        p={2}
+                                                        borderRadius="md"
+                                                        bg={bg}
+                                                        justifyContent="space-between"
+                                                        w="100%"
+                                                    >
+                                                        <Text>{option}</Text>
+                                                        {isCorrect && (
+                                                            <Icon as={FaCheck} color="green.500" />
+                                                        )}
+                                                        {isSelected && !isCorrect && (
+                                                            <Icon as={FaTimes} color="red.500" />
+                                                        )}
+                                                    </HStack>
+
+                                                </>
+
                                             );
                                         })}
                                     </VStack>
+                                    <Button
+                                        onClick={() => {
+                                            const next = [...explanationVisible];
+                                            next[qIdx] = !next[qIdx];
+                                            setExplanationVisible(next);
+                                        }}
+                                        size="sm"
+                                        width="15%"
+                                        variant="ghost"
+                                        mt={4}
+                                    >
+                                        {explanationVisible[qIdx] ? "Hide Explanation" : "Show Explanation"}
+                                    </Button>
+                                    {explanationVisible[qIdx] && (
+                                        <Text mt={4} fontStyle="italic" fontSize="sm" color={useColorModeValue("teal.700", "teal.300")}>
+                                            Explanation: {q.explanation}
+                                        </Text>
+                                    )}
                                 </CardBody>
                             </Card.Root>
                         ))}
                     </VStack>
-                    <Button mt={6} colorScheme="teal" onClick={handleClose} w="100%">
+                    <Button mt={6} variant="ghost" onClick={handleClose}>
                         Close
                     </Button>
                 </>
-            )}
-        </Box>
+            )
+            }
+        </Box >
     );
 };
 

@@ -11,18 +11,31 @@
     "react-icons": "^5.5.0",
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.9.1",
-    "react-syntax-highlighter": "^15.6.6",
+    "react-syntax-highlighter": "^16.1.0",
     "reactflow": "^11.11.4",
     "remark-mermaidjs": "^7.0.0",
     "vite": "^7.1.5"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.1",
     "@types/dagre": "^0.7.53",
     "@types/react": "^19.1.13",
     "@types/react-dom": "^19.1.9",
-    "@types/react-syntax-highlighter": "^15.5.13"
+    "@types/react-syntax-highlighter": "^15.5.13",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "eslint-plugin-vue": "^10.6.1",
+    "globals": "^16.5.0",
+    "jiti": "^2.6.1",
+    "typescript-eslint": "^8.48.0"
   },
   "scripts": {
-    "dev": "vite"
-  }
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --ext .ts,.tsx --fix"
+  },
+  "type": "module"
 }

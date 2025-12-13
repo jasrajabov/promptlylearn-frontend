@@ -1,6 +1,7 @@
-import { Spinner } from "@chakra-ui/react";
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
-import { Loader } from "../components/Loader";
+
+export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
 
 
 export interface User {
@@ -41,7 +42,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (email: string, password: string) => {
     console.log("email:", email, "password:", password)
-    const res = await fetch("http://localhost:8000/login", {
+    const res = await fetch(`${BACKEND_URL}/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
@@ -60,7 +61,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signup = async (name: string, email: string, password: string) => {
-    const res = await fetch("http://localhost:8000/signup", {
+    const res = await fetch(`${BACKEND_URL}/signup`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, email, password }),

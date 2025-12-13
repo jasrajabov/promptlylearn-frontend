@@ -1,9 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Box, Button, Heading, Spinner } from "@chakra-ui/react";
+import { Box, Spinner } from "@chakra-ui/react";
 import { useUser } from "../contexts/UserContext";
 import OpenAIStreamingMarkdown from "./OpenAiMarkdownStream";
-import type { Lesson, Course } from "../types";
+import type { Course } from "../types";
 import fetchWithTimeout from "../utils/dbUtils";
+
+export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 interface LessonCardProps {
     courseState: Course;
@@ -12,7 +14,7 @@ interface LessonCardProps {
     moduleIndex: number;
 }
 
-const LessonCard: React.FC<LessonCardProps> = ({ courseState, setCourseState, lessonIndex, moduleIndex }) => {
+const LessonCard: React.FC<LessonCardProps> = ({ courseState, lessonIndex, moduleIndex }) => {
     const lesson = courseState.modules[moduleIndex].lessons[lessonIndex];
     const { user } = useUser();
     const [lessonContent, setLessonContent] = useState<string | null>(null);
@@ -27,7 +29,7 @@ const LessonCard: React.FC<LessonCardProps> = ({ courseState, setCourseState, le
         setIsLoading(true);
         try {
             console.log("Fetching lesson content for lesson ID:", lesson.id);
-            const dbRes = await fetchWithTimeout(`http://localhost:8000/lessons/${lesson.id}`, {
+            const dbRes = await fetchWithTimeout(`${BACKEND_URL}/lessons/${lesson.id}`, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
@@ -79,7 +81,7 @@ const LessonCard: React.FC<LessonCardProps> = ({ courseState, setCourseState, le
         <Box>
             <OpenAIStreamingMarkdown
                 key={lesson.id}
-                apiUrl="http://localhost:8000/generate-lesson-markdown-stream"
+                apiUrl={`${BACKEND_URL}/generate-lesson-markdown-stream`}
                 body={requestBody}
                 content={lessonContent || undefined}
             />

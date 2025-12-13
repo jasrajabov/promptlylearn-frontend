@@ -1,7 +1,8 @@
+import React from 'react';
 import Header from './Header.tsx';
 import { Spinner } from '@chakra-ui/react';
 
-export const Loader = () => {
+export const Loader: React.FC = () => {
     return (
         <>
             <Header />

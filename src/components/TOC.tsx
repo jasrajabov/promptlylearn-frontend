@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
     Box,
     VStack,
@@ -13,15 +13,11 @@ import {
 import { Timeline } from "@chakra-ui/react";
 import { BiCheck, BiChevronLeft, BiChevronRight, BiTime } from "react-icons/bi";
 import { MdInfo } from "react-icons/md";
-import { FaRobot } from "react-icons/fa";
 import { useLocation } from "react-router-dom";
 import type { Course, Status } from "../types";
-import { useUser } from "../contexts/UserContext";
-import fetchWithTimeout, { generateModule, updateModulStatusDb } from "../utils/dbUtils";
 import { useColorModeValue } from "../components/ui/color-mode";
 import { Tooltip } from "../components/ui/tooltip";
 import type { Module } from "../types";
-import { SlRefresh } from "react-icons/sl";
 
 
 
@@ -219,8 +215,6 @@ export const TOC = ({
                             }
 
                             showArrow
-                        // bg={useColorModeValue("gray.50", "gray.700")}
-                        // color={useColorModeValue("black", "white")}
                         >
                             <Box cursor="pointer" onClick={() => handleModuleOpen(idx)}>
                                 {getStatusIcon(module.status)}

@@ -1,5 +1,5 @@
 
-import { HStack, Spinner, Tag } from "@chakra-ui/react";
+import { HStack, Tag } from "@chakra-ui/react";
 import React from "react";
 import { formatStatus } from "../utils/utils";
 
@@ -29,11 +29,6 @@ const TagHandler: React.FC<TagHandlerProps> = ({ status }) => {
         <Tag.Root size="sm" variant="solid" colorPalette={getTagColor(status)}>
             <HStack>
                 <Tag.Label>{formatStatus(status)}</Tag.Label>
-                <Spinner
-                    ml={2}
-                    display={status === "GENERATING" ? "inline-block" : "none"}
-                    size="sm"
-                />
             </HStack>
 
         </Tag.Root>

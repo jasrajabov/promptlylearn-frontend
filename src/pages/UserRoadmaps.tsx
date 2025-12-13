@@ -1,22 +1,29 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
     Box,
     Heading,
     Text,
-    SimpleGrid,
     Card,
     Button,
     Spinner,
     VStack,
     Dialog,
     Portal,
-    CloseButton
+    CloseButton,
+    createListCollection,
+    Progress,
+    HStack
 } from "@chakra-ui/react";
 import { useColorModeValue } from "../components/ui/color-mode";
 import { useUser } from "../contexts/UserContext";
 import { fetchWithTimeout } from "../utils/dbUtils";
-import { FaBookOpen, FaTrash } from "react-icons/fa";
+import { FaTrash } from "react-icons/fa";
 import TagHandler from "../components/TagHandler";
+import FilterControls from "../components/Filters";
+import { formatDate } from "../utils/utils";
+import { useNavigate } from "react-router-dom";
+
+export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 interface Roadmap {
     id: string;
@@ -25,6 +32,8 @@ interface Roadmap {
     created_at: string;
     status: string;
     task_id: string;
+    description?: string;
+    nodes_json: any[];
 
 }
 
@@ -32,15 +41,56 @@ const UserRoadmaps: React.FC = () => {
     const { user, loading } = useUser();
     const [allRoadmaps, setAllRoadmaps] = React.useState<Roadmap[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [sortAsc, setSortAsc] = useState(false);
+    const [sortKey, setSortKey] = useState<"created" | "modules" | "progress">("created");
+
+
     const cardBg = useColorModeValue("white", "gray.900");
     const cardHoverBg = useColorModeValue("gray.50", "gray.700");
+    const cardBorderColor = useColorModeValue("teal.200", "teal.700");
+
+    const navigate = useNavigate();
+
+    const sortKeysCollection = createListCollection({
+        items: [
+            { label: "Created Time", value: "created" },
+            { label: "Number of Modules", value: "modules" },
+            // { label: "Progress", value: "progress" },
+        ],
+    });
+
+    const updateRoadmapStatus = async (roadmapId: string, status: string) => {
+        try {
+            const res = await fetchWithTimeout(`${BACKEND_URL}/roadmaps/${roadmapId}/status`, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${user?.token}`,
+                },
+                body: JSON.stringify({ status }),
+            });
+            if (res.ok) {
+                console.log(`Roadmap ${roadmapId} status updated to ${status}`);
+            }
+        } catch (err) {
+            console.error("Error updating roadmap status:", err);
+        }
+    }
+
+    // pure helper — NO side effects
+    const getProgress = (roadmap: any) => {
+        if (!roadmap.nodes_json || roadmap.nodes_json.length === 0) return 0;
+        const completed = roadmap.nodes_json.filter((m: any) => m.status === "COMPLETED").length;
+        return Math.round((completed / roadmap.nodes_json.length) * 100);
+    };
 
     useEffect(() => {
         const fetchRoadmaps = async () => {
             if (!user) return;
             try {
                 const response = await fetchWithTimeout(
-                    `http://localhost:8000/get_all_roadmaps`,
+                    `${BACKEND_URL}/get_all_roadmaps`,
                     {
                         method: "GET",
                         headers: {
@@ -56,9 +106,12 @@ const UserRoadmaps: React.FC = () => {
                         id: item.id,
                         roadmap_name: item.roadmap_name,
                         modules: item.nodes_json.length,
-                        created_at: item.nodes_json[0]?.created_at,
+                        created_at: formatDate(item.created_at),
                         status: item.status,
                         task_id: item.task_id,
+                        description: item.description,
+                        nodes_json: item.nodes_json,
+
                     })) || []
                 );
             } catch (err) {
@@ -78,7 +131,7 @@ const UserRoadmaps: React.FC = () => {
     const refreshCourses = async () => {
         if (!user) return;
         try {
-            const response = await fetchWithTimeout("http://localhost:8000/get_all_roadmaps", {
+            const response = await fetchWithTimeout(`${BACKEND_URL}/get_all_roadmaps`, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
@@ -95,9 +148,10 @@ const UserRoadmaps: React.FC = () => {
 
     const startPollingTask = (taskId: string) => {
         if (!taskId || pollersRef.current[taskId]) return; // already polling
+        console.log("Starting poller for task", taskId);
         const id = window.setInterval(async () => {
             try {
-                const res = await fetchWithTimeout(`http://localhost:8000/task-status/roadmap_outline/${taskId}`, {
+                const res = await fetchWithTimeout(`${BACKEND_URL}/task-status/roadmap_outline/${taskId}`, {
                     method: "GET",
                     headers: {
                         "Content-Type": "application/json",
@@ -148,6 +202,9 @@ const UserRoadmaps: React.FC = () => {
     useEffect(() => {
         if (!user) return;
         // start polling for each generating roadmap that has a task_id
+        console.log("Setting up pollers based on current roadmaps");
+        const isGeneratingPresent = allRoadmaps.filter((c) => c.status === "GENERATING");
+        console.log("Is any roadmap generating?", isGeneratingPresent);
         const generatingTasks = new Set(
             allRoadmaps.filter((c) => c.status === "GENERATING" && c.task_id).map((c) => c.task_id)
         );
@@ -186,7 +243,7 @@ const UserRoadmaps: React.FC = () => {
         if (!user) return;
         try {
             await fetchWithTimeout(
-                `http://localhost:8000/delete_roadmap/${roadmapId}`,
+                `${BACKEND_URL}/delete_roadmap/${roadmapId}`,
                 {
                     method: "DELETE",
                     headers: {
@@ -202,6 +259,33 @@ const UserRoadmaps: React.FC = () => {
             console.error("Error deleting roadmap:", err);
         }
     }
+
+    const filteredRoadmaps = allRoadmaps
+        .filter((roadmap) =>
+            roadmap.roadmap_name.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+        .sort((a, b) => {
+            let compareA: any;
+            let compareB: any;
+            switch (sortKey) {
+                case "created":
+                    compareA = new Date(a.created_at).getTime();
+                    compareB = new Date(b.created_at).getTime();
+                    break;
+                case "modules":
+                    compareA = a.modules;
+                    compareB = b.modules;
+                    break;
+                default:
+                    compareA = 0;
+                    compareB = 0;
+            }
+            if (sortAsc) {
+                return compareA - compareB;
+            } else {
+                return compareB - compareA;
+            }
+        });
     return (
         <Box maxW="7xl" mx="auto" px={6} py={10}>
             <Heading mb={2} textAlign="center" color="brand.fg">
@@ -210,8 +294,16 @@ const UserRoadmaps: React.FC = () => {
             <Text textAlign="center" color="brand.fg" mb={10}>
                 Explore and continue your learning journeys
             </Text>
-
-            {allRoadmaps.length === 0 ? (
+            <FilterControls
+                searchTerm={searchTerm}
+                setSearchTerm={setSearchTerm}
+                sortKey={sortKey}
+                setSortKey={setSortKey}
+                sortAsc={sortAsc}
+                setSortAsc={setSortAsc}
+                sortKeysCollection={sortKeysCollection}
+            />
+            {filteredRoadmaps.length === 0 ? (
                 <VStack gap={4} mt={20}>
                     <Text fontSize="lg" color="gray.500">
                         You haven’t created any roadmaps yet.
@@ -221,79 +313,132 @@ const UserRoadmaps: React.FC = () => {
                     </Button>
                 </VStack>
             ) : (
-                <Box display="grid" gridTemplateColumns="repeat(auto-fill, minmax(280px, 1fr))" gap={6}>
-                    {allRoadmaps.map((roadmap) => (
-                        <Card.Root
-                            key={roadmap.id}
-                            bg={cardBg}
-                            _hover={{ bg: cardHoverBg }}
-                            shadow="md"
-                            rounded="lg"
-                            p={1}
-                            display="flex"
-                            flexDirection="column"
-                            flex="1"
-                            // w="100%"
-                            // h="100%"
-                            minH="350px"
-                            borderRadius="xl"
-                            onClick={() => (window.location.href = `/roadmap/${roadmap.id}`)}
-                        >
-                            <Card.Header>
-                                <Card.Title>{roadmap.roadmap_name}</Card.Title>
-                                <Card.Description>
-                                    Created: {roadmap.created_at}
-                                </Card.Description>
-                                <Card.Description>
-                                    Modules: {roadmap.modules}
-                                </Card.Description>
-                                <TagHandler status={roadmap.status} />
 
-                            </Card.Header>
+                <Box display="grid"
+                    gridTemplateColumns="repeat(auto-fill, minmax(280px, 1fr))"
+                    gap={6}
+                    alignItems="stretch"
+                    mt={8} >
+                    {filteredRoadmaps.map((roadmap) => {
+                        const isGenerating = roadmap.status === "GENERATING";
+                        return (
+                            <Box
+                                key={roadmap.id}
+                                cursor={isGenerating ? "wait" : "pointer"}
+                                transition="all 0.2s"
+                                _hover={{ transform: "translateY(-4px)" }}
+                                onClick={() => !isGenerating && navigate(`/roadmap/${roadmap.id}`)}
+                                display="flex"
+                            >
+                                <Card.Root
+                                    key={roadmap.id}
+                                    bg={cardBg}
+                                    borderColor={isGenerating ? "teal.400" : cardBorderColor}
+                                    borderWidth={isGenerating ? "2px" : "1px"}
+                                    boxShadow={isGenerating ? "0 0 10px var(--chakra-colors-teal-400)" : "md"}
+                                    _hover={{ bg: cardHoverBg }}
+                                    rounded="lg"
+                                    p={4}
+                                    display="flex"
+                                    flexDirection="column"
+                                    flex="1"
+                                    h="100%"
+                                    minH="250px"
+                                    borderRadius="xl"
+                                >
+                                    <Card.Header pb={2}>
+                                        <Card.Title lineClamp={2}>{roadmap.roadmap_name}</Card.Title>
+                                    </Card.Header>
 
-                            <Card.Body>
+                                    <Card.Body flex="1" display="flex" flexDirection="column" gap={3}>
+                                        {isGenerating ? (
+                                            <VStack align="start" justify="center" flex="1" gap={4}>
+                                                <TagHandler status={roadmap.status} />
+                                                <Text fontSize="sm" color="gray.500" fontStyle="italic">
+                                                    AI is currently building your modules and curriculum.
+                                                </Text>
+                                            </VStack>
+                                        ) : (
+                                            <VStack align="start" gap={1} flex="1">
+                                                <Text fontSize="xs" color="gray.500">
+                                                    Created: {formatDate(roadmap.created_at)}
+                                                </Text>
+                                                <Text fontSize="sm" fontWeight="medium" color="gray.600">
+                                                    Modules: {roadmap.modules || 0}
+                                                </Text>
+                                                <TagHandler status={roadmap.status} />
+                                                {roadmap.description && (
+                                                    <Text fontSize="sm" color="gray.600" lineClamp={4} mt={1}>
+                                                        {roadmap.description}
+                                                    </Text>
+                                                )}
+                                            </VStack>
+                                        )}
+                                        <Box w="100%" mt="auto" pt={4}>
+                                            <Progress.Root
+                                                value={isGenerating ? null : getProgress(roadmap)}
+                                                size="sm"
+                                                colorScheme="teal"
+                                                borderRadius="md"
+                                                striped={isGenerating}
+                                                animated={isGenerating}
+                                            >
+                                                <Progress.Track>
+                                                    {(getProgress(roadmap) > 0 || isGenerating) && (
+                                                        <Progress.Range bg="teal.500" />
+                                                    )}
+                                                </Progress.Track>
+                                            </Progress.Root>
+                                            <HStack justify="space-between" mt={1}>
+                                                <Text fontSize="xs" color="gray.500">
+                                                    {isGenerating ? "Processing..." : `${getProgress(roadmap)}% completed`}
+                                                </Text>
+                                                <Dialog.Root>
+                                                    <Dialog.Trigger asChild>
+                                                        <Button onClick={(e) => e.stopPropagation()} variant="ghost" size="sm">
+                                                            <FaTrash />
+                                                        </Button>
+                                                    </Dialog.Trigger>
+                                                    <Portal>
+                                                        <Dialog.Backdrop />
+                                                        <Dialog.Positioner>
+                                                            <Dialog.Content>
+                                                                <Dialog.Header>
+                                                                    <Dialog.Title>Delete Roadmap</Dialog.Title>
+                                                                </Dialog.Header>
+                                                                <Dialog.Body>
+                                                                    <p>
+                                                                        Do you want to delete this roadmap?
+                                                                    </p>
+                                                                </Dialog.Body>
+                                                                <Dialog.Footer>
+                                                                    <Dialog.ActionTrigger asChild>
+                                                                        <Button onClick={(e) => { e.stopPropagation() }} variant="outline">Cancel</Button>
+                                                                    </Dialog.ActionTrigger>
+                                                                    <Button onClick={(e) => {
+                                                                        e.stopPropagation()
+                                                                        handleDeleteRoadmap(roadmap.id);
+                                                                    }}>Delete</Button>
+                                                                </Dialog.Footer>
+                                                                <Dialog.CloseTrigger asChild>
+                                                                    <CloseButton size="sm" />
+                                                                </Dialog.CloseTrigger>
+                                                            </Dialog.Content>
+                                                        </Dialog.Positioner>
+                                                    </Portal>
+                                                </Dialog.Root>
+                                            </HStack>
+                                        </Box>
 
-                            </Card.Body>
-                            <Card.Footer>
-                                <Dialog.Root>
-                                    <Dialog.Trigger asChild>
-                                        <Button onClick={(e) => e.stopPropagation()} variant="ghost" size="sm">
-                                            <FaTrash />
-                                        </Button>
-                                    </Dialog.Trigger>
-                                    <Portal>
-                                        <Dialog.Backdrop />
-                                        <Dialog.Positioner>
-                                            <Dialog.Content>
-                                                <Dialog.Header>
-                                                    <Dialog.Title>Delete Roadmap</Dialog.Title>
-                                                </Dialog.Header>
-                                                <Dialog.Body>
-                                                    <p>
-                                                        Do you want to delete this roadmap?
-                                                    </p>
-                                                </Dialog.Body>
-                                                <Dialog.Footer>
-                                                    <Dialog.ActionTrigger asChild>
-                                                        <Button onClick={(e) => { e.stopPropagation() }} variant="outline">Cancel</Button>
-                                                    </Dialog.ActionTrigger>
-                                                    <Button onClick={(e) => {
-                                                        e.stopPropagation()
-                                                        handleDeleteRoadmap(roadmap.id);
-                                                    }}>Delete</Button>
-                                                </Dialog.Footer>
-                                                <Dialog.CloseTrigger asChild>
-                                                    <CloseButton size="sm" />
-                                                </Dialog.CloseTrigger>
-                                            </Dialog.Content>
-                                        </Dialog.Positioner>
-                                    </Portal>
-                                </Dialog.Root>
-                            </Card.Footer>
-                        </Card.Root>
-                    ))}
+                                    </Card.Body>
+                                </Card.Root>
+                            </Box>
+                        )
+                    })}
                 </Box>
-            )}
+
+            )
+            }
         </Box>
     );
 };

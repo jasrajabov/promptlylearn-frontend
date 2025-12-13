@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import ReactFlow, {
     Background,
@@ -14,11 +14,17 @@ import {
     Spinner,
     Center,
     Heading,
+    Text,
+    Badge,
+    HStack,
+
 } from "@chakra-ui/react";
 import dagre from "dagre";
 import { useUser } from "../contexts/UserContext";
 import { RoadmapNode } from "../components/RoadmapNode";
-import { RoadmapLegendFloating } from "../components/RoadmapLegened";
+import { getTypeColor } from "../components/constants";
+import { useColorModeValue } from "../components/ui/color-mode";
+export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 // --- INTERFACE DEFINITIONS ---
 
@@ -29,6 +35,7 @@ interface RoadmapNodeResponse {
     type?: string;
     order_index?: number;
     course_id?: string;
+    status?: string;
 }
 
 interface RoadmapData {
@@ -97,18 +104,34 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
 
 export default function TrackRoadmap() {
     const [label, setLabel] = useState<string>("");
+    const [description, setDescription] = useState<string>("");
+    const [roadmapNodeTypes, setRoadmapNodeTypes] = useState<Set<string>>(new Set());
+    // keep both the full (layouted) set and the filtered view
+    const [allNodes, setAllNodes] = useState<Node[]>([]);
+    const [allEdges, setAllEdges] = useState<Edge[]>([]);
     const [nodes, setNodes] = useState<Node[]>([]);
     const [edges, setEdges] = useState<Edge[]>([]);
+    const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
     const [loading, setLoading] = useState(true);
     const { id } = useParams<{ id: string }>();
     const { user } = useUser();
 
+    const visibleNodes = useMemo(() => {
+        if (!selectedTypes || selectedTypes.size === 0) return allNodes;
+        return allNodes.filter((n) => selectedTypes.has((n.data?.type ?? "").toString()));
+    }, [allNodes, selectedTypes]);
+
+    const visibleNodeIds = useMemo(() => new Set(visibleNodes.map((n) => n.id)), [visibleNodes]);
     // Memoized layout function
     const layoutNodes = useCallback((n: Node[], e: Edge[]) => {
         const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(n, e);
         setNodes(layoutedNodes);
         setEdges(layoutedEdges);
     }, []);
+
+    const visibleEdges = useMemo(() => {
+        return allEdges.filter((e) => visibleNodeIds.has(e.source) && visibleNodeIds.has(e.target));
+    }, [allEdges, visibleNodeIds]);
 
     useEffect(() => {
         if (!user) return;
@@ -118,7 +141,7 @@ export default function TrackRoadmap() {
             try {
                 // Mock API call (replace with actual fetch)
 
-                const response = await fetch(`http://localhost:8000/generate-roadmap/${id}`, {
+                const response = await fetch(`${BACKEND_URL}/generate-roadmap/${id}`, {
                     method: "GET",
                     headers: {
                         "Content-Type": "application/json",
@@ -127,7 +150,10 @@ export default function TrackRoadmap() {
                 });
                 const data: RoadmapData = await response.json();
                 setLabel(data.nodes_json[0]?.label || "");
+                setDescription(data.nodes_json[0]?.description || "");
+                setRoadmapNodeTypes(new Set(data.nodes_json.map((node) => node.type ?? "")));
                 console.log("Fetched roadmap data:", data);
+                console.log(roadmapNodeTypes);
 
 
                 const mappedNodes: Node[] = data.nodes_json.map((node) => ({
@@ -140,6 +166,7 @@ export default function TrackRoadmap() {
                         roadmapId: id || "",
                         roadmapNodeId: node.node_id,
                         courseId: node.course_id || "",
+                        status: node.status
                     },
                     position: { x: 0, y: 0 }, // Dagre will overwrite this
                 }));
@@ -151,7 +178,12 @@ export default function TrackRoadmap() {
                     // Style and handle IDs are now applied via defaultEdgeOptions
                 }));
 
-                layoutNodes(mappedNodes, mappedEdges);
+                // layout immediately and keep a copy of the full layouted graph
+                const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(mappedNodes, mappedEdges);
+                setNodes(layoutedNodes);
+                setEdges(layoutedEdges);
+                setAllNodes(layoutedNodes);
+                setAllEdges(layoutedEdges);
             } catch (err) {
                 console.error("Error fetching roadmap:", err);
             } finally {
@@ -169,22 +201,55 @@ export default function TrackRoadmap() {
             </Center>
         );
 
+
+    const toggleType = (type: string) => {
+        setSelectedTypes((prev) => {
+            const next = new Set(prev);
+            if (next.has(type)) next.delete(type);
+            else next.add(type);
+            return next;
+        });
+    };
+
+    const selectedBg = useColorModeValue("teal.100", "teal.700");
+
     return (
         <Box w="100%" h="90vh" p={4}>
-            <Heading mb={4}>{label}</Heading>
+            <Box maxWidth={"700px"} mb={6}>
+                <Heading mb={4}>{label}</Heading>
+                <Text fontSize="sm" mb={4}>{description}</Text>
+                <Text fontSize="sm" mb={2}>Filter by node type:</Text>
+                <HStack gap={2}>
+                    {/* clicking a badge toggles filtering for that type; empty selection = show all */}
+                    {Array.from(roadmapNodeTypes).map((type) => (
+                        <Badge
+                            key={type}
+                            onClick={() => toggleType(type)}
+                            cursor="pointer"
+                            variant={"solid"}
+
+                            bg={selectedTypes.has(type) ? selectedBg : getTypeColor(type)}
+                            color={selectedTypes.has(type) ? getTypeColor(type) : undefined}
+                        >
+                            {type}
+                        </Badge>
+                    ))}
+                </HStack>
+            </Box>
+
 
             <ReactFlow
-                nodes={nodes}
-                edges={edges}
+                nodes={visibleNodes}
+                edges={visibleEdges}
                 nodeTypes={{ custom: RoadmapNode }}
-                defaultEdgeOptions={defaultEdgeOptions} // 👈 Edge styling applied here
+                defaultEdgeOptions={defaultEdgeOptions}
                 fitView
                 fitViewOptions={{ padding: 0.2 }}
+
             >
                 <Background color="#ccc" gap={18} />
                 <Controls />
             </ReactFlow>
-            <RoadmapLegendFloating />
         </Box>
     );
 }

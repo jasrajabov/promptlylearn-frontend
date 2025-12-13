@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
     Box,
     HStack,
@@ -12,6 +12,8 @@ import { useUser } from "../contexts/UserContext";
 import { Stats } from "../components/Stats";
 import CourseRenderer from "../components/CourseRenderer";
 import { TOC } from "../components/TOC";
+
+export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 const FancyHeading = (props: any) => (
     <Heading fontWeight="semibold" letterSpacing="-0.5px" color="teal.600" {...props} />
@@ -34,7 +36,7 @@ export default function CourseTimeline() {
             setLoading(true);
             try {
                 console.log("Fetching course details for ID:", id);
-                const response = await fetch(`http://localhost:8000/get_course/${id}`, {
+                const response = await fetch(`${BACKEND_URL}/get_course/${id}`, {
                     method: "GET",
                     headers: {
                         "Content-Type": "application/json",

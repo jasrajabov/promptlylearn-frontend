@@ -1,13 +1,12 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
-import remarkMermaid from "remark-mermaidjs";
-import mermaid from "mermaid";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import "./tutorialMarkdown.css";
 import { Button } from "@chakra-ui/react";
 import { RiAiGenerate } from "react-icons/ri";
+import CodeBlock from "./CodeBlock.tsx";
+
+
 
 interface StreamingProps {
     apiUrl: string;
@@ -20,29 +19,6 @@ interface StreamingProps {
     content?: string;
 }
 
-// Mermaid renderer component
-function MermaidChart({ code }: { code: string }) {
-    const ref = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        mermaid.initialize({ startOnLoad: false, theme: "default" });
-
-        if (ref.current) {
-            const id = "m-" + Math.floor(Math.random() * 100000);
-
-            mermaid
-                .render(id, code)
-                .then(({ svg }) => {
-                    ref.current!.innerHTML = svg;
-                })
-                .catch((err) => {
-                    ref.current!.innerHTML = `<pre style="color:red;">${String(err)}</pre>`;
-                });
-        }
-    }, [code]);
-
-    return <div ref={ref} className="mermaid" />;
-}
 
 const OpenAIStreamingMarkdown: React.FC<StreamingProps> = ({
     apiUrl,
@@ -89,30 +65,16 @@ const OpenAIStreamingMarkdown: React.FC<StreamingProps> = ({
         }
     }, [apiUrl, body]);
 
-    const prismStyle: { [key: string]: React.CSSProperties } = oneDark as any;
-
     const components: Components = {
         code: ({ inline, className, children, ...props }: any) => {
             const lang = className?.replace("language-", "");
+            const codeText = String(children).replace(/\n$/, "");
 
-            // MERMAID support
-            if (lang === "mermaid") {
-                return <MermaidChart code={String(children)} />;
-            }
-
-            // Normal code blocks
             if (!inline && lang) {
-                return (
-                    <SyntaxHighlighter
-                        style={prismStyle}
-                        language={lang}
-                        PreTag="div"
-                    >
-                        {String(children).replace(/\n$/, "")}
-                    </SyntaxHighlighter>
-                );
+                return <CodeBlock lang={lang} code={codeText} />;
             }
 
+            // Inline code
             return (
                 <code className={className} {...props}>
                     {children}
@@ -120,7 +82,6 @@ const OpenAIStreamingMarkdown: React.FC<StreamingProps> = ({
             );
         },
     };
-    console.log("Rendering content:", content);
     return (
         <>
             <Button variant="ghost" onClick={startStreaming}>
@@ -132,7 +93,7 @@ const OpenAIStreamingMarkdown: React.FC<StreamingProps> = ({
                 {error && <p className="error-message">{error}</p>}
 
                 <ReactMarkdown
-                    remarkPlugins={[remarkGfm, remarkMermaid]}
+                    remarkPlugins={[remarkGfm]}
                     components={components}
                 >
                     {content || ""}

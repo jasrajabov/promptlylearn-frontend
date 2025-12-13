@@ -1,5 +1,5 @@
 import React from "react";
-import { Flex, HStack, Button, Avatar, Menu } from "@chakra-ui/react";
+import { Flex, HStack, Button, Avatar, Menu, Float, Circle, Portal } from "@chakra-ui/react";
 import { FaHome, FaSignInAlt, FaSun, FaMoon } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../contexts/UserContext";
@@ -44,22 +44,34 @@ const Header: React.FC = () => {
 
       <HStack gap={3}>
         {user ? (
-          <Menu.Root>
-            <Menu.Trigger asChild>
-              <Button variant="ghost">
-                <HStack gap={2}>
-                  <Avatar.Root>
-                    <Avatar.Image src={user.avatarUrl || undefined} />
-                    <span>{user.name}</span>
-                  </Avatar.Root>
-                </HStack>
-              </Button>
+          <Menu.Root positioning={{ placement: "right-end" }}>
+            <Menu.Trigger rounded="full" focusRing="outside">
+              <Avatar.Root>
+                <Avatar.Fallback name={user.name} />
+                <Avatar.Image src={user.avatarUrl || undefined} />
+                <Float placement="bottom-end" offsetX="1" offsetY="1">
+                  <Circle
+                    bg="green.500"
+                    size="8px"
+                    outline="0.2em solid"
+                    outlineColor="bg"
+                  />
+                </Float>
+              </Avatar.Root>
             </Menu.Trigger>
-            <Menu.Content>
-              <Menu.Item onSelect={logout} value="logout">
-                Logout
-              </Menu.Item>
-            </Menu.Content>
+            <Portal>
+              <Menu.Positioner>
+                <Menu.Content>
+                  <Menu.Item value="my-profile">
+                    My Profile
+                  </Menu.Item>
+                  <Menu.Item onSelect={logout} value="logout">
+                    Logout
+                  </Menu.Item>
+
+                </Menu.Content>
+              </Menu.Positioner>
+            </Portal>
           </Menu.Root>
         ) : (
           <Button variant="ghost" onClick={() => navigate("/login")}>

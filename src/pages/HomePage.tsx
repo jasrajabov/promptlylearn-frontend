@@ -1,5 +1,4 @@
-// HomePage.tsx
-import { useState } from "react";
+import React, { useState } from "react";
 import {
   Box,
   Button,
@@ -9,19 +8,21 @@ import {
   HStack,
   Tabs,
   RadioGroup,
-  createToaster
+  Text,
+  Spinner,
+  Alert,
 } from "@chakra-ui/react";
-import { Spinner } from '@chakra-ui/react';
-import { SlideFade } from "@chakra-ui/transition";
+import { Fade, SlideFade } from "@chakra-ui/transition";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useUser } from "../contexts/UserContext";
 import { fetchWithTimeout } from "../utils/dbUtils";
 
-// Level options
+export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
 const levelItems = [
-  { label: "Beginner 🚀", value: "beginner" },
-  { label: "Intermediate 💡", value: "intermediate" },
-  { label: "Advanced 🧠", value: "advanced" },
+  { label: "Beginner", value: "beginner" },
+  { label: "Intermediate", value: "intermediate" },
+  { label: "Advanced", value: "advanced" },
 ];
 
 const HomePage = () => {
@@ -35,8 +36,6 @@ const HomePage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-
-
   const handleGenerate = async () => {
     if (!user) {
       navigate("/login", { state: { returnTo: location.pathname } });
@@ -47,24 +46,21 @@ const HomePage = () => {
     setError(null);
 
     try {
-      console.log("mode", mode)
       const endpoint =
         mode === "course"
-          ? "http://localhost:8000/generate-course-outline"
-          : "http://localhost:8000/generate-roadmap";
+          ? `${BACKEND_URL}/generate-course-outline`
+          : `${BACKEND_URL}/generate-roadmap`;
 
-      const body = mode === "course"
-        ? { topic, level }
-        : { roadmap_name: topic };
-      console.log("user token:", user.token);
-      console.log("request body:", body);
+      const body =
+        mode === "course" ? { topic, level } : { roadmap_name: topic };
+
       const response = await fetchWithTimeout(
         endpoint,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${user.token}`
+            Authorization: `Bearer ${user.token}`,
           },
           body: JSON.stringify(body),
         },
@@ -73,80 +69,94 @@ const HomePage = () => {
 
       if (!response.ok) throw new Error("Failed to generate");
 
-      const data = await response.json();
-      console.log("Generation response data:", data);
-      if (mode === "course") {
-        // navigate(`/course/${data.id}`, { state: { course: data } });
-
-        navigate("/my-courses");
-      } else {
-        navigate("/my-roadmaps");
-      }
-    } catch (err: any) {
-      console.error("Error generating:", err);
-      setError("Generation timed out or failed. Please try again.");
+      if (mode === "course") navigate("/my-courses");
+      else navigate("/my-roadmaps");
+    } catch (err) {
+      console.error("Generation error:", err);
+      setError("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
   };
-  console.log("mode before generating:", mode);
-  return (
-    <Box maxW="600px" mx="auto" mt={20} textAlign="center">
-      <Heading
-        mb={6}
-        fontWeight="semibold"
-        letterSpacing="-0.5px"
-        fontSize="3xl"
-        color="teal.600"
-      >
-        What do you want to learn today?
-      </Heading>
 
-      <VStack gap={4}>
-        {/* Search box */}
+  return (
+    <Box maxW="700px" mx="auto" mt={24} px={4}>
+      {/* HEADER */}
+      <Box textAlign="center" mb={10}>
+        <Heading fontSize="4xl" fontWeight="bold" letterSpacing="-1px">
+          Learn Anything. Faster.
+        </Heading>
+        <Text fontSize="md" mt={2} color="gray.600">
+          Generate a personalized course or roadmap in seconds.
+        </Text>
+      </Box>
+
+      <VStack gap={8} w="100%">
+
+        {/* INPUT — GOOGLE STYLE */}
         <Input
-          placeholder="e.g. Learn TypeScript basics"
+          placeholder="What do you want to learn? (e.g. TypeScript, Blockchain, UX Design)"
           value={topic}
-          onChange={(e) => setTopic(e.target.value)}
           size="lg"
-          borderRadius="md"
-          _selection={{ bg: "teal.200", color: "black" }}
+          onChange={(e) => setTopic(e.target.value)}
+          height="56px"
+          borderRadius="full"
+          borderColor="teal.300"
+          px={6}
+          fontSize="lg"
         />
 
-        {/* Mode switch (Course / Roadmap) using new Tabs API */}
+        {/* TABS */}
         <Tabs.Root
           value={mode}
-          onValueChange={(details) => {
-            console.log("Switching mode to:", details.value);
+          onValueChange={(details) =>
             setMode(details.value as "course" | "roadmap")
-          }}
+          }
+          size="md"
         >
-          <Tabs.List justifyContent="center">
-            <Tabs.Trigger value="course">📘 Course</Tabs.Trigger>
-            <Tabs.Trigger value="roadmap">🗺️ Roadmap</Tabs.Trigger>
-            <Tabs.Indicator />
+          <Tabs.List justifyContent="center" gap={6} border="0">
+            <Tabs.Trigger
+              value="course"
+              px={4}
+              py={2}
+              _selected={{
+                borderBottom: "2px solid teal",
+                color: "teal.600",
+                fontWeight: "semibold",
+              }}
+            >
+              Course
+            </Tabs.Trigger>
+            <Tabs.Trigger
+              value="roadmap"
+              px={4}
+              py={2}
+              _selected={{
+                borderBottom: "2px solid teal",
+                color: "teal.600",
+                fontWeight: "semibold",
+              }}
+            >
+              Roadmap
+            </Tabs.Trigger>
           </Tabs.List>
 
-          {/* Course content */}
+          {/* COURSE SETTINGS */}
           <Tabs.Content value="course">
             <SlideFade in={mode === "course"} offsetY="10px">
+              <Text fontWeight="medium" mb={3} color="gray.700" textAlign="center">
+                Select difficulty level
+              </Text>
               <RadioGroup.Root
                 defaultValue={level}
-                onValueChange={(details) => {
-                  setLevel(details.value as "beginner" | "intermediate" | "advanced");
-                }}
+                onValueChange={(details) => setLevel(details.value as any)}
               >
-                <HStack gap={6} justify="center" mt={4}>
+                <HStack gap={6} justify="center">
                   {levelItems.map((item) => (
                     <RadioGroup.Item key={item.value} value={item.value}>
                       <RadioGroup.ItemHiddenInput />
                       <RadioGroup.ItemIndicator>
-                        <Box
-                          w={4}
-                          h={4}
-                          bg="teal.500"
-                          borderRadius="full"
-                        />
+                        <Box w={3} h={3} bg="teal.500" borderRadius="full" />
                       </RadioGroup.ItemIndicator>
                       <RadioGroup.ItemText>{item.label}</RadioGroup.ItemText>
                     </RadioGroup.Item>
@@ -156,19 +166,25 @@ const HomePage = () => {
             </SlideFade>
           </Tabs.Content>
 
-          {/* Roadmap content */}
+          {/* ROADMAP TEXT */}
           <Tabs.Content value="roadmap">
-            <Box mt={4} color="gray.600">
-              Roadmap will be generated based on your topic.
-            </Box>
+            <Fade in={mode === "roadmap"}>
+              <Text mt={2} textAlign="center" color="gray.600">
+                A guided learning roadmap will be generated based on your topic.
+              </Text>
+            </Fade>
           </Tabs.Content>
         </Tabs.Root>
 
-        {/* Generate button */}
+        {/* GENERATE BUTTON */}
         <Button
           colorScheme="teal"
-          variant="subtle"
-          size="lg"
+          size="sm"
+          variant="ghost"
+          borderRadius="10px"
+          px={10}
+          // height="52px"
+          border={"1px solid"}
           onClick={handleGenerate}
           disabled={!topic || loading}
         >
@@ -181,7 +197,12 @@ const HomePage = () => {
           )}
         </Button>
 
-        {error && <Box color="red.500">{error}</Box>}
+        {/* ERROR */}
+        {error && (
+          <Alert.Root status="error" borderRadius="md" maxW="600px">
+            {error}
+          </Alert.Root>
+        )}
       </VStack>
     </Box>
   );

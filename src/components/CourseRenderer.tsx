@@ -5,11 +5,10 @@ import {
   HStack,
   Heading,
   Button,
-  Tag,
   Text,
   Spinner,
 } from "@chakra-ui/react";
-import type { Course, Module, Status } from "../types";
+import type { Course, Status } from "../types";
 import LessonCard from "./LessonCard";
 import { HiChevronRight } from "react-icons/hi";
 import ModuleQuiz from "./Quiz";
@@ -18,7 +17,11 @@ import type { Quiz } from "../types";
 import { useUser } from "../contexts/UserContext";
 import { MdOutlineDoneAll, MdOutlineRemoveDone } from "react-icons/md";
 import { GiChoice } from "react-icons/gi";
+import { RiRobot3Fill } from "react-icons/ri";
+import ChatBox from "./ChatBox";
+import { type ChatMessage } from "../types";
 
+export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 
 
@@ -40,9 +43,10 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
   onLessonChange,
   showQuiz,
   setShowQuiz,
-  onModuleComplete,
   setCourseState,
 }) => {
+
+  const [quizTaskId, setQuizTaskId] = useState<string | null>(null);
 
   const { user } = useUser();
   const module = courseState.modules[currentModuleIndex];
@@ -54,6 +58,21 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
 
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [loadingQuiz, setLoadingQuiz] = useState(false);
+  const [openChatBox, setOpenChatBox] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([{
+    role: "assistant",
+    content: "Hello! I'm your AI learning buddy. Feel free to ask me any questions about the course material or request further explanations on topics you're curious about.",
+    timestamp: new Date(),
+  }]);
+
+  const pollersRef = useRef<{ [key: string]: number | null }>({});
+
+  useEffect(() => {
+    if (quizTaskId) {
+      startPollingTask(quizTaskId);
+    }
+  }, [quizTaskId]);
+
   const nextModule =
     currentModuleIndex < courseState.modules.length - 1
       ? courseState.modules[currentModuleIndex + 1]
@@ -77,7 +96,7 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
     let moduleIdForDb: string | null = null;
     let moduleNewStatus: Status | null = null;
     let courseNewStatus: Status | null = null;
-    let newLessonStatus: Status = currentLessonStatus === "COMPLETED" ? "IN_PROGRESS" : "COMPLETED";
+    const newLessonStatus: Status = currentLessonStatus === "COMPLETED" ? "IN_PROGRESS" : "COMPLETED";
 
     setCourseState((prev) => {
       courseIdForDb = prev.id;
@@ -125,9 +144,8 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
 
 
   const handleGenerateQuiz = () => {
-    console.log("Generating quiz for lesson:", lesson);
     setLoadingQuiz(true);
-    fetchWithTimeout("http://localhost:8000/generate-quiz", {
+    fetchWithTimeout(`${BACKEND_URL}/generate-quiz`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -138,13 +156,49 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
       .then(res => res.json())
       .then(data => {
         if (data) {
+          console.log("Received quiz data:", data);
           // Update the course state with the new quiz
-          setQuiz(data);
-          setShowQuiz(true);
+          setQuizTaskId(data.task_id);
 
         }
-        setLoadingQuiz(false);
       });
+  };
+
+
+  const startPollingTask = (taskId: string) => {
+    if (!taskId || pollersRef.current[taskId]) return;
+    const id = window.setInterval(async () => {
+      try {
+        const res = await fetchWithTimeout(`${BACKEND_URL}/task-status/quiz_generation/${taskId}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${user?.token}`,
+          },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        console.log("Polled task data:", data);
+
+        if (data.status === "SUCCESS" || data.status === "COMPLETED" || data.status === "done") {
+          if (pollersRef.current[taskId]) {
+            clearInterval(pollersRef.current[taskId] as number);
+            pollersRef.current[taskId] = null;
+            setLoadingQuiz(false);
+            setQuiz(data.quiz as Quiz);
+            setShowQuiz(true);
+          }
+        } else if (data.status === "FAILURE") {
+          if (pollersRef.current[taskId]) {
+            clearInterval(pollersRef.current[taskId] as number);
+            pollersRef.current[taskId] = null;
+          }
+        }
+      } catch (err) {
+        console.error("Error polling task", taskId, err);
+      }
+    }, 3000);
+    pollersRef.current[taskId] = id;
   };
 
   return (
@@ -174,14 +228,21 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
                 <Text>Generating Quiz...</Text>
               </>
             ) : (
-
-              <Button size="sm" variant="ghost" onClick={handleGenerateQuiz}>Generate Quiz
-                <GiChoice />
-              </Button>
+              <>
+                <Button size="sm" variant="ghost" onClick={handleGenerateQuiz}>Generate Quiz
+                  <GiChoice />
+                </Button>
+                <Button size="sm" variant="ghost" onClick={(e) => {
+                  e.preventDefault();
+                  setOpenChatBox(true);
+                }}>
+                  <RiRobot3Fill /> Ask AI Buddy
+                </Button>
+              </>
             )}
           </HStack>
         )}
-
+        {openChatBox && <ChatBox open={openChatBox} setOpenChatBox={setOpenChatBox} chatMessages={chatMessages} setChatMessages={setChatMessages} />}
 
         {!showQuiz && <LessonCard
           courseState={courseState}
@@ -215,7 +276,6 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
             </HStack>
           </Box>
         )}
-
 
         {showQuiz && quiz && (
           <ModuleQuiz quiz={quiz} setShowQuiz={setShowQuiz} />
