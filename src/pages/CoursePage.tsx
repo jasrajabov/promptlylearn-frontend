@@ -29,6 +29,25 @@ export default function CourseTimeline() {
     const [showQuiz, setShowQuiz] = useState(false);
     const [courseState, setCourseState] = useState<Course>({} as Course);
     const [loading, setLoading] = useState(true);
+    const completedPercentageModules = courseState.modules
+        ? Math.round(
+            (courseState.modules.filter((m) => m.status === "COMPLETED").length /
+                courseState.modules.length) *
+            100
+        )
+        : 0;
+    const totalLessons = courseState.modules
+        ? courseState.modules.reduce((sum, module) => sum + module.lessons.length, 0)
+        : 0;
+    const completedLessons = courseState.modules
+        ? courseState.modules.reduce(
+            (sum, module) =>
+                sum + module.lessons.filter((lesson) => lesson.status === "COMPLETED").length,
+            0
+        )
+        : 0;
+    const completedPercentagesLessons =
+        totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
 
     useEffect(() => {
         if (!user) return;
@@ -89,19 +108,22 @@ export default function CourseTimeline() {
         );
     }
 
+
+
     return (
         <Box w="100%" display="flex" flexDirection="column">
             {/* HEADER */}
-            <Box
-                top={0}
-                zIndex={50}
-                p={1}
-                boxShadow="md"
-                borderBottom="1px solid"
-                borderColor="gray.200"
-            >
-                <Stats courseState={courseState} />
-            </Box>
+            <HStack justify="space-between" mb={6} align="center">
+                <Heading size="lg">
+                    {courseState.title}
+                </Heading>
+                <Stats
+                    stats={[
+                        { label: "Modules", progress: completedPercentageModules },
+                        { label: "Lessons", progress: completedPercentagesLessons },
+                    ]}
+                />
+            </HStack>
 
             <HStack align="stretch" flex="1" minH={0} gap={0}>
                 {/* LEFT TOC */}

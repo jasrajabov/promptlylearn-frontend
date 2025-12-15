@@ -17,8 +17,12 @@ import {
     Text,
     Badge,
     HStack,
+    Collapsible,
 
 } from "@chakra-ui/react";
+import { Stats } from "../components/Stats";
+import { MdOutlineExpandMore, MdOutlineExpandLess } from "react-icons/md";
+
 import dagre from "dagre";
 import { useUser } from "../contexts/UserContext";
 import { RoadmapNode } from "../components/RoadmapNode";
@@ -48,35 +52,42 @@ interface RoadmapData {
 // 🚀 Default options for all edges: smoothstep path with a distinct arrow marker
 const defaultEdgeOptions: DefaultEdgeOptions = {
     type: "smoothstep",
-    animated: true,
-    style: { stroke: "#444", strokeWidth: 2 },
+    animated: false,
+    style: { stroke: "#44444", strokeWidth: 2 },
     markerEnd: {
         type: MarkerType.ArrowClosed,
         color: "#3182CE", // Visible blue color
     },
 };
 
-// --- DAGRE LAYOUT HELPER ---
 
-// 🔧 Helper: Generate Dagre Layout
-// 🔧 Helper: Generate Dagre Layout
 const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
     const dagreGraph = new dagre.graphlib.Graph();
     dagreGraph.setDefaultEdgeLabel(() => ({}));
 
-    // Must match the minW/minH set in CustomNode for accurate layout
-    const nodeWidth = 220;
-    const nodeHeight = 60;
+    const rankdir: "TB" | "LR" = "TB"; // Top→Bottom layout
+    const minNodeWidth = 220; // Minimum width for nodes
+    const nodeHeightBase = 60; // Base node height
+    const approxCharWidth = 8; // Approx width per character in px
+    const padding = 40; // Padding around text
+    const lineHeight = 20; // Height per extra line
+    const maxLines = 3; // Limit lines to avoid huge nodes
 
-    // 🚀 INCREASE THESE VALUES FOR MORE SPACE
     dagreGraph.setGraph({
-        rankdir: "LR",
-        ranksep: 180, // Increased vertical separation (was 120)
-        nodesep: 120  // Increased horizontal separation (was 80)
+        rankdir,
+        ranksep: 220, // vertical spacing
+        nodesep: 160, // horizontal spacing
     });
 
+    // Dynamically calculate node width & height
     nodes.forEach((node) => {
-        dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
+        const label = node.data?.label ?? "";
+        const width = Math.max(minNodeWidth, label.length * approxCharWidth + padding);
+
+        const textLines = Math.min(Math.ceil((label.length * approxCharWidth) / width), maxLines);
+        const height = nodeHeightBase + (textLines - 1) * lineHeight;
+
+        dagreGraph.setNode(node.id, { width, height });
     });
 
     edges.forEach((edge) => {
@@ -87,11 +98,9 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
 
     const layoutedNodes = nodes.map((node) => {
         const nodeWithPosition = dagreGraph.node(node.id);
-
         node.position = {
-            // Center the node
-            x: nodeWithPosition.x - nodeWidth / 2,
-            y: nodeWithPosition.y - nodeHeight / 2,
+            x: nodeWithPosition.x - nodeWithPosition.width / 2,
+            y: nodeWithPosition.y - nodeWithPosition.height / 2,
         };
         return node;
     });
@@ -100,21 +109,28 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
 };
 
 
+
 // --- MAIN COMPONENT ---
 
-export default function TrackRoadmap() {
+export default function TrackRoadmap(): React.ReactElement {
     const [label, setLabel] = useState<string>("");
-    const [description, setDescription] = useState<string>("");
     const [roadmapNodeTypes, setRoadmapNodeTypes] = useState<Set<string>>(new Set());
     // keep both the full (layouted) set and the filtered view
     const [allNodes, setAllNodes] = useState<Node[]>([]);
     const [allEdges, setAllEdges] = useState<Edge[]>([]);
     const [nodes, setNodes] = useState<Node[]>([]);
     const [edges, setEdges] = useState<Edge[]>([]);
+    const [showDescAndFilter, setShowDescAndFilter] = useState(true);
     const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
     const [loading, setLoading] = useState(true);
     const { id } = useParams<{ id: string }>();
     const { user } = useUser();
+
+    const progressPercentage = useMemo(() => {
+        if (allNodes.length === 0) return 0;
+        const completedNodes = allNodes.filter((n) => n.data?.status === "COMPLETED").length;
+        return Math.round((completedNodes / allNodes.length) * 100);
+    }, [allNodes]);
 
     const visibleNodes = useMemo(() => {
         if (!selectedTypes || selectedTypes.size === 0) return allNodes;
@@ -139,8 +155,6 @@ export default function TrackRoadmap() {
         const fetchRoadmap = async () => {
             setLoading(true);
             try {
-                // Mock API call (replace with actual fetch)
-
                 const response = await fetch(`${BACKEND_URL}/generate-roadmap/${id}`, {
                     method: "GET",
                     headers: {
@@ -150,7 +164,7 @@ export default function TrackRoadmap() {
                 });
                 const data: RoadmapData = await response.json();
                 setLabel(data.nodes_json[0]?.label || "");
-                setDescription(data.nodes_json[0]?.description || "");
+                // setDescription(data.nodes_json[0]?.description || "");
                 setRoadmapNodeTypes(new Set(data.nodes_json.map((node) => node.type ?? "")));
                 console.log("Fetched roadmap data:", data);
                 console.log(roadmapNodeTypes);
@@ -212,29 +226,46 @@ export default function TrackRoadmap() {
     };
 
     const selectedBg = useColorModeValue("teal.100", "teal.700");
+    const statItem = {
+        label: "Stage",
+        progress: progressPercentage,
+    };
 
     return (
         <Box w="100%" h="90vh" p={4}>
-            <Box maxWidth={"700px"} mb={6}>
-                <Heading mb={4}>{label}</Heading>
-                <Text fontSize="sm" mb={4}>{description}</Text>
-                <Text fontSize="sm" mb={2}>Filter by node type:</Text>
-                <HStack gap={2}>
-                    {/* clicking a badge toggles filtering for that type; empty selection = show all */}
-                    {Array.from(roadmapNodeTypes).map((type) => (
-                        <Badge
-                            key={type}
-                            onClick={() => toggleType(type)}
-                            cursor="pointer"
-                            variant={"solid"}
-
-                            bg={selectedTypes.has(type) ? selectedBg : getTypeColor(type)}
-                            color={selectedTypes.has(type) ? getTypeColor(type) : undefined}
-                        >
-                            {type}
-                        </Badge>
-                    ))}
+            <Box mb={6}>
+                <HStack justifyContent="space-between">
+                    <Heading>{label}</Heading>
+                    <Stats stats={[statItem]} />
                 </HStack>
+
+                <Collapsible.Root defaultOpen>
+                    <Collapsible.Trigger onClick={() => setShowDescAndFilter(!showDescAndFilter)} >
+                        {showDescAndFilter ? <MdOutlineExpandLess /> : <MdOutlineExpandMore />}
+                    </Collapsible.Trigger>
+                    <Collapsible.Content>
+
+                        <Text fontSize="sm" mb={2}>Filter by node type:</Text>
+                        <HStack gap={2}>
+
+                            {Array.from(roadmapNodeTypes).map((type) => (
+                                <Badge
+                                    key={type}
+                                    onClick={() => toggleType(type)}
+                                    cursor="pointer"
+                                    variant={"solid"}
+
+                                    bg={selectedTypes.has(type) ? selectedBg : getTypeColor(type)}
+                                    color="black"
+                                >
+                                    {type}
+                                </Badge>
+                            ))}
+                        </HStack>
+                    </Collapsible.Content>
+                </Collapsible.Root>
+
+
             </Box>
 
 

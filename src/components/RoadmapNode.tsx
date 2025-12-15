@@ -18,6 +18,7 @@ import {
     HoverCard,
     Badge,
     Spinner,
+    Checkbox,
 } from "@chakra-ui/react";
 import fetchWithTimeout from "../utils/dbUtils";
 
@@ -154,6 +155,8 @@ export const RoadmapNode: React.FC<
             return;
         }
 
+        status = status === "COMPLETED" ? "NOT_STARTED" : "COMPLETED";
+
         try {
             const response = await fetch(`${BACKEND_URL}/roadmaps/${roadmapId}/${roadmapNodeId}/status`, {
                 method: "PATCH",
@@ -188,7 +191,17 @@ export const RoadmapNode: React.FC<
                 position={Position.Top}
                 id="top-target"
                 isConnectable={true}
+
             />
+            <HStack gap={2} align="center" mb={2}>
+                <Checkbox.Root defaultChecked={roadmapNodeData.status === "COMPLETED"} variant="subtle" size="lg" >
+                    <Checkbox.HiddenInput />
+                    <Checkbox.Control onClick={() => handleMarkAsComplete(roadmapNodeData.status || "", roadmapNodeData.roadmapId, roadmapNodeData.roadmapNodeId)} />
+
+                </Checkbox.Root>
+                <TagHandler status={roadmapNodeData.status || "NOT_STARTED"} />
+            </HStack>
+
             <HoverCard.Root>
                 <HoverCard.Trigger asChild>
 
@@ -199,10 +212,7 @@ export const RoadmapNode: React.FC<
                         textAlign="center"
                         boxShadow="lg"
                         bg={bgColor}
-                        borderWidth={8}
-                        borderColor={
-                            roadmapNodeData.status === "COMPLETED" ? "green.600" : "transparent"
-                        }
+                        borderWidth={2}
                         cursor="pointer"
                         color="black"
                         _hover={{
@@ -220,6 +230,7 @@ export const RoadmapNode: React.FC<
                         </Text>
 
                     </Box>
+
                 </HoverCard.Trigger>
                 <Portal>
                     <HoverCard.Positioner>
