@@ -29,7 +29,7 @@ const LessonCard: React.FC<LessonCardProps> = ({ courseState, lessonIndex, modul
         setIsLoading(true);
         try {
             console.log("Fetching lesson content for lesson ID:", lesson.id);
-            const dbRes = await fetchWithTimeout(`${BACKEND_URL}/lessons/${lesson.id}`, {
+            const dbRes = await fetchWithTimeout(`${BACKEND_URL}/course/lessons/${lesson.id}`, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",

@@ -1,5 +1,5 @@
 import type { Module, Status } from "../types";
-import type { User } from "../contexts/UserContext";
+import type { User } from "../types";
 
 export const fetchWithTimeout = (
   url: string,
@@ -9,7 +9,7 @@ export const fetchWithTimeout = (
   new Promise<Response>((resolve, reject) => {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeout);
-
+    console.log("url:", url, "options:", options);
     fetch(url, { ...options, signal: controller.signal })
       .then((res) => {
         clearTimeout(id);
@@ -35,7 +35,7 @@ const updateLessonStatusDb = async (
 
   try {
     const response = await fetchWithTimeout(
-      `http://localhost:8000/lessons/${lessonId}/status`,
+      `http://localhost:8000/course/lessons/${lessonId}/status`,
       {
         method: "PATCH",
         headers: {
@@ -71,7 +71,7 @@ const updateModulStatusDb = async (
 
   try {
     const response = await fetchWithTimeout(
-      `http://localhost:8000/modules/${moduleId}/status`,
+      `http://localhost:8000/course/modules/${moduleId}/status`,
       {
         method: "PATCH",
         headers: {
@@ -109,7 +109,7 @@ export const updateCourseStatusDb = async (
 
   try {
     const response = await fetchWithTimeout(
-      `http://localhost:8000/courses/${courseId}/status`,
+      `http://localhost:8000/course/${courseId}/status`,
       {
         method: "PATCH",
         headers: {
@@ -130,40 +130,5 @@ export const updateCourseStatusDb = async (
     return data;
   } catch (error) {
     console.error("Error updating course status:", error);
-  }
-};
-
-export const generateModule = async (
-  user: User | undefined,
-  courseId: string,
-  courseTitle: string,
-  module: Module
-) => {
-  if (!user) return console.log("User not logged in");
-
-  try {
-    const response = await fetchWithTimeout(
-      "http://localhost:8000/generate-module-details",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${user.token}`,
-        },
-        body: JSON.stringify({
-          course_id: courseId,
-          course_title: courseTitle,
-          module,
-        }),
-      },
-      600000
-    );
-
-    if (!response.ok) throw new Error("Failed to fetch module");
-
-    const data = await response.json();
-    return data;
-  } catch (err) {
-    console.error(err);
   }
 };

@@ -39,8 +39,7 @@ const UserCourses: React.FC = () => {
 
     // UI Colors
     const headerColor = useColorModeValue("teal.700", "teal.300");
-    const cardBg = useColorModeValue("white", "gray.900");
-    const cardHoverBg = useColorModeValue("gray.50", "gray.700");
+    const cardBg = useColorModeValue("white", "black:900");
     const emptyTextColor = useColorModeValue("gray.600", "gray.400");
     const cardBorderColor = useColorModeValue("teal.200", "teal.700");
 
@@ -57,15 +56,17 @@ const UserCourses: React.FC = () => {
     // 1. Fetch Courses
     useEffect(() => {
         if (!user) return;
+        console.log("Fetching user courses for user:", user);
         const fetchCourses = async () => {
             setIsLoading(true);
-            const response = await fetchWithTimeout(`${BACKEND_URL}/get_all_courses`, {
+            const response = await fetchWithTimeout(`${BACKEND_URL}/course/get_all_courses`, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${user?.token}`,
                 },
             });
+            console.log("token", user?.token);
             const data = await response.json();
             console.log("Fetched user courses:", data);
             setCourses(data);
@@ -80,7 +81,7 @@ const UserCourses: React.FC = () => {
     const refreshCourses = async () => {
         if (!user) return;
         try {
-            const response = await fetchWithTimeout(`${BACKEND_URL}/get_all_courses`, {
+            const response = await fetchWithTimeout(`${BACKEND_URL}/course/get_all_courses`, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
@@ -99,7 +100,7 @@ const UserCourses: React.FC = () => {
         if (!taskId || pollersRef.current[taskId]) return;
         const id = window.setInterval(async () => {
             try {
-                const res = await fetchWithTimeout(`${BACKEND_URL}/task-status/course_outline/${taskId}`, {
+                const res = await fetchWithTimeout(`${BACKEND_URL}/tasks/status/course_outline/${taskId}`, {
                     method: "GET",
                     headers: {
                         "Content-Type": "application/json",
@@ -174,7 +175,7 @@ const UserCourses: React.FC = () => {
     const handleDeleteCourse = async (courseId: string) => {
         if (!user) return;
         try {
-            const response = await fetchWithTimeout(`${BACKEND_URL}/courses/${courseId}`, {
+            const response = await fetchWithTimeout(`${BACKEND_URL}/course/${courseId}`, {
                 method: "DELETE",
                 headers: {
                     "Content-Type": "application/json",
@@ -225,14 +226,17 @@ const UserCourses: React.FC = () => {
             {loading ? (
                 <Loader />
             ) : (
-                <Box maxW="7xl" mx="auto" px={6} py={10}>
+                <Box maxW="7xl" textAlign="center" mx="auto" px={6} py={10}>
                     {/* Header */}
-                    <Heading mb={2} textAlign="center" color="brand.fg">
+                    <Heading mb={2} color="brand.fg">
                         My Courses
                     </Heading>
-                    <Text textAlign="center" color="brand.fg" mb={10}>
+                    <Text color="brand.fg" mb={10}>
                         Explore and continue your learning journeys
                     </Text>
+                    <Button borderRadius={100} variant="subtle" onClick={() => navigate("/")} colorScheme="teal" mb={6}>
+                        Create New Course
+                    </Button>
 
                     {/* Controls */}
                     <FilterControls
@@ -300,7 +304,11 @@ const UserCourses: React.FC = () => {
                                             borderColor={isGenerating ? "teal.400" : cardBorderColor}
                                             borderWidth={isGenerating ? "2px" : "1px"}
                                             boxShadow={isGenerating ? "0 0 10px var(--chakra-colors-teal-400)" : "md"}
-                                            _hover={{ bg: cardHoverBg }}
+                                            _hover={{
+                                                boxShadow: "0 0 18px var(--chakra-colors-teal-400)",
+                                                borderColor: "teal.400",
+                                                transform: "translateY(-2px)",
+                                            }}
                                             rounded="lg"
                                             p={4}
                                             display="flex"

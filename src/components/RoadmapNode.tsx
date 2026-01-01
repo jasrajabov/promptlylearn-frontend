@@ -1,11 +1,6 @@
 import React, { useState } from "react";
-import {
-    Position,
-    type NodeProps,
-    Handle,
-} from "reactflow";
+import { Position, type NodeProps, Handle } from "reactflow";
 import { useNavigate } from "react-router-dom";
-import "reactflow/dist/style.css";
 import {
     Box,
     Text,
@@ -19,15 +14,16 @@ import {
     Badge,
     Spinner,
     Checkbox,
+    VStack,
 } from "@chakra-ui/react";
 import fetchWithTimeout from "../utils/dbUtils";
-
 import TagHandler from "./TagHandler";
-
 import { useUser } from "../contexts/UserContext";
 import { useColorModeValue } from "./ui/color-mode";
-import { MdOutlineDoneAll, MdOutlineRemoveDone } from "react-icons/md";
+import { MdOutlineDoneAll } from "react-icons/md";
 import { getTypeColor } from "../components/constants";
+import { FaCheckCircle } from "react-icons/fa";
+
 
 export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -40,28 +36,48 @@ type Course = {
     status?: string;
 };
 
-
-
 export const RoadmapNode: React.FC<
-    NodeProps<{ roadmapId: string; roadmapNodeId: string; courseId: string; label: string; description?: string; type?: string, status?: string }>
-> = ({ data }) => {
+    NodeProps<{
+        roadmapId: string;
+        roadmapNodeId: string;
+        courseId: string;
+        label: string;
+        description?: string;
+        type?: string;
+        status?: string;
+    }> & {
+        onStatusChange: (nodeId: string, status: string) => void;
+    }
+> = ({ data, onStatusChange }) => {
     const navigate = useNavigate();
     const { user } = useUser();
+
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-    const [isGenerating, setIsGenerating] = useState(false);
     const [courses, setCourses] = useState<Array<Course>>([]);
+    const [isGenerating, setIsGenerating] = useState(false);
     const [roadmapNodeData, setRoadmapNodeData] = useState(data);
     const [courseLevelInfo, setCourseLevelInfo] = useState([
         { courseId: "", value: "beginner", title: "Beginner", description: "", status: "NOT_GENERATED" },
         { courseId: "", value: "intermediate", title: "Intermediate", description: "", status: "NOT_GENERATED" },
-        { courseId: "", value: "advanced", title: "Advanced", description: "", status: "NOT_GENERATED" }
+        { courseId: "", value: "advanced", title: "Advanced", description: "", status: "NOT_GENERATED" },
     ]);
-    const [currCourseIdx, setCurrCourseIdx] = useState<number>(0);
-    // Chakra UI Color Mode hook for background
-    const bgColor = useColorModeValue(getTypeColor(roadmapNodeData.type), getTypeColor(roadmapNodeData.type, true));
+    const [currCourseIdx, setCurrCourseIdx] = useState(0);
+
+    const isCompleted = roadmapNodeData.status === "COMPLETED";
+
+    const surfaceBg = useColorModeValue("white", "gray.800");
+    const subtleText = useColorModeValue("black", "white");
+    const borderColor = isCompleted ? "teal.400" : "gray.300";
+
+    const hoverShadow = useColorModeValue(
+        "0 12px 30px rgba(0,0,0,0.08)",
+        "0 12px 30px rgba(0,0,0,0.45)"
+    );
+
+
 
     const getCourseForNodeId = (roadmapId: string, roadmapNodeId: string) => {
-        fetchWithTimeout(`${BACKEND_URL}/get_all_courses/${roadmapId}/${roadmapNodeId}`, {
+        fetchWithTimeout(`${BACKEND_URL}/course/${roadmapId}/${roadmapNodeId}`, {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",
@@ -70,6 +86,7 @@ export const RoadmapNode: React.FC<
         })
             .then((response) => response.json())
             .then((data) => {
+                console.log("Fetched courses for roadmap node:", data);
                 setCourses(data);
                 console.log("Courses for roadmap node:", data);
                 if (data.length > 0) {
@@ -106,7 +123,7 @@ export const RoadmapNode: React.FC<
                     : levelInfo
             )
         );
-        const endpoint = `${BACKEND_URL}/generate-course-outline`;
+        const endpoint = `${BACKEND_URL}/course/generate-course-outline`;
         const body = { topic: topic, level: level, roadmap_id: roadmapId, roadmap_node_id: roadmapNodeId }; // Example body, adjust as needed
         const response = await fetchWithTimeout(
             endpoint,
@@ -128,8 +145,9 @@ export const RoadmapNode: React.FC<
 
     function pollTaskStatus(taskId: string, roadmapId: string, roadmapNodeId: string, courseId: string, type: string) {
         const interval = setInterval(async () => {
-            const resp = await fetch(`${BACKEND_URL}/task-status/${type}/${taskId}`);
+            const resp = await fetch(`${BACKEND_URL}/tasks/status/${type}/${taskId}`);
             const data = await resp.json();
+            console.log("Polled task status:", data);
             if (data.status === "SUCCESS") {
                 clearInterval(interval);
                 setIsGenerating(false);
@@ -158,7 +176,7 @@ export const RoadmapNode: React.FC<
         status = status === "COMPLETED" ? "NOT_STARTED" : "COMPLETED";
 
         try {
-            const response = await fetch(`${BACKEND_URL}/roadmaps/${roadmapId}/${roadmapNodeId}/status`, {
+            const response = await fetch(`${BACKEND_URL}/roadmap/${roadmapId}/${roadmapNodeId}/status`, {
                 method: "PATCH",
                 headers: {
                     "Content-Type": "application/json",
@@ -177,6 +195,7 @@ export const RoadmapNode: React.FC<
                 status: status,
             }));
             console.log("Node marked as complete:", roadmapNodeId);
+            onStatusChange(roadmapNodeId, status);
             // Optionally, you can add some UI feedback here
         } catch (error) {
             console.error("Error marking node as complete:", error);
@@ -185,135 +204,143 @@ export const RoadmapNode: React.FC<
 
 
     return (
-        <>
-            <Handle
-                type="target"
-                position={Position.Top}
-                id="top-target"
-                isConnectable={true}
+        <VStack gap={2} align="center">
 
-            />
-            <HStack gap={2} align="center" mb={2}>
-                <Checkbox.Root defaultChecked={roadmapNodeData.status === "COMPLETED"} variant="subtle" size="lg" >
-                    <Checkbox.HiddenInput />
-                    <Checkbox.Control onClick={() => handleMarkAsComplete(roadmapNodeData.status || "", roadmapNodeData.roadmapId, roadmapNodeData.roadmapNodeId)} />
+            <Handle type="target" position={Position.Top} />
 
-                </Checkbox.Root>
-                <TagHandler status={roadmapNodeData.status || "NOT_STARTED"} />
-            </HStack>
+            {/* removed external status row — checkbox moved into node card */}
 
+            {/* Node Card */}
             <HoverCard.Root>
                 <HoverCard.Trigger asChild>
-
                     <Box
+                        bg={surfaceBg}
+                        borderRadius="xl"
                         p={4}
-                        borderRadius="lg"
-                        border="2px solid #555"
-                        textAlign="center"
-                        boxShadow="lg"
-                        bg={bgColor}
-                        borderWidth={2}
+                        minW="240px"
+                        maxW="300px"
+                        border="1px solid"
+                        borderColor={borderColor}
+                        position="relative"
                         cursor="pointer"
-                        color="black"
+                        transition="all 0.2s ease"
+                        boxShadow="sm"
                         _hover={{
-                            boxShadow: "2xl",
-                            transform: "scale(1.05)",
-                            transition: "all 0.2s ease-in-out",
-                        }} // Placeholder for future click functionality
+                            boxShadow: hoverShadow,
+                            transform: "translateY(-2px)",
+                        }}
                         onClick={() => {
                             setIsDrawerOpen(true);
-                            getCourseForNodeId(roadmapNodeData.roadmapId, roadmapNodeData.roadmapNodeId);
+                            getCourseForNodeId(
+                                roadmapNodeData.roadmapId,
+                                roadmapNodeData.roadmapNodeId
+                            );
                         }}
                     >
-                        <Text fontWeight="bold" fontSize="md">
+                        {/* Inline completion checkbox (top-right) */}
+                        <Box position="absolute" top={2} right={2} zIndex={5}>
+                            <Checkbox.Root
+                                checked={isCompleted}
+                                aria-label={isCompleted ? "Mark incomplete" : "Mark complete"}
+                                colorPalette={"teal"}
+                            >
+                                <Checkbox.HiddenInput />
+                                <Checkbox.Control
+                                    onClick={(e: React.MouseEvent) => {
+                                        e.stopPropagation(); // prevent opening drawer
+                                        handleMarkAsComplete(
+                                            roadmapNodeData.status || "",
+                                            roadmapNodeData.roadmapId,
+                                            roadmapNodeData.roadmapNodeId
+                                        );
+                                    }}
+                                />
+                            </Checkbox.Root>
+                        </Box>
+
+                        {/* Type accent */}
+                        {roadmapNodeData.type && (
+                            <Box
+                                position="absolute"
+                                left={0}
+                                top={0}
+                                bottom={0}
+                                w="10px"
+                                borderLeftRadius="xl"
+                                bg={getTypeColor(roadmapNodeData.type)}
+                            />
+                        )}
+
+                        <HStack justify="space-between" mb={2}>
+                            {roadmapNodeData.type && (
+                                <Badge fontSize="xs" variant="subtle" color="white" backgroundColor={getTypeColor(roadmapNodeData.type)}>
+                                    {roadmapNodeData.type}
+                                </Badge>
+                            )}
+                            {/* {isCompleted && <FaCheckCircle color="teal" />} */}
+                        </HStack>
+
+                        <Text fontWeight="bold" fontSize="lg" lineClamp={2}>
                             {roadmapNodeData.label}
                         </Text>
 
+                        <Text fontSize="xs" color={subtleText} lineClamp={2}>
+                            {roadmapNodeData.description || "No description provided."}
+                        </Text>
                     </Box>
-
                 </HoverCard.Trigger>
+
+                {/* Hover Preview */}
                 <Portal>
                     <HoverCard.Positioner>
                         <HoverCard.Content>
                             <HoverCard.Arrow />
-                            <Box p={3} maxWidth="250px">
-                                <Text fontWeight="bold" mb={2}>
-                                    {roadmapNodeData.label}
-                                </Text>
-                                {roadmapNodeData.type && (
-                                    <Badge mb={4} color={bgColor}>{roadmapNodeData.type}</Badge>
-                                )}
-                                <Text fontSize="sm" >
-                                    {roadmapNodeData.description ? roadmapNodeData.description : "No description available."}
-                                </Text>
-                                <Text fontSize="sm" mt={2} fontStyle="italic" color="gray.600">
-                                    {courses.length} course
-                                    {courses.length !== 1 ? "s" : ""} available.
-                                </Text>
-                                <Text fontSize="xs" color="gray.500" mt={2} mb={2}>
-                                    Click to view courses and generate new ones.
+                            <Box p={3} maxW="260px">
+                                <Text fontWeight="bold" color={getTypeColor(roadmapNodeData.type)}>{roadmapNodeData.label}</Text>
+                                <Text fontSize="sm" mt={1} mb={4}>
+                                    {roadmapNodeData.description}
                                 </Text>
                                 <TagHandler status={roadmapNodeData.status || "NOT_STARTED"} />
                             </Box>
                         </HoverCard.Content>
                     </HoverCard.Positioner>
-
                 </Portal>
-
-
             </HoverCard.Root>
 
-            <Drawer.Root open={isDrawerOpen} size="lg" closeOnInteractOutside={true} onInteractOutside={() => setIsDrawerOpen(false)}>
+            {/* Drawer (unchanged behavior) */}
+            <Drawer.Root open={isDrawerOpen} size="lg" onInteractOutside={() => setIsDrawerOpen(false)}>
                 <Portal>
                     <Drawer.Backdrop />
                     <Drawer.Positioner>
                         <Drawer.Content>
                             <Drawer.Header>
-                                <Text fontSize="xl" fontWeight="bold">
-                                    {roadmapNodeData.label}
-                                </Text>
-                                <Badge color={bgColor}>{roadmapNodeData.type}</Badge>
-                                <Button
-                                    size="xs"
-                                    ml="auto"
-                                    px={2}
-                                    py={1}
-                                    fontSize="xs"
-                                    minW="0"
-                                    variant="ghost"
-                                    onClick={() => {
-                                        handleMarkAsComplete(roadmapNodeData.status === "COMPLETED" ? "NOT_STARTED" : "COMPLETED", roadmapNodeData.roadmapId, roadmapNodeData.roadmapNodeId);
-                                    }}
-                                >
-                                    {roadmapNodeData.status === "COMPLETED" ? <MdOutlineRemoveDone /> : <MdOutlineDoneAll />}
-                                    {roadmapNodeData.status === "COMPLETED" ? "Incomplete" : "Complete"}
-                                </Button>
+                                <Heading size="md">{roadmapNodeData.label}</Heading>
+                                <Badge size="xs" color="white" backgroundColor={getTypeColor(roadmapNodeData.type)}>{roadmapNodeData.type}</Badge>
                             </Drawer.Header>
-                            <Drawer.Body >
-                                <Text mb={5}>{roadmapNodeData.description || "No description available."}</Text>
 
-                                <RadioCard.Root variant={"subtle"} defaultValue="beginner" mb={5}>
-                                    <RadioCard.Label>Select Course Level</RadioCard.Label>
-                                    <HStack align="stretch">
-                                        {courseLevelInfo.map((course, index) => (
-                                            <RadioCard.Item key={course.value} value={course.value} onClick={() => setCurrCourseIdx(index)}>
+                            <Drawer.Body>
+                                <Text mb={4}>{roadmapNodeData.description}</Text>
+
+                                <RadioCard.Root defaultValue="beginner" colorPalette="teal">
+                                    <RadioCard.Label>Select level</RadioCard.Label>
+                                    <HStack>
+                                        {courseLevelInfo.map((c, i) => (
+                                            <RadioCard.Item
+                                                key={c.value}
+                                                value={c.value}
+                                                onClick={() => setCurrCourseIdx(i)}
+                                            >
                                                 <RadioCard.ItemHiddenInput />
                                                 <RadioCard.ItemControl>
                                                     <RadioCard.ItemContent>
-                                                        <RadioCard.ItemText>{course.title}</RadioCard.ItemText>
-                                                        <RadioCard.ItemDescription>
-                                                            {course.status === "IN_PROGRESS" ? "Continue learning" : "Start learning"}
-                                                        </RadioCard.ItemDescription>
-                                                        <TagHandler status={course.status} />
-                                                        {course.status === "GENERATING" && (
-                                                            <Spinner mt={2} size="sm" />
-                                                        )}
+                                                        <RadioCard.ItemText>{c.title}</RadioCard.ItemText>
+                                                        <TagHandler status={c.status} />
+                                                        {c.status === "GENERATING" && <Spinner size="sm" />}
                                                     </RadioCard.ItemContent>
                                                 </RadioCard.ItemControl>
                                             </RadioCard.Item>
                                         ))}
                                     </HStack>
-
                                 </RadioCard.Root>
                                 {courseLevelInfo[currCourseIdx].status !== "NOT_GENERATED" && courseLevelInfo[currCourseIdx].status !== "GENERATING" && (
                                     <>
@@ -347,12 +374,13 @@ export const RoadmapNode: React.FC<
                                     </Text>
                                 )}
                             </Drawer.Body>
+
                             <Drawer.Footer>
-                                <Button variant="outline" onClick={() => setIsDrawerOpen(false)}>Cancel</Button>
+                                <Button variant="outline" onClick={() => setIsDrawerOpen(false)}>
+                                    Close
+                                </Button>
                                 {courseLevelInfo[currCourseIdx].courseId ? (
-                                    <Button
-                                        onClick={() => navigate(`/course/${courseLevelInfo[currCourseIdx].courseId}`)}
-                                    >
+                                    <Button onClick={() => navigate(`/course/${courseLevelInfo[currCourseIdx].courseId}`)}>
                                         View Course
                                     </Button>
                                 ) : (
@@ -371,9 +399,15 @@ export const RoadmapNode: React.FC<
             <Handle
                 type="source"
                 position={Position.Bottom}
-                id="bottom-source"
+                style={{
+                    background: "transparent",
+                    border: "0",
+                    boxShadow: "none",
+                    width: 14,
+                    height: 14,
+                }}
                 isConnectable={true}
             />
-        </>
+        </VStack>
     );
 };

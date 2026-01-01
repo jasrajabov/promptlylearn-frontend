@@ -5,6 +5,7 @@ import "./tutorialMarkdown.css";
 import { Button } from "@chakra-ui/react";
 import { RiAiGenerate } from "react-icons/ri";
 import CodeBlock from "./CodeBlock.tsx";
+import "./LessonCard.css";
 
 
 
@@ -27,6 +28,7 @@ const OpenAIStreamingMarkdown: React.FC<StreamingProps> = ({
 }) => {
     const [content, setContent] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [isStreaming, setIsStreaming] = useState(false);
 
     useEffect(() => {
         setContent(initialContent ?? null);
@@ -34,6 +36,7 @@ const OpenAIStreamingMarkdown: React.FC<StreamingProps> = ({
 
     const startStreaming = useCallback(async () => {
         if (initialContent) setContent(null);
+        setIsStreaming(true);
 
         try {
             const response = await fetch(apiUrl, {
@@ -62,6 +65,10 @@ const OpenAIStreamingMarkdown: React.FC<StreamingProps> = ({
         } catch (err) {
             console.error("Error during streaming:", err);
             setError("Failed to stream content.");
+        } finally {
+            // stop glow when finished (or on error)
+            setIsStreaming(false);
+            // no-op
         }
     }, [apiUrl, body]);
 
@@ -84,7 +91,13 @@ const OpenAIStreamingMarkdown: React.FC<StreamingProps> = ({
     };
     return (
         <>
-            <Button variant="ghost" onClick={startStreaming}>
+            <Button
+                variant="outline"
+                onClick={startStreaming}
+                // className={"glow"}
+                // boxShadow={isStreaming ? "0 0 16px rgba(9, 154, 132, 0.45)" : undefined}
+                _hover={{ boxShadow: isStreaming ? "0 0 26px rgba(19, 179, 144, 0.6)" : undefined }}
+            >
                 <RiAiGenerate />
                 {content ? "Regenerate" : "Generate"}
             </Button>

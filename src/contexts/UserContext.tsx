@@ -1,89 +1,280 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useRef,
+  type ReactNode,
+} from "react";
 
 export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
-
-
-export interface User {
-  name: string;
-  email?: string;
-  token: string;
-  avatarUrl?: string;
-}
+/* ===================== TYPES ===================== */
+import { type User } from "../types";
 
 interface UserContextType {
   user?: User;
   loading: boolean;
+  isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
+  authFetch: (url: string, options?: RequestInit) => Promise<Response>;
+  refreshUser: () => Promise<User | null>;
 }
+
+/* ===================== CONTEXT ===================== */
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
-// ✅ This allows other components to access the user context
 export const useUser = () => {
-  const context = useContext(UserContext);
-  if (!context) throw new Error("useUser must be used within UserProvider");
-  return context;
+  const ctx = useContext(UserContext);
+  if (!ctx) throw new Error("useUser must be used within UserProvider");
+  return ctx;
 };
 
-export const UserProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | undefined>(undefined);
-  const [loading, setLoading] = useState(true); // start as loading
+/* ===================== PROVIDER ===================== */
 
+export const UserProvider = ({ children }: { children: ReactNode }) => {
+  const [user, setUser] = useState<User | undefined>();
+  const [loading, setLoading] = useState(true);
+  const refreshTimeout = useRef<number | null>(null);
+
+  /* ---------- Load user from storage ---------- */
   useEffect(() => {
     const stored = localStorage.getItem("user");
     if (stored) {
-      setUser(JSON.parse(stored));
+      const parsed: User = JSON.parse(stored);
+      if (parsed.expires_at > Date.now()) {
+        setUser(parsed);
+      } else {
+        localStorage.removeItem("user");
+      }
     }
-    setLoading(false); // done loading after checking localStorage
+    setLoading(false);
   }, []);
 
+  /* ---------- Schedule refresh ---------- */
+  useEffect(() => {
+    if (!user) return;
+
+    if (refreshTimeout.current) {
+      clearTimeout(refreshTimeout.current);
+    }
+
+    const refreshIn = user.expires_at - Date.now() - 60_000;
+
+    if (refreshIn <= 0) {
+      refreshToken();
+      return;
+    }
+
+    refreshTimeout.current = window.setTimeout(refreshToken, refreshIn);
+
+    return () => {
+      if (refreshTimeout.current) {
+        clearTimeout(refreshTimeout.current);
+      }
+    };
+  }, [user]);
+
+  /* ===================== AUTH ACTIONS ===================== */
+
   const login = async (email: string, password: string) => {
-    console.log("email:", email, "password:", password)
-    const res = await fetch(`${BACKEND_URL}/login`, {
+    const res = await fetch(`${BACKEND_URL}/authentication/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({ email, password }),
     });
+
     if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.detail || "Login failed");
+      const err = await res.json();
+      throw new Error(err.detail || "Login failed");
     }
 
     const data = await res.json();
-    console.log("Login response data:", data);
-    const u = { name: data.user.name, email: data.user.email, token: data.access_token };
+    console.log("Login data:", data);
+    const expiresAt = Date.now() + data.expires_in * 1000;
+
+    const u: User = {
+      name: data.user.name,
+      email: data.user.email,
+      token: data.access_token,
+      expires_at: expiresAt,
+      membership_plan: data.user.membership_plan,
+      membership_active: data.user.membership_active,
+      id: data.user.id,
+      avatar_url: data.user.avatar_url,
+    };
+
     setUser(u);
     localStorage.setItem("user", JSON.stringify(u));
-    localStorage.setItem("token", data.access_token);
   };
 
   const signup = async (name: string, email: string, password: string) => {
-    const res = await fetch(`${BACKEND_URL}/signup`, {
+    const res = await fetch(`${BACKEND_URL}/authentication/signup`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, email, password }),
     });
 
     if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.detail || "Signup failed");
+      const err = await res.json();
+      throw new Error(err.detail || "Signup failed");
     }
 
-    // Automatically log in after signup
     await login(email, password);
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      // Tell backend to delete refresh token from Redis
+      await fetch(`${BACKEND_URL}/authentication/logout`, {
+        method: "POST",
+        credentials: "include", // send HttpOnly cookie
+      });
+    } catch (err) {
+      console.error("Logout failed", err);
+    }
+
+    // Clear frontend state
     setUser(undefined);
     localStorage.removeItem("user");
-    localStorage.removeItem("token");
+    if (refreshTimeout.current) clearTimeout(refreshTimeout.current);
   };
 
+  /* ---------- Refresh token ---------- */
+  const refreshToken = async () => {
+    try {
+      const res = await fetch(`${BACKEND_URL}/authentication/refresh`, {
+        method: "POST",
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        logout();
+        return;
+      }
+
+      const data = await res.json();
+      const expiresAt = Date.now() + data.expires_in * 1000;
+
+      setUser((prev) => {
+        if (!prev) return prev;
+
+        const updated = {
+          ...prev,
+          token: data.access_token,
+          expires_at: expiresAt,
+        };
+
+        localStorage.setItem("user", JSON.stringify(updated));
+        return updated;
+      });
+    } catch {
+      logout();
+    }
+  };
+
+  /* ---------- Refresh user data ---------- */
+  const refreshUser = async (): Promise<User | null> => {
+    if (!user) return null;
+
+    try {
+      console.log('🔄 Fetching fresh user data...');
+      const res = await fetch(`${BACKEND_URL}/authentication/me`, {
+        credentials: "include",
+        headers: {
+          Authorization: `Bearer ${user.token}`,
+        },
+        cache: 'no-store', // Prevent caching
+      });
+
+      if (!res.ok) {
+        console.error('❌ Failed to refresh user data');
+        logout();
+        return null;
+      }
+
+      const data = await res.json();
+      console.log('✅ Fresh user data received:', data);
+
+      // Create updated user object, preserving token and expiration
+      const updated: User = {
+        ...data,
+        token: user.token,
+        expires_at: user.expires_at,
+      };
+
+      console.log('Membership status:', {
+        plan: updated.membership_plan,
+        active: updated.membership_active,
+      });
+
+      // Update state and localStorage
+      setUser(updated);
+      localStorage.setItem("user", JSON.stringify(updated));
+
+      return updated;
+    } catch (error) {
+      console.error('❌ Error refreshing user:', error);
+      return null;
+    }
+  };
+
+  /* ---------- Auth-aware fetch ---------- */
+  const authFetch = async (url: string, options: RequestInit = {}) => {
+    const res = await fetch(url, {
+      ...options,
+      headers: {
+        ...(options.headers || {}),
+        Authorization: `Bearer ${user?.token}`,
+      },
+      credentials: "include",
+    });
+
+    if (res.status !== 401) return res;
+
+    // try refresh once
+    await refreshToken();
+
+    const retry = await fetch(url, {
+      ...options,
+      headers: {
+        ...(options.headers || {}),
+        Authorization: `Bearer ${user?.token}`,
+      },
+      credentials: "include",
+    });
+
+    if (retry.status === 401) {
+      logout();
+      throw new Error("Unauthorized");
+    }
+
+    return retry;
+  };
+
+  /* ===================== DERIVED ===================== */
+
+  const isAuthenticated = !!user && user.expires_at > Date.now();
+
+  /* ===================== PROVIDER ===================== */
+
   return (
-    <UserContext.Provider value={{ user, login, signup, logout, loading }}>
+    <UserContext.Provider
+      value={{
+        user,
+        loading,
+        isAuthenticated,
+        login,
+        signup,
+        logout,
+        authFetch,
+        refreshUser,
+      }}
+    >
       {children}
     </UserContext.Provider>
   );

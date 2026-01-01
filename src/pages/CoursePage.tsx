@@ -21,7 +21,6 @@ const FancyHeading = (props: any) => (
 
 export default function CourseTimeline() {
     const { id } = useParams<{ id: string }>();
-    console.log("Course ID from params:", id);
     const { user } = useUser();
 
     const [activeModuleIndex, setActiveModuleIndex] = useState<number | null>(0);
@@ -55,16 +54,15 @@ export default function CourseTimeline() {
             setLoading(true);
             try {
                 console.log("Fetching course details for ID:", id);
-                const response = await fetch(`${BACKEND_URL}/get_course/${id}`, {
+                const response = await fetch(`${BACKEND_URL}/course/${id}`, {
                     method: "GET",
                     headers: {
                         "Content-Type": "application/json",
                         "Authorization": `Bearer ${user?.token}`,
                     },
                 });
-                console.log("Fetch response:", response);
                 const data = await response.json();
-                console.log("Course details response data:", data);
+                console.log("Fetched course data:", data);
                 const modulesWithStatus = data.modules.map((module: any) => ({
                     ...module,
                     status: module.status || "not-generated",

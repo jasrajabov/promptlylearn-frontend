@@ -4,9 +4,10 @@ import ReactFlow, {
     Background,
     Controls,
     type Node,
-    type Edge, // 👈 Essential: Used in CustomNode
-    MarkerType, // For edge marker definition
-    type DefaultEdgeOptions, // For typing default options
+    type Edge,
+    MarkerType,
+    type DefaultEdgeOptions,
+    type NodeProps,
 } from "reactflow";
 import "reactflow/dist/style.css";
 import {
@@ -18,6 +19,7 @@ import {
     Badge,
     HStack,
     Collapsible,
+    Accordion,
 
 } from "@chakra-ui/react";
 import { Stats } from "../components/Stats";
@@ -43,13 +45,13 @@ interface RoadmapNodeResponse {
 }
 
 interface RoadmapData {
+    roadmap_name: string;
     nodes_json: RoadmapNodeResponse[]; // Renamed for clarity with your data
     edges_json: { source: string; target: string }[]; // Renamed for clarity with your data
 }
 
 // --- CONSTANTS ---
 
-// 🚀 Default options for all edges: smoothstep path with a distinct arrow marker
 const defaultEdgeOptions: DefaultEdgeOptions = {
     type: "smoothstep",
     animated: false,
@@ -61,33 +63,24 @@ const defaultEdgeOptions: DefaultEdgeOptions = {
 };
 
 
+const NODE_WIDTH = 300;
+const NODE_HEIGHT = 110;
+
 const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
     const dagreGraph = new dagre.graphlib.Graph();
     dagreGraph.setDefaultEdgeLabel(() => ({}));
 
-    const rankdir: "TB" | "LR" = "TB"; // Top→Bottom layout
-    const minNodeWidth = 220; // Minimum width for nodes
-    const nodeHeightBase = 60; // Base node height
-    const approxCharWidth = 8; // Approx width per character in px
-    const padding = 40; // Padding around text
-    const lineHeight = 20; // Height per extra line
-    const maxLines = 3; // Limit lines to avoid huge nodes
-
     dagreGraph.setGraph({
-        rankdir,
-        ranksep: 220, // vertical spacing
-        nodesep: 160, // horizontal spacing
+        rankdir: "TB",
+        ranksep: 180,
+        nodesep: 80,
     });
 
-    // Dynamically calculate node width & height
     nodes.forEach((node) => {
-        const label = node.data?.label ?? "";
-        const width = Math.max(minNodeWidth, label.length * approxCharWidth + padding);
-
-        const textLines = Math.min(Math.ceil((label.length * approxCharWidth) / width), maxLines);
-        const height = nodeHeightBase + (textLines - 1) * lineHeight;
-
-        dagreGraph.setNode(node.id, { width, height });
+        dagreGraph.setNode(node.id, {
+            width: NODE_WIDTH,
+            height: NODE_HEIGHT,
+        });
     });
 
     edges.forEach((edge) => {
@@ -97,16 +90,23 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
     dagre.layout(dagreGraph);
 
     const layoutedNodes = nodes.map((node) => {
-        const nodeWithPosition = dagreGraph.node(node.id);
-        node.position = {
-            x: nodeWithPosition.x - nodeWithPosition.width / 2,
-            y: nodeWithPosition.y - nodeWithPosition.height / 2,
+        const pos = dagreGraph.node(node.id);
+        return {
+            ...node,
+            position: {
+                x: pos.x - NODE_WIDTH / 2,
+                y: pos.y - NODE_HEIGHT / 2,
+            },
+            style: {
+                width: NODE_WIDTH,
+                height: NODE_HEIGHT,
+            },
         };
-        return node;
     });
 
     return { nodes: layoutedNodes, edges };
 };
+
 
 
 
@@ -132,6 +132,32 @@ export default function TrackRoadmap(): React.ReactElement {
         return Math.round((completedNodes / allNodes.length) * 100);
     }, [allNodes]);
 
+
+    const updateNodeStatus = useCallback(
+        (nodeId: string, status: string) => {
+            setAllNodes((prev) =>
+                prev.map((n) =>
+                    n.id === nodeId
+                        ? { ...n, data: { ...n.data, status } }
+                        : n
+                )
+            );
+        },
+        []
+    );
+
+    const nodeTypes = useMemo(
+        () => ({
+            custom: (props: NodeProps<any>) => (
+                <RoadmapNode
+                    {...props}
+                    onStatusChange={updateNodeStatus}
+                />
+            ),
+        }),
+        [updateNodeStatus]
+    );
+
     const visibleNodes = useMemo(() => {
         if (!selectedTypes || selectedTypes.size === 0) return allNodes;
         return allNodes.filter((n) => selectedTypes.has((n.data?.type ?? "").toString()));
@@ -145,9 +171,38 @@ export default function TrackRoadmap(): React.ReactElement {
         setEdges(layoutedEdges);
     }, []);
 
+    const getEdgeColor = (edge: Edge, nodesMap: Map<string, Node>) => {
+        const sourceNode = nodesMap.get(edge.source);
+        if (!sourceNode) return "#CBD5E0"; // default gray
+        return sourceNode.data?.status === "COMPLETED" ? "#38B2AC" : "#CBD5E0"; // teal for completed
+    };
+
     const visibleEdges = useMemo(() => {
-        return allEdges.filter((e) => visibleNodeIds.has(e.source) && visibleNodeIds.has(e.target));
-    }, [allEdges, visibleNodeIds]);
+        const nodesMap = new Map(visibleNodes.map(n => [n.id, n]));
+        return allEdges
+            .filter(e => visibleNodeIds.has(e.source) && visibleNodeIds.has(e.target))
+            .map(e => ({
+                ...e,
+                style: { stroke: getEdgeColor(e, nodesMap), strokeWidth: 3 },
+                markerEnd: {
+                    type: MarkerType.ArrowClosed,
+                    color: getEdgeColor(e, nodesMap),
+                },
+            }));
+    }, [allEdges, visibleNodes, visibleNodeIds]);
+
+    const phaseLanes = useMemo(() => {
+        const lanes: { y: number; height: number; type: string }[] = [];
+        const phaseHeight = NODE_HEIGHT + 100;
+        Array.from(roadmapNodeTypes).forEach((type, index) => {
+            lanes.push({
+                y: index * phaseHeight,
+                height: phaseHeight,
+                type,
+            });
+        });
+        return lanes;
+    }, [roadmapNodeTypes]);
 
     useEffect(() => {
         if (!user) return;
@@ -155,7 +210,7 @@ export default function TrackRoadmap(): React.ReactElement {
         const fetchRoadmap = async () => {
             setLoading(true);
             try {
-                const response = await fetch(`${BACKEND_URL}/generate-roadmap/${id}`, {
+                const response = await fetch(`${BACKEND_URL}/roadmap/${id}`, {
                     method: "GET",
                     headers: {
                         "Content-Type": "application/json",
@@ -163,10 +218,9 @@ export default function TrackRoadmap(): React.ReactElement {
                     },
                 });
                 const data: RoadmapData = await response.json();
-                setLabel(data.nodes_json[0]?.label || "");
+                setLabel(data.roadmap_name || "Roadmap");
                 // setDescription(data.nodes_json[0]?.description || "");
                 setRoadmapNodeTypes(new Set(data.nodes_json.map((node) => node.type ?? "")));
-                console.log("Fetched roadmap data:", data);
                 console.log(roadmapNodeTypes);
 
 
@@ -185,12 +239,25 @@ export default function TrackRoadmap(): React.ReactElement {
                     position: { x: 0, y: 0 }, // Dagre will overwrite this
                 }));
 
-                const mappedEdges: Edge[] = data.edges_json.map((edge) => ({
-                    id: `${edge.source}-${edge.target}`,
-                    source: edge.source,
-                    target: edge.target,
-                    // Style and handle IDs are now applied via defaultEdgeOptions
-                }));
+                const mappedEdges: Edge[] = data.edges_json.map((edge) => {
+                    const sourceNode = data.nodes_json.find(n => n.node_id === edge.source);
+                    const isSourceCompleted = sourceNode?.status === "COMPLETED";
+
+                    return {
+                        id: `${edge.source}-${edge.target}`,
+                        source: edge.source,
+                        target: edge.target,
+                        style: {
+                            stroke: "gray:500",
+                            strokeWidth: 3,
+                            strokeDasharray: 0,
+                        },
+                        markerEnd: {
+                            type: MarkerType.ArrowClosed,
+                            color: isSourceCompleted ? "#38B2AC" : "#CBD5E0",
+                        },
+                    };
+                });
 
                 // layout immediately and keep a copy of the full layouted graph
                 const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(mappedNodes, mappedEdges);
@@ -227,52 +294,50 @@ export default function TrackRoadmap(): React.ReactElement {
 
     const selectedBg = useColorModeValue("teal.100", "teal.700");
     const statItem = {
-        label: "Stage",
+        label: "Nodes Completed",
         progress: progressPercentage,
     };
 
+
+
     return (
-        <Box w="100%" h="90vh" p={4}>
-            <Box mb={6}>
-                <HStack justifyContent="space-between">
-                    <Heading>{label}</Heading>
-                    <Stats stats={[statItem]} />
-                </HStack>
+        <Box w="100%" h="90vh">
+            <HStack justify="space-between" w="full">
+                <Heading size="2xl" fontWeight="semibold">
+                    {label}
+                </Heading>
+                <Stats stats={[statItem]} size="lg" />
+            </HStack>
 
-                <Collapsible.Root defaultOpen>
-                    <Collapsible.Trigger onClick={() => setShowDescAndFilter(!showDescAndFilter)} >
-                        {showDescAndFilter ? <MdOutlineExpandLess /> : <MdOutlineExpandMore />}
-                    </Collapsible.Trigger>
-                    <Collapsible.Content>
+            <Text fontSize="xs" color="gray.500" mb={1}>
+                Filter by node type
+            </Text>
 
-                        <Text fontSize="sm" mb={2}>Filter by node type:</Text>
-                        <HStack gap={2}>
-
-                            {Array.from(roadmapNodeTypes).map((type) => (
-                                <Badge
-                                    key={type}
-                                    onClick={() => toggleType(type)}
-                                    cursor="pointer"
-                                    variant={"solid"}
-
-                                    bg={selectedTypes.has(type) ? selectedBg : getTypeColor(type)}
-                                    color="black"
-                                >
-                                    {type}
-                                </Badge>
-                            ))}
-                        </HStack>
-                    </Collapsible.Content>
-                </Collapsible.Root>
-
-
-            </Box>
-
+            <HStack gap={1} wrap="wrap">
+                {Array.from(roadmapNodeTypes).map((type) => (
+                    <Badge
+                        key={type}
+                        px={2}
+                        py={0.5}
+                        fontSize="xs"
+                        borderRadius="md"
+                        cursor="pointer"
+                        variant="solid"
+                        transition="all 0.15s ease"
+                        bg={selectedTypes.has(type) ? selectedBg : getTypeColor(type)}
+                        color="white"
+                        _hover={{ opacity: 0.85 }}
+                        onClick={() => toggleType(type)}
+                    >
+                        {type}
+                    </Badge>
+                ))}
+            </HStack>
 
             <ReactFlow
                 nodes={visibleNodes}
                 edges={visibleEdges}
-                nodeTypes={{ custom: RoadmapNode }}
+                nodeTypes={nodeTypes}
                 defaultEdgeOptions={defaultEdgeOptions}
                 fitView
                 fitViewOptions={{ padding: 0.2 }}

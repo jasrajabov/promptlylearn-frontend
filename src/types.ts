@@ -1,3 +1,14 @@
+export type User = {
+  id: string;
+  name: string;
+  email: string;
+  avatar_url?: string;
+  token: string;
+  expires_at: number; // unix ms timestamp
+  membership_active: boolean;
+  membership_plan: string;
+};
+
 export interface Course {
   id: string;
   title: string;

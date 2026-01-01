@@ -26,7 +26,7 @@ const TagHandler: React.FC<TagHandlerProps> = ({ status }) => {
         }
     };
     return (
-        <Tag.Root size="sm" variant="solid" colorPalette={getTagColor(status)}>
+        <Tag.Root size="sm" variant="subtle" colorPalette={getTagColor(status)}>
             <HStack>
                 <Tag.Label>{formatStatus(status)}</Tag.Label>
             </HStack>

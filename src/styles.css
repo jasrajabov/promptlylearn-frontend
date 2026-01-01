@@ -26,3 +26,15 @@ html, body, #root {
     stroke-dasharray: 10 6;
     animation: flow 12s linear infinite;
 }
+
+.glow {
+  animation: pulseGlow 1.6s infinite ease-in-out;
+  /* ensure the Chakra boxShadow isn't overwritten */
+  box-shadow: 0 0 12px rgba(72,187,120,0.45);
+}
+
+@keyframes pulseGlow {
+  0%   { box-shadow: 0 0 6px rgba(72,187,120,0.35); }
+  50%  { box-shadow: 0 0 20px rgba(72,187,120,0.55); }
+  100% { box-shadow: 0 0 6px rgba(72,187,120,0.35); }
+}

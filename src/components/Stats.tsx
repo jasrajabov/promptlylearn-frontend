@@ -13,10 +13,11 @@ interface StatItem {
 }
 interface StatsProps {
     stats: StatItem[],
+    size?: "sm" | "md" | "lg" | "xl";
 }
 
 
-export const Stats = ({ stats }: StatsProps): React.ReactElement | null => {
+export const Stats = ({ stats, size = "xl" }: StatsProps): React.ReactElement | null => {
 
     if (!stats) return null;
 
@@ -33,7 +34,7 @@ export const Stats = ({ stats }: StatsProps): React.ReactElement | null => {
                         {/* <Stat.Value>{stat.value}</Stat.Value> */}
                     </Stat.Root>
                     {stat.progress !== undefined && (
-                        <ProgressCircleComponent size="xl" value={stat.progress} />
+                        <ProgressCircleComponent size={size} value={stat.progress} />
                     )}
                 </VStack>
             ))}

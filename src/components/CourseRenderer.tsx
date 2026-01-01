@@ -20,6 +20,7 @@ import { GiChoice } from "react-icons/gi";
 import { RiRobot3Fill } from "react-icons/ri";
 import ChatBox from "./ChatBox";
 import { type ChatMessage } from "../types";
+import { useColorModeValue } from "./ui/color-mode";
 
 export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -64,6 +65,8 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
     content: "Hello! I'm your AI learning buddy. Feel free to ask me any questions about the course material or request further explanations on topics you're curious about.",
     timestamp: new Date(),
   }]);
+
+  const tealTextColor = useColorModeValue("teal.700", "teal.300");
 
   const pollersRef = useRef<{ [key: string]: number | null }>({});
 
@@ -145,7 +148,7 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
 
   const handleGenerateQuiz = () => {
     setLoadingQuiz(true);
-    fetchWithTimeout(`${BACKEND_URL}/generate-quiz`, {
+    fetchWithTimeout(`${BACKEND_URL}/quiz/generate-quiz`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -169,7 +172,7 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
     if (!taskId || pollersRef.current[taskId]) return;
     const id = window.setInterval(async () => {
       try {
-        const res = await fetchWithTimeout(`${BACKEND_URL}/task-status/quiz_generation/${taskId}`, {
+        const res = await fetchWithTimeout(`${BACKEND_URL}/tasks/status/quiz_generation/${taskId}`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -211,37 +214,40 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
           </Heading>
         </VStack>
 
-        {!showQuiz && (
-          <HStack w="full" justify="flex-start" align="center">
-            <Text fontSize="sm" color="gray.500">
-              Lesson {currentLessonIndex + 1} of {module.lessons.length}
-            </Text>
-            {
-              <Button size="sm" variant="ghost" onClick={handleUpdateStatus}>
-                {lesson.status === "COMPLETED" ? <MdOutlineRemoveDone /> : <MdOutlineDoneAll />}
-                {lesson.status === "COMPLETED" ? "Incomplete" : "Complete"}
+
+        <HStack w="full" justify="flex-start" align="center">
+          <Text fontSize="sm" color="gray.500">
+            Lesson {currentLessonIndex + 1} of {module.lessons.length}
+          </Text>
+          {
+            <Button size="sm" variant="ghost" onClick={handleUpdateStatus}>
+              {lesson.status === "COMPLETED" ? <MdOutlineRemoveDone /> : <MdOutlineDoneAll />}
+              {lesson.status === "COMPLETED" ? "Incomplete" : "Complete"}
+            </Button>
+          }
+
+
+          {loadingQuiz ? (
+            <>
+              <Spinner />
+              <Text color={tealTextColor}>Generating Quiz...</Text>
+            </>
+          ) : (
+            <>
+              <Button size="sm" variant="ghost" onClick={handleGenerateQuiz}>Generate Quiz
+                <GiChoice />
               </Button>
-            }
-            {loadingQuiz ? (
-              <>
-                <Spinner />
-                <Text>Generating Quiz...</Text>
-              </>
-            ) : (
-              <>
-                <Button size="sm" variant="ghost" onClick={handleGenerateQuiz}>Generate Quiz
-                  <GiChoice />
-                </Button>
-                <Button size="sm" variant="ghost" onClick={(e) => {
-                  e.preventDefault();
-                  setOpenChatBox(true);
-                }}>
-                  <RiRobot3Fill /> Ask AI Buddy
-                </Button>
-              </>
-            )}
-          </HStack>
-        )}
+            </>
+          )}
+          <Button size="sm" variant="ghost" onClick={(e) => {
+            e.preventDefault();
+            setOpenChatBox(true);
+          }}>
+            <RiRobot3Fill /> Ask AI Buddy
+          </Button>
+
+
+        </HStack>
         {openChatBox && <ChatBox open={openChatBox} setOpenChatBox={setOpenChatBox} chatMessages={chatMessages} setChatMessages={setChatMessages} />}
 
         {!showQuiz && <LessonCard
@@ -281,7 +287,7 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
           <ModuleQuiz quiz={quiz} setShowQuiz={setShowQuiz} />
         )}
 
-        {!showQuiz && (
+        {!showQuiz && currentLessonIndex > 0 && (
           <HStack w="full" justify="space-between" flexWrap="wrap">
             <Button variant="subtle" onClick={handlePrevLesson} disabled={currentLessonIndex === 0}>
               Previous

@@ -1,93 +1,207 @@
-import React from "react";
-import { Flex, HStack, Button, Avatar, Menu, Float, Circle, Portal } from "@chakra-ui/react";
-import { FaHome, FaSignInAlt, FaSun, FaMoon } from "react-icons/fa";
+import React, { useState } from "react";
+import {
+  Flex,
+  HStack,
+  VStack,
+  Button,
+  Avatar,
+  Menu,
+  Portal,
+  Circle,
+  Image,
+  Box,
+  useBreakpointValue,
+  Float,
+  Collapsible
+} from "@chakra-ui/react";
+import { FaSun, FaMoon, FaBars } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../contexts/UserContext";
-import { useColorMode } from "./ui/color-mode";
-import { FaBook } from "react-icons/fa6";
-import { PiPathBold } from "react-icons/pi";
-import { Separator } from "@chakra-ui/react"
+import { useColorModeValue, useColorMode } from "../components/ui/color-mode";
+import promptlyLeanrnLogoDark from "../assets/pl-logo-dark.png";
+import promptlyLeanrnLogoLight from "../assets/pl-logo-light.png";
+import { FaSignInAlt } from "react-icons/fa";
+import { type User } from "../types";
+import { Badge, Stack } from "@chakra-ui/react"
+import { HiAtSymbol, HiStar } from "react-icons/hi"
 
 
+const NavItem: React.FC<{ label: string; onClick: () => void }> = ({
+  label,
+  onClick,
+}) => {
+  const hoverGlow = useColorModeValue(
+    "0 0 12px rgba(56, 178, 172, 0.6)",
+    "0 0 14px rgba(129, 230, 217, 0.6)"
+  );
+
+  return (
+    <Button
+      size="sm"
+      variant="ghost"
+      fontWeight="medium"
+      onClick={onClick}
+      transition="all 0.2s ease"
+      _hover={{ boxShadow: hoverGlow, transform: "translateY(-1px)" }}
+      borderRadius={100}
+    >
+      {label}
+    </Button>
+  );
+};
 
 const Header: React.FC = () => {
   const { colorMode, toggleColorMode } = useColorMode();
   const { user, logout } = useUser();
   const navigate = useNavigate();
-  console.log("Header user:", user);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const currentUser = user as User | undefined;
+  const logo = useColorModeValue(promptlyLeanrnLogoLight, promptlyLeanrnLogoDark);
+  const bg = useColorModeValue("whiteAlpha.800", "blackAlpha.700");
+  const border = useColorModeValue("gray.200", "whiteAlpha.200");
+
+  // Show hamburger only on small screens
+  const isMobile = useBreakpointValue({ base: true, md: false });
+
   return (
-    <Flex justify="space-between" p={2} w="100%" align="center">
-      <HStack gap={2}>
-        <Button size="sm" variant="ghost" onClick={() => navigate("/")}>
-          <HStack gap={2}>
-            <FaHome />
-            <span>Home</span>
-          </HStack>
-        </Button>
-        <Separator size="md" orientation="vertical" height="4" />
-        {user?.token && (
-          <><Button size="sm" variant="ghost" onClick={() => navigate("/my-courses")}>
-            <HStack gap={2}>
-              <FaBook />
-              <span>My Courses</span>
-            </HStack>
-          </Button>
-            <Separator size="md" orientation="vertical" height="4" />
-            <Button size="sm" variant="ghost" onClick={() => navigate("/my-roadmaps")}>
-              <HStack gap={2}>
-                <PiPathBold />
-                <span>My Tracks</span>
-              </HStack>
-            </Button></>
-        )}
-      </HStack>
+    <Box
+      as="header"
+      position="sticky"
+      top={0}
+      zIndex={100}
+      backdropFilter="blur(10px)"
+      bg={bg}
+      borderBottom="1px solid"
+      borderColor={border}
+    >
+      <Flex
+        maxW="1200px"
+        mx="auto"
+        px={4}
+        py={2}
+        align="center"
+        justify="space-between"
+      >
+        {/* Left: Logo */}
+        <HStack gap={3}>
+          <Image
+            src={logo}
+            alt="AI Course Builder"
+            height="40px"
+            onClick={() => navigate("/")}
+            cursor="pointer"
+          />
+          {!isMobile && currentUser?.token && (
+            <>
+              <NavItem label="My Courses" onClick={() => navigate("/my-courses")} />
+              <NavItem label="My Tracks" onClick={() => navigate("/my-roadmaps")} />
+              <NavItem label="About" onClick={() => navigate("/about")} />
+            </>
+          )}
+        </HStack>
 
-      <HStack gap={3}>
-        {user ? (
-          <Menu.Root positioning={{ placement: "right-end" }}>
-            <Menu.Trigger rounded="full" focusRing="outside">
-              <Avatar.Root>
-                <Avatar.Fallback name={user.name} />
-                <Avatar.Image src={user.avatarUrl || undefined} />
-                <Float placement="bottom-end" offsetX="1" offsetY="1">
-                  <Circle
-                    bg="green.500"
-                    size="8px"
-                    outline="0.2em solid"
-                    outlineColor="bg"
-                  />
-                </Float>
-              </Avatar.Root>
-            </Menu.Trigger>
-            <Portal>
-              <Menu.Positioner>
-                <Menu.Content>
-                  <Menu.Item value="my-profile">
-                    My Profile
-                  </Menu.Item>
-                  <Menu.Item onSelect={logout} value="logout">
-                    Logout
-                  </Menu.Item>
+        {/* Right: Actions */}
+        <HStack gap={2}>
+          {!isMobile && (
+            <>
+              {currentUser ? (
+                <HStack align="center" gap={3}>
+                  <Badge alignSelf="center" px={3} py={1} borderRadius="md" colorPalette={user?.membership_plan === "premium" ? "purple" : "yellow"} variant="solid">
+                    {currentUser.membership_plan === "premium" ? (
+                      <HStack gap={1}>
+                        <HiStar />
+                        <span>Premium</span>
+                      </HStack>
+                    ) : (
+                      <HStack gap={1}>
+                        <HiAtSymbol />
+                        <span>Free</span>
+                      </HStack>
+                    )}
+                  </Badge>
 
-                </Menu.Content>
-              </Menu.Positioner>
-            </Portal>
-          </Menu.Root>
-        ) : (
-          <Button variant="ghost" onClick={() => navigate("/login")}>
-            <HStack gap={2}>
-              <FaSignInAlt />
-              <span>Login</span>
-            </HStack>
-          </Button>
-        )}
+                  <Menu.Root positioning={{ placement: "right-end" }}>
+                    <Menu.Trigger rounded="full" focusRing="outside">
+                      <Avatar.Root>
+                        <Avatar.Fallback name={currentUser.name} />
+                        <Avatar.Image src={currentUser.avatar_url || undefined} />
+                        <Float placement="bottom-end" offsetX="1" offsetY="1">
+                          <Circle
+                            bg="green.500"
+                            size="8px"
+                            outline="0.2em solid"
+                            outlineColor="bg"
+                          />
+                        </Float>
+                      </Avatar.Root>
+                    </Menu.Trigger>
+                    <Portal>
+                      <Menu.Positioner>
+                        <Menu.Content>
+                          <Menu.Item value="my-profile">My Profile</Menu.Item>
+                          <Menu.Item onSelect={logout} value="logout">Logout</Menu.Item>
+                        </Menu.Content>
+                      </Menu.Positioner>
+                    </Portal>
+                  </Menu.Root>
+                </HStack>
+              ) : (
+                <Button variant="ghost" onClick={() => navigate("/login")}>
+                  <HStack gap={2}>
+                    <FaSignInAlt />
+                    <span>Login</span>
+                  </HStack>
+                </Button>
+              )}
+              <Button size="sm" variant="ghost" borderRadius={100} onClick={toggleColorMode}>
+                {colorMode === "light" ? <FaMoon /> : <FaSun />}
+              </Button>
+            </>
+          )}
 
-        <Button variant="ghost" onClick={toggleColorMode}>
-          {colorMode === "light" ? <FaMoon /> : <FaSun />}
-        </Button>
-      </HStack>
+          {/* Hamburger for mobile */}
+          {isMobile && (
+            <Button
+              aria-label="Menu"
 
-    </Flex>
+              size="sm"
+              variant="ghost"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            >
+              <FaBars />
+            </Button>
+          )}
+        </HStack>
+      </Flex>
+
+      {/* Mobile Menu */}
+      {isMobile && (
+        <Collapsible.Root open={isMobileMenuOpen} unmountOnExit>
+          <Collapsible.Content >
+            <VStack px={4} py={2} gap={2} align="start" bg={bg} borderTop="1px solid" borderColor={border}>
+              {currentUser?.token && (
+                <>
+                  <NavItem label="My Courses" onClick={() => navigate("/my-courses")} />
+                  <NavItem label="My Tracks" onClick={() => navigate("/my-roadmaps")} />
+                  <NavItem label="About" onClick={() => navigate("/about")} />
+                </>
+              )}
+              {currentUser ? (
+                <>
+                  <NavItem label="My Profile" onClick={() => navigate("/profile")} />
+                  <NavItem label="Logout" onClick={logout} />
+                </>
+              ) : (
+                <NavItem label="Login" onClick={() => navigate("/login")} />
+              )}
+              <Button size="sm" variant="ghost" onClick={toggleColorMode}>
+                {colorMode === "light" ? <FaMoon /> : <FaSun />}
+              </Button>
+            </VStack>
+          </Collapsible.Content>
+        </Collapsible.Root>
+      )}
+    </Box>
   );
 };
 

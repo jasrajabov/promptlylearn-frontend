@@ -120,7 +120,7 @@ export const TOC = ({
                 );
         }
     };
-
+    console.log("TOC Rendered with courseState:", courseState);
     return (
         <Box
             minW={tocCollapsed ? "70px" : "400px"}

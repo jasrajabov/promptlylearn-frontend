@@ -46,7 +46,7 @@ const UserRoadmaps: React.FC = () => {
     const [sortKey, setSortKey] = useState<"created" | "modules" | "progress">("created");
 
 
-    const cardBg = useColorModeValue("white", "gray.900");
+    const cardBg = useColorModeValue("white", "black:900");
     const cardHoverBg = useColorModeValue("gray.50", "gray.700");
     const cardBorderColor = useColorModeValue("teal.200", "teal.700");
 
@@ -62,7 +62,7 @@ const UserRoadmaps: React.FC = () => {
 
     const updateRoadmapStatus = async (roadmapId: string, status: string) => {
         try {
-            const res = await fetchWithTimeout(`${BACKEND_URL}/roadmaps/${roadmapId}/status`, {
+            const res = await fetchWithTimeout(`${BACKEND_URL}/roadmap/${roadmapId}/status`, {
                 method: "PATCH",
                 headers: {
                     "Content-Type": "application/json",
@@ -90,7 +90,7 @@ const UserRoadmaps: React.FC = () => {
             if (!user) return;
             try {
                 const response = await fetchWithTimeout(
-                    `${BACKEND_URL}/get_all_roadmaps`,
+                    `${BACKEND_URL}/roadmap/get_all_roadmaps`,
                     {
                         method: "GET",
                         headers: {
@@ -131,7 +131,7 @@ const UserRoadmaps: React.FC = () => {
     const refreshCourses = async () => {
         if (!user) return;
         try {
-            const response = await fetchWithTimeout(`${BACKEND_URL}/get_all_roadmaps`, {
+            const response = await fetchWithTimeout(`${BACKEND_URL}/roadmap/get_all_roadmaps`, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
@@ -151,7 +151,7 @@ const UserRoadmaps: React.FC = () => {
         console.log("Starting poller for task", taskId);
         const id = window.setInterval(async () => {
             try {
-                const res = await fetchWithTimeout(`${BACKEND_URL}/task-status/roadmap_outline/${taskId}`, {
+                const res = await fetchWithTimeout(`${BACKEND_URL}/tasks/status/roadmap_outline/${taskId}`, {
                     method: "GET",
                     headers: {
                         "Content-Type": "application/json",
@@ -243,7 +243,7 @@ const UserRoadmaps: React.FC = () => {
         if (!user) return;
         try {
             await fetchWithTimeout(
-                `${BACKEND_URL}/delete_roadmap/${roadmapId}`,
+                `${BACKEND_URL}/roadmap/${roadmapId}`,
                 {
                     method: "DELETE",
                     headers: {
@@ -287,13 +287,16 @@ const UserRoadmaps: React.FC = () => {
             }
         });
     return (
-        <Box maxW="7xl" mx="auto" px={6} py={10}>
-            <Heading mb={2} textAlign="center" color="brand.fg">
+        <Box maxW="7xl" textAlign="center" mx="auto" px={6} py={10}>
+            <Heading mb={2} color="brand.fg">
                 Your Roadmaps
             </Heading>
-            <Text textAlign="center" color="brand.fg" mb={10}>
+            <Text color="brand.fg" mb={10}>
                 Explore and continue your learning journeys
             </Text>
+            <Button borderRadius={100} variant="subtle" onClick={() => navigate("/")} colorScheme="teal" mb={6}>
+                Create a New Roadmap
+            </Button>
             <FilterControls
                 searchTerm={searchTerm}
                 setSearchTerm={setSearchTerm}
@@ -308,9 +311,6 @@ const UserRoadmaps: React.FC = () => {
                     <Text fontSize="lg" color="gray.500">
                         You haven’t created any roadmaps yet.
                     </Text>
-                    <Button colorScheme="blue" onClick={() => (window.location.href = "/create-roadmap")}>
-                        Create New Roadmap
-                    </Button>
                 </VStack>
             ) : (
 
@@ -336,7 +336,11 @@ const UserRoadmaps: React.FC = () => {
                                     borderColor={isGenerating ? "teal.400" : cardBorderColor}
                                     borderWidth={isGenerating ? "2px" : "1px"}
                                     boxShadow={isGenerating ? "0 0 10px var(--chakra-colors-teal-400)" : "md"}
-                                    _hover={{ bg: cardHoverBg }}
+                                    _hover={{
+                                        boxShadow: "0 0 18px var(--chakra-colors-teal-400)",
+                                        borderColor: "teal.400",
+                                        transform: "translateY(-2px)",
+                                    }}
                                     rounded="lg"
                                     p={4}
                                     display="flex"

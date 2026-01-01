@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { use, useState } from "react";
 import {
   Box,
   Button,
@@ -17,6 +17,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useUser } from "../contexts/UserContext";
 import { fetchWithTimeout } from "../utils/dbUtils";
 
+
 export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 const levelItems = [
@@ -25,14 +26,18 @@ const levelItems = [
   { label: "Advanced", value: "advanced" },
 ];
 
-const HomePage = () => {
+interface HomePageProps {
+  _mode: "course" | "roadmap";
+}
+
+const HomePage: React.FC<HomePageProps> = ({ _mode = "course" }) => {
   const { user } = useUser();
   const navigate = useNavigate();
   const location = useLocation();
 
   const [topic, setTopic] = useState("");
   const [level, setLevel] = useState("beginner");
-  const [mode, setMode] = useState<"course" | "roadmap">("course");
+  const [mode, setMode] = useState<"course" | "roadmap">(_mode);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,14 +47,18 @@ const HomePage = () => {
       return;
     }
 
+    if (!user.membership_active) {
+      navigate("/upgrade");
+      return;
+    }
     setLoading(true);
     setError(null);
 
     try {
       const endpoint =
         mode === "course"
-          ? `${BACKEND_URL}/generate-course-outline`
-          : `${BACKEND_URL}/generate-roadmap`;
+          ? `${BACKEND_URL}/course/generate-course-outline`
+          : `${BACKEND_URL}/roadmap/generate-roadmap`;
 
       const body =
         mode === "course" ? { topic, level } : { roadmap_name: topic };
