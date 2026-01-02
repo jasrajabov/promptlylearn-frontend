@@ -28,13 +28,14 @@ const App: React.FC = () => {
             <Route path="/" element={<HomePage _mode="course" />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/about" element={<AboutPage />} />
+            <Route path="/course/:id/" element={<CourseTimeline />} />
+            <Route path="/roadmap/:id/" element={<TrackRoadmap />} />
+            <Route path="/my-courses" element={<UserCourses />} />
+            <Route path="/my-roadmaps" element={<UserRoadmaps />} />
             <Route element={<RequireAuth />}>
               {/* Premium routes */}
               <Route element={<PremiumRoute />}>
-                <Route path="/course/:id/" element={<CourseTimeline />} />
-                <Route path="/roadmap/:id/" element={<TrackRoadmap />} />
-                <Route path="/my-courses" element={<UserCourses />} />
-                <Route path="/my-roadmaps" element={<UserRoadmaps />} />
+
               </Route>
 
               {/* Non-premium authenticated routes */}

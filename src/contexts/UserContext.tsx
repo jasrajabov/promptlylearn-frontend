@@ -106,6 +106,8 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       membership_active: data.user.membership_active,
       id: data.user.id,
       avatar_url: data.user.avatar_url,
+      credits: data.user.credits,
+      credits_reset_at: data.user.credits_reset_at,
     };
 
     setUser(u);

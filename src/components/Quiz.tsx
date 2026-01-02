@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
     Box,
     Button,
@@ -15,6 +15,7 @@ import {
 import { FaCheck, FaTimes } from "react-icons/fa";
 import type { Quiz } from "../types";
 import { useColorModeValue } from "./ui/color-mode";
+import { useUser } from "../contexts/UserContext";
 
 
 interface ModuleQuizProps {

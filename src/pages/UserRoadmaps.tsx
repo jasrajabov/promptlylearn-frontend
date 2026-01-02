@@ -38,7 +38,7 @@ interface Roadmap {
 }
 
 const UserRoadmaps: React.FC = () => {
-    const { user, loading } = useUser();
+    const { user, loading, refreshUser } = useUser();
     const [allRoadmaps, setAllRoadmaps] = React.useState<Roadmap[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
     const [searchTerm, setSearchTerm] = useState("");
@@ -47,7 +47,6 @@ const UserRoadmaps: React.FC = () => {
 
 
     const cardBg = useColorModeValue("white", "black:900");
-    const cardHoverBg = useColorModeValue("gray.50", "gray.700");
     const cardBorderColor = useColorModeValue("teal.200", "teal.700");
 
     const navigate = useNavigate();
@@ -60,23 +59,6 @@ const UserRoadmaps: React.FC = () => {
         ],
     });
 
-    const updateRoadmapStatus = async (roadmapId: string, status: string) => {
-        try {
-            const res = await fetchWithTimeout(`${BACKEND_URL}/roadmap/${roadmapId}/status`, {
-                method: "PATCH",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${user?.token}`,
-                },
-                body: JSON.stringify({ status }),
-            });
-            if (res.ok) {
-                console.log(`Roadmap ${roadmapId} status updated to ${status}`);
-            }
-        } catch (err) {
-            console.error("Error updating roadmap status:", err);
-        }
-    }
 
     // pure helper — NO side effects
     const getProgress = (roadmap: any) => {
@@ -84,6 +66,17 @@ const UserRoadmaps: React.FC = () => {
         const completed = roadmap.nodes_json.filter((m: any) => m.status === "COMPLETED").length;
         return Math.round((completed / roadmap.nodes_json.length) * 100);
     };
+
+    useEffect(() => {
+        const init = async () => {
+            if (!loading && !user) {
+                navigate("/login");
+                return;
+            }
+            await refreshUser();
+        };
+        init();
+    }, []);
 
     useEffect(() => {
         const fetchRoadmaps = async () => {
@@ -121,7 +114,7 @@ const UserRoadmaps: React.FC = () => {
             }
         };
         fetchRoadmaps();
-    }, [user]);
+    }, []);
 
     // Poll backend for updates while any course is in GENERATING state
     // Poll each generating course by its task_id (one interval per task)

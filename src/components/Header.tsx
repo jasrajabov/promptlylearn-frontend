@@ -10,6 +10,7 @@ import {
   Circle,
   Image,
   Box,
+  Text,
   useBreakpointValue,
   Float,
   Collapsible
@@ -24,6 +25,8 @@ import { FaSignInAlt } from "react-icons/fa";
 import { type User } from "../types";
 import { Badge, Stack } from "@chakra-ui/react"
 import { HiAtSymbol, HiStar } from "react-icons/hi"
+import { BiSolidCoinStack } from "react-icons/bi";
+
 
 
 const NavItem: React.FC<{ label: string; onClick: () => void }> = ({
@@ -62,7 +65,7 @@ const Header: React.FC = () => {
 
   // Show hamburger only on small screens
   const isMobile = useBreakpointValue({ base: true, md: false });
-
+  console.log("Rendering Header. Current user:", currentUser);
   return (
     <Box
       as="header"
@@ -106,6 +109,15 @@ const Header: React.FC = () => {
             <>
               {currentUser ? (
                 <HStack align="center" gap={3}>
+                  <HStack gap={2} align="center">
+
+                    {currentUser.membership_plan === "free" && (
+                      <Text fontSize="sm">
+                        Credits: {currentUser.credits ?? 0}
+                      </Text>
+                    )}
+
+                  </HStack>
                   <Badge alignSelf="center" px={3} py={1} borderRadius="md" colorPalette={user?.membership_plan === "premium" ? "purple" : "yellow"} variant="solid">
                     {currentUser.membership_plan === "premium" ? (
                       <HStack gap={1}>
@@ -114,8 +126,8 @@ const Header: React.FC = () => {
                       </HStack>
                     ) : (
                       <HStack gap={1}>
-                        <HiAtSymbol />
-                        <span>Free</span>
+                        <BiSolidCoinStack />
+                        <span>Freemium</span>
                       </HStack>
                     )}
                   </Badge>

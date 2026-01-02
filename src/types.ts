@@ -7,6 +7,8 @@ export type User = {
   expires_at: number; // unix ms timestamp
   membership_active: boolean;
   membership_plan: string;
+  credits: number;
+  credits_reset_at: number; // unix ms timestamp
 };
 
 export interface Course {

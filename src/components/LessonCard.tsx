@@ -42,6 +42,7 @@ const LessonCard: React.FC<LessonCardProps> = ({ courseState, lessonIndex, modul
             }
 
             const dbData = await dbRes.json();
+            console.log("Fetched lesson content from DB:", dbData);
             setIsLoading(false);
             setLessonContent(dbData.content);
 
@@ -81,7 +82,7 @@ const LessonCard: React.FC<LessonCardProps> = ({ courseState, lessonIndex, modul
         <Box>
             <OpenAIStreamingMarkdown
                 key={lesson.id}
-                apiUrl={`${BACKEND_URL}/generate-lesson-markdown-stream`}
+                apiUrl={`${BACKEND_URL}/course/generate-lesson-stream`}
                 body={requestBody}
                 content={lessonContent || undefined}
             />

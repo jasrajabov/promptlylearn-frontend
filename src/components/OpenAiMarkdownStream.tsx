@@ -2,9 +2,10 @@ import React, { useEffect, useState, useCallback } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import "./tutorialMarkdown.css";
-import { Button } from "@chakra-ui/react";
+import { Alert, Button, Link } from "@chakra-ui/react";
 import { RiAiGenerate } from "react-icons/ri";
 import CodeBlock from "./CodeBlock.tsx";
+import { useColorModeValue } from "../components/ui/color-mode";
 import "./LessonCard.css";
 
 
@@ -28,8 +29,12 @@ const OpenAIStreamingMarkdown: React.FC<StreamingProps> = ({
 }) => {
     const [content, setContent] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [creditInfo, setCreditInfo] = useState<string | null>(null);
     const [isStreaming, setIsStreaming] = useState(false);
 
+    const tealTextColor = useColorModeValue("teal.700", "teal.300");
+
+    console.log("Initial content:", initialContent);
     useEffect(() => {
         setContent(initialContent ?? null);
     }, [initialContent]);
@@ -46,9 +51,24 @@ const OpenAIStreamingMarkdown: React.FC<StreamingProps> = ({
             });
 
             if (!response.body) throw new Error("Stream response has no body.");
-            if (!response.ok)
-                throw new Error(`Streaming failed with status: ${response.status}`);
 
+            // Check for error status codes BEFORE consuming the body
+            if (!response.ok) {
+                // Now it's safe to parse as JSON since we know it's an error
+                const respJson = await response.json();
+                console.log("Error response:", respJson);
+
+                if (response.status === 402) {
+                    console.error("Not enough credits to generate content.");
+                    setCreditInfo(respJson.detail || "Not enough credits");
+                    return;
+                }
+
+                // Handle other errors
+                throw new Error(respJson.detail || `Request failed with status: ${response.status}`);
+            }
+
+            // Only read stream if response is OK
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
             let done = false;
@@ -64,13 +84,11 @@ const OpenAIStreamingMarkdown: React.FC<StreamingProps> = ({
             }
         } catch (err) {
             console.error("Error during streaming:", err);
-            setError("Failed to stream content.");
+            setError(err instanceof Error ? err.message : "Failed to stream content.");
         } finally {
-            // stop glow when finished (or on error)
             setIsStreaming(false);
-            // no-op
         }
-    }, [apiUrl, body]);
+    }, [apiUrl, body, initialContent]);
 
     const components: Components = {
         code: ({ inline, className, children, ...props }: any) => {
@@ -103,7 +121,21 @@ const OpenAIStreamingMarkdown: React.FC<StreamingProps> = ({
             </Button>
 
             <div className="tutorial-md">
-                {error && <p className="error-message">{error}</p>}
+                {error && (
+                    <Alert.Root status="error">
+                        <Alert.Indicator />
+                        <Alert.Title>{error}</Alert.Title>
+                    </Alert.Root>
+                )}
+                {creditInfo && (
+                    <Alert.Root status="info" width="fit-content" mb={4}>
+                        <Alert.Indicator />
+                        <Alert.Title>{creditInfo}</Alert.Title>
+                        <Link alignSelf="center" fontWeight="medium" href="/upgrade" ml={2} color={tealTextColor}>
+                            Upgrade
+                        </Link>
+                    </Alert.Root>
+                )}
 
                 <ReactMarkdown
                     remarkPlugins={[remarkGfm]}

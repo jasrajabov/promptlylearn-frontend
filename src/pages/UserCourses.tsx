@@ -30,7 +30,7 @@ import { type Course } from "../types";
 export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 const UserCourses: React.FC = () => {
-    const { user, loading } = useUser();
+    const { user, loading, refreshUser } = useUser();
     const [courses, setCourses] = useState<Course[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
@@ -53,10 +53,22 @@ const UserCourses: React.FC = () => {
         ],
     });
 
+    useEffect(() => {
+        const init = async () => {
+            if (!loading && !user) {
+                navigate("/login");
+                return;
+            }
+            await refreshUser();
+        };
+        init();
+    }, []);
+
     // 1. Fetch Courses
     useEffect(() => {
         if (!user) return;
         console.log("Fetching user courses for user:", user);
+
         const fetchCourses = async () => {
             setIsLoading(true);
             const response = await fetchWithTimeout(`${BACKEND_URL}/course/get_all_courses`, {
@@ -73,7 +85,7 @@ const UserCourses: React.FC = () => {
             setIsLoading(false);
         };
         fetchCourses();
-    }, [user]);
+    }, []);
 
     // 2. Polling Logic
     const pollersRef = useRef<Record<string, number | null>>({});

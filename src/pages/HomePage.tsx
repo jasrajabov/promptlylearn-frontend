@@ -47,10 +47,7 @@ const HomePage: React.FC<HomePageProps> = ({ _mode = "course" }) => {
       return;
     }
 
-    if (!user.membership_active) {
-      navigate("/upgrade");
-      return;
-    }
+
     setLoading(true);
     setError(null);
 

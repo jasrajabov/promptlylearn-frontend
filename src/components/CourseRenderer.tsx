@@ -7,6 +7,9 @@ import {
   Button,
   Text,
   Spinner,
+  Alert,
+  Link,
+  CloseButton,
 } from "@chakra-ui/react";
 import type { Course, Status } from "../types";
 import LessonCard from "./LessonCard";
@@ -65,6 +68,8 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
     content: "Hello! I'm your AI learning buddy. Feel free to ask me any questions about the course material or request further explanations on topics you're curious about.",
     timestamp: new Date(),
   }]);
+  const [error, setError] = useState<string | null>(null);
+  const [creditInfo, setCreditInfo] = useState<string | null>(null);
 
   const tealTextColor = useColorModeValue("teal.700", "teal.300");
 
@@ -150,7 +155,10 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
     setLoadingQuiz(true);
     fetchWithTimeout(`${BACKEND_URL}/quiz/generate-quiz`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${user?.token}`,
+      },
       body: JSON.stringify({
         lesson_name: lesson.title,
         content: [],
@@ -159,7 +167,12 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
       .then(res => res.json())
       .then(data => {
         if (data) {
-          console.log("Received quiz data:", data);
+          if (data.error_message && data.error_type === "NotEnoughCreditsException") {
+            console.error("Not enough credits to generate quiz.");
+            setCreditInfo(data.error_message);
+            setLoadingQuiz(false);
+            return;
+          }
           // Update the course state with the new quiz
           setQuizTaskId(data.task_id);
 
@@ -248,6 +261,15 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
 
 
         </HStack>
+        {creditInfo && (
+          <Alert.Root status="info" mb={4} width="fit-content">
+            <Alert.Indicator />
+            <Alert.Title>{creditInfo}</Alert.Title>
+            <Link alignSelf="center" fontWeight="medium" href="/upgrade" ml={2} color={tealTextColor}>
+              Upgrade
+            </Link>
+          </Alert.Root>
+        )}
         {openChatBox && <ChatBox open={openChatBox} setOpenChatBox={setOpenChatBox} chatMessages={chatMessages} setChatMessages={setChatMessages} />}
 
         {!showQuiz && <LessonCard
