@@ -24,8 +24,8 @@ const products = [
     {
         id: 'premium',
         name: 'Premium Plan',
-        price: '$29',
-        priceValue: 2900,
+        price: '$10',
+        priceValue: 1000,
         features: ['Unlimited courses', 'All roadmaps', 'Priority support', '30-day money back guarantee'],
         badge: 'Popular',
         isPremium: true
@@ -312,10 +312,11 @@ function PaymentStep({ selectedPlan, onBack, onSuccess }: {
         <VStack gap={8} align="stretch">
             <HStack justify="space-between" align="center">
                 <Button
-                    variant="ghost"
+                    variant="surface"
                     onClick={onBack}
-                    colorScheme="teal"
-                // leftIcon={<span>←</span>}
+                    alignContent={"center"}
+                    alignItems={"center"}
+                    size="md"
                 >
                     Back to Plans
                 </Button>

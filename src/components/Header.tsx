@@ -99,6 +99,7 @@ const Header: React.FC = () => {
               <NavItem label="My Courses" onClick={() => navigate("/my-courses")} />
               <NavItem label="My Tracks" onClick={() => navigate("/my-roadmaps")} />
               <NavItem label="About" onClick={() => navigate("/about")} />
+              <NavItem label="Pricing" onClick={() => navigate("/upgrade")} />
             </>
           )}
         </HStack>
