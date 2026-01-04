@@ -94,11 +94,12 @@ const Header: React.FC = () => {
             onClick={() => navigate("/")}
             cursor="pointer"
           />
+          <NavItem label="About" onClick={() => navigate("/about")} />
           {!isMobile && currentUser?.token && (
             <>
               <NavItem label="My Courses" onClick={() => navigate("/my-courses")} />
               <NavItem label="My Tracks" onClick={() => navigate("/my-roadmaps")} />
-              <NavItem label="About" onClick={() => navigate("/about")} />
+
               <NavItem label="Pricing" onClick={() => navigate("/upgrade")} />
             </>
           )}
@@ -151,7 +152,7 @@ const Header: React.FC = () => {
                     <Portal>
                       <Menu.Positioner>
                         <Menu.Content>
-                          <Menu.Item value="my-profile">My Profile</Menu.Item>
+                          <Menu.Item onClick={() => navigate("/user-info")} value="my-profile">My Profile</Menu.Item>
                           <Menu.Item onSelect={logout} value="logout">Logout</Menu.Item>
                         </Menu.Content>
                       </Menu.Positioner>

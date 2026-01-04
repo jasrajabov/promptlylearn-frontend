@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Container, VStack, HStack, Heading, Text, Button, Card, Badge, Spinner, Alert, Separator } from '@chakra-ui/react';
+import { Box, Container, VStack, HStack, Heading, Text, Button, Card, Badge, Spinner, Alert, Separator, Dialog } from '@chakra-ui/react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { useUser } from '../contexts/UserContext';
 import { useColorMode } from "../components/ui/color-mode";
+import CancellationConfirmation from '../components/CancellationForm';
 
 export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 export const VITE_STRIPE_PUBLIC_KEY = import.meta.env.VITE_STRIPE_PUBLIC_KEY;
@@ -34,13 +35,82 @@ const products = [
 
 // Step 1: Products Selection
 function ProductsStep({ onSelectPlan }: { onSelectPlan: (plan: typeof products[0]) => void }) {
+    const [loading, setLoading] = useState(false);
+    const [cancellationResponse, setCancellationResponse] = useState<any | null>(null);
+    const [showCancelDialog, setShowCancelDialog] = useState(false);
+    const { user } = useUser();
+    const showCancelButton = user?.membership_plan === "premium" && user?.membership_status === "ACTIVE";
+
+    const getButtonLabel = (plan: typeof products[0]) => {
+        const activeUntil = Number(user?.membership_active_until ?? 0);
+        if ((user?.membership_plan === "premium" && user?.membership_status === "ACTIVE") || activeUntil > Date.now()) {
+            return 'Current Plan';
+        }
+        return plan.isPremium ? 'Choose Plan' : 'Free Plan';
+    }
+
+    const handleCancelSubscription = async () => {
+        if (!user) return alert("You must be logged in");
+        setShowCancelDialog(false); // Close dialog
+        try {
+            setLoading(true);
+            const res = await fetch(`${BACKEND_URL}/payment/cancel-subscription`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${user.token}`
+                }
+            });
+            if (!res.ok) throw new Error('Failed to cancel subscription');
+            const data = await res.json();
+            console.log('Cancellation response:', data);
+            setCancellationResponse(data);
+        } catch (err) {
+            console.error(err);
+            alert('Failed to cancel subscription');
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    // Show loading spinner
+    if (loading) {
+        return (
+            <VStack minH="400px" justify="center" align="center" gap={4}>
+                <Spinner size="xl" color="teal.500" />
+                <Text color="gray.600" _dark={{ color: 'gray.400' }}>
+                    Processing your request...
+                </Text>
+            </VStack>
+        );
+    }
+
+    // Show cancellation confirmation
+    if (cancellationResponse) {
+        return (
+            <VStack gap={6} align="stretch">
+                <CancellationConfirmation cancellationResponse={cancellationResponse} />
+                <Box textAlign="center">
+                    <Button
+                        variant="outline"
+                        colorScheme="teal"
+                        onClick={() => setCancellationResponse(null)}
+                    >
+                        Back to Plans
+                    </Button>
+                </Box>
+            </VStack>
+        );
+    }
+
+    // Show products
     return (
         <VStack gap={8} align="stretch">
             <Box textAlign="center">
                 <Heading size="2xl" mb={2} bgGradient="to-r" gradientFrom="teal.400" gradientTo="teal.600" bgClip="text">
                     Upgrade to Premium
                 </Heading>
-                <Text fontSize="lg" >
+                <Text fontSize="lg">
                     Unlock all courses and roadmaps
                 </Text>
             </Box>
@@ -101,19 +171,36 @@ function ProductsStep({ onSelectPlan }: { onSelectPlan: (plan: typeof products[0
                                     ))}
                                 </VStack>
 
-                                <Button
-                                    colorScheme={product.isPremium ? 'teal' : 'teal'}
-                                    variant={product.isPremium ? 'solid' : 'outline'}
-                                    size="md"
-                                    onClick={() => onSelectPlan(product)}
-                                    disabled={!product.isPremium}
-                                    _hover={{
-                                        transform: product.isPremium ? 'scale(1.02)' : 'none',
-                                    }}
-                                    transition="all 0.2s"
-                                >
-                                    {product.isPremium ? 'Get Started' : 'Current Plan'}
-                                </Button>
+                                <HStack>
+                                    <Button
+                                        colorScheme={product.isPremium ? 'teal' : 'teal'}
+                                        variant={product.isPremium ? 'solid' : 'outline'}
+                                        size="md"
+                                        onClick={() => onSelectPlan(product)}
+                                        disabled={!product.isPremium}
+                                        _hover={{
+                                            transform: product.isPremium ? 'scale(1.02)' : 'none',
+                                        }}
+                                        transition="all 0.2s"
+                                    >
+                                        {getButtonLabel(product)}
+                                    </Button>
+                                    {showCancelButton && (
+                                        <Button
+                                            colorScheme="red"
+                                            variant="ghost"
+                                            size="md"
+                                            onClick={() => setShowCancelDialog(true)}
+                                            _hover={{
+                                                bg: 'red.50',
+                                                _dark: { bg: 'red.900/20' }
+                                            }}
+                                            transition="all 0.2s"
+                                        >
+                                            Cancel
+                                        </Button>
+                                    )}
+                                </HStack>
                             </VStack>
                         </Card.Body>
                     </Card.Root>
@@ -125,6 +212,52 @@ function ProductsStep({ onSelectPlan }: { onSelectPlan: (plan: typeof products[0
                     🔒 Secure payment powered by Stripe
                 </Text>
             </Box>
+
+            {/* Cancel Confirmation Dialog */}
+            <Dialog.Root open={showCancelDialog} onOpenChange={(e) => setShowCancelDialog(e.open)}>
+                <Dialog.Backdrop />
+                <Dialog.Positioner>
+                    <Dialog.Content>
+                        <Dialog.Header>
+                            <Dialog.Title>Cancel Subscription?</Dialog.Title>
+                        </Dialog.Header>
+                        <Dialog.Body>
+                            <VStack align="stretch" gap={4}>
+                                <Text>
+                                    Are you sure you want to cancel your premium subscription?
+                                </Text>
+                                <Box
+                                    bg="teal.50"
+                                    _dark={{ bg: 'teal.900/20' }}
+                                    p={4}
+                                    borderRadius="md"
+                                    borderWidth="1px"
+                                    borderColor="teal.200"
+
+                                >
+                                    <Text fontSize="sm" color="teal.900" _dark={{ color: 'teal.100' }}>
+                                        <Text as="span" fontWeight="semibold">Note:</Text> You'll retain access to premium features until the end of your current billing period.
+                                    </Text>
+                                </Box>
+                            </VStack>
+                        </Dialog.Body>
+                        <Dialog.Footer>
+                            <Dialog.ActionTrigger asChild>
+                                <Button variant="outline" colorScheme="gray">
+                                    Keep Subscription
+                                </Button>
+                            </Dialog.ActionTrigger>
+                            <Button
+                                colorScheme="red"
+                                onClick={handleCancelSubscription}
+                            >
+                                Yes, Cancel
+                            </Button>
+                        </Dialog.Footer>
+                        <Dialog.CloseTrigger />
+                    </Dialog.Content>
+                </Dialog.Positioner>
+            </Dialog.Root>
         </VStack>
     );
 }

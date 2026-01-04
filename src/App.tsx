@@ -13,8 +13,7 @@ import TrackRoadmap from "./pages/RoadmapPage";
 import PaymentStepper from "./pages/PaymentsPage";
 import AboutPage from "./pages/About";
 import RequireAuth from "./pages/RequireAuth";
-import SuccessStepsContent from "./components/SuccessStepsContent";
-
+import UserInfoPage from "./pages/UserInfo";
 
 
 const App: React.FC = () => {
@@ -28,6 +27,7 @@ const App: React.FC = () => {
             <Route path="/" element={<HomePage _mode="course" />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/about" element={<AboutPage />} />
+            <Route path="/user-info" element={<UserInfoPage />} />
             <Route path="/course/:id/" element={<CourseTimeline />} />
             <Route path="/roadmap/:id/" element={<TrackRoadmap />} />
             <Route path="/my-courses" element={<UserCourses />} />

@@ -17,7 +17,7 @@ interface UserContextType {
   loading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signup: (name: string, email: string, password: string) => Promise<void>;
+  signup: (name: string, email: string, password: string, otherPersonalInfo: { phone?: string; organization?: string; role?: string }) => Promise<void>;
   logout: () => void;
   authFetch: (url: string, options?: RequestInit) => Promise<Response>;
   refreshUser: () => Promise<User | null>;
@@ -103,22 +103,23 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       token: data.access_token,
       expires_at: expiresAt,
       membership_plan: data.user.membership_plan,
-      membership_active: data.user.membership_active,
+      membership_status: data.user.membership_status,
       id: data.user.id,
       avatar_url: data.user.avatar_url,
       credits: data.user.credits,
       credits_reset_at: data.user.credits_reset_at,
+      membership_active_until: data.user.membership_active_until,
     };
 
     setUser(u);
     localStorage.setItem("user", JSON.stringify(u));
   };
 
-  const signup = async (name: string, email: string, password: string) => {
+  const signup = async (name: string, email: string, password: string, personal_info: { phone?: string; organization?: string; role?: string }) => {
     const res = await fetch(`${BACKEND_URL}/authentication/signup`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password }),
+      body: JSON.stringify({ name, email, password, ...personal_info }),
     });
 
     if (!res.ok) {
@@ -194,13 +195,13 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       });
 
       if (!res.ok) {
-        console.error('❌ Failed to refresh user data');
+        console.error('Failed to refresh user data');
         logout();
         return null;
       }
 
       const data = await res.json();
-      console.log('✅ Fresh user data received:', data);
+      console.log('Fresh user data received:', data);
 
       // Create updated user object, preserving token and expiration
       const updated: User = {
@@ -211,7 +212,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
       console.log('Membership status:', {
         plan: updated.membership_plan,
-        active: updated.membership_active,
+        status: updated.membership_status,
       });
 
       // Update state and localStorage
@@ -220,7 +221,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
       return updated;
     } catch (error) {
-      console.error('❌ Error refreshing user:', error);
+      console.error('Error refreshing user:', error);
       return null;
     }
   };

@@ -2,11 +2,12 @@ import React, { useEffect, useState, useCallback } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import "./tutorialMarkdown.css";
-import { Alert, Button, Link } from "@chakra-ui/react";
+import { Alert, Button, Link, Spinner } from "@chakra-ui/react";
 import { RiAiGenerate } from "react-icons/ri";
 import CodeBlock from "./CodeBlock.tsx";
 import { useColorModeValue } from "../components/ui/color-mode";
 import "./LessonCard.css";
+import { useUser } from "../contexts/UserContext.tsx";
 
 
 
@@ -31,8 +32,11 @@ const OpenAIStreamingMarkdown: React.FC<StreamingProps> = ({
     const [error, setError] = useState<string | null>(null);
     const [creditInfo, setCreditInfo] = useState<string | null>(null);
     const [isStreaming, setIsStreaming] = useState(false);
+    const { user, refreshUser } = useUser();
 
     const tealTextColor = useColorModeValue("teal.700", "teal.300");
+
+    console.log("User in OpenAIStreamingMarkdown:", user);
 
     console.log("Initial content:", initialContent);
     useEffect(() => {
@@ -112,12 +116,14 @@ const OpenAIStreamingMarkdown: React.FC<StreamingProps> = ({
             <Button
                 variant="outline"
                 onClick={startStreaming}
+                disabled={isStreaming}
                 // className={"glow"}
                 // boxShadow={isStreaming ? "0 0 16px rgba(9, 154, 132, 0.45)" : undefined}
                 _hover={{ boxShadow: isStreaming ? "0 0 26px rgba(19, 179, 144, 0.6)" : undefined }}
             >
+                <Spinner color="teal" size="sm" mr={2} hidden={!isStreaming} />
                 <RiAiGenerate />
-                {content ? "Regenerate" : "Generate"}
+                {content && !isStreaming ? "Regenerate" : "Generate"}
             </Button>
 
             <div className="tutorial-md">

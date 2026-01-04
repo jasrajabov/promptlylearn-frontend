@@ -24,6 +24,9 @@ export default function AuthPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [phone, setPhone] = useState("");
+  const [organization, setOrganization] = useState("");
+  const [role, setRole] = useState("");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -36,6 +39,9 @@ export default function AuthPage() {
     setName("");
     setEmail("");
     setPassword("");
+    setPhone("");
+    setOrganization("");
+    setRole("");
     setError("");
     setMessage("");
   }, [activeTab]);
@@ -60,7 +66,8 @@ export default function AuthPage() {
     setMessage("");
     setLoading(true);
     try {
-      await signup(name, email, password);
+      // Pass additional fields to signup function
+      await signup(name, email, password, { phone, organization, role });
       setMessage("Signup successful! You are now logged in.");
       navigate("/");
     } catch (err: any) {
@@ -147,13 +154,14 @@ export default function AuthPage() {
           >
             <VStack gap={4}>
               <Input
-                placeholder="Name"
+                placeholder="Full Name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 disabled={loading}
               />
               <Input
                 placeholder="Email"
+                type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={loading}
@@ -165,6 +173,25 @@ export default function AuthPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={loading}
               />
+              <Input
+                placeholder="Phone Number (optional)"
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                disabled={loading}
+              />
+              <Input
+                placeholder="Company/School (optional)"
+                value={organization}
+                onChange={(e) => setOrganization(e.target.value)}
+                disabled={loading}
+              />
+              <Input
+                placeholder="Role/Position (optional)"
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                disabled={loading}
+              />
               {error && <Text color="red">{error}</Text>}
               {message && <Text color="green">{message}</Text>}
               <Button
@@ -173,7 +200,7 @@ export default function AuthPage() {
                 onClick={handleSignup}
                 disabled={loading}
               >
-                {loading ? <Spinner size="sm" /> : "Signup"}
+                {loading ? <Spinner size="sm" /> : "Create Account"}
               </Button>
             </VStack>
           </MotionBox>

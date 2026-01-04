@@ -1,3 +1,5 @@
+export type MembershipStatus = "ACTIVE" | "INACTIVE" | "CANCELED";
+
 export type User = {
   id: string;
   name: string;
@@ -5,8 +7,9 @@ export type User = {
   avatar_url?: string;
   token: string;
   expires_at: number; // unix ms timestamp
-  membership_active: boolean;
+  membership_status: MembershipStatus;
   membership_plan: string;
+  membership_active_until: number | null; // unix ms timestamp
   credits: number;
   credits_reset_at: number; // unix ms timestamp
 };
