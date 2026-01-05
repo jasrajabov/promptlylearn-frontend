@@ -12,12 +12,14 @@ import {
     CloseButton,
     createListCollection,
     Progress,
-    HStack
+    HStack,
+    Icon
 } from "@chakra-ui/react";
 import { useColorModeValue } from "../components/ui/color-mode";
 import { useUser } from "../contexts/UserContext";
 import { fetchWithTimeout } from "../utils/dbUtils";
 import { FaTrash } from "react-icons/fa";
+import { FaShareNodes } from "react-icons/fa6";
 import TagHandler from "../components/TagHandler";
 import FilterControls from "../components/Filters";
 import { formatDate } from "../utils/utils";
@@ -45,7 +47,8 @@ const UserRoadmaps: React.FC = () => {
     const [sortAsc, setSortAsc] = useState(false);
     const [sortKey, setSortKey] = useState<"created" | "modules" | "progress">("created");
 
-
+    const headerColor = useColorModeValue("teal.700", "teal.300");
+    const emptyTextColor = useColorModeValue("gray.600", "gray.400");
     const cardBg = useColorModeValue("white", "black:900");
     const cardBorderColor = useColorModeValue("teal.200", "teal.700");
 
@@ -290,19 +293,22 @@ const UserRoadmaps: React.FC = () => {
             <Button borderRadius={100} variant="subtle" onClick={() => navigate("/")} colorScheme="teal" mb={6}>
                 Create a New Roadmap
             </Button>
-            <FilterControls
-                searchTerm={searchTerm}
-                setSearchTerm={setSearchTerm}
-                sortKey={sortKey}
-                setSortKey={setSortKey}
-                sortAsc={sortAsc}
-                setSortAsc={setSortAsc}
-                sortKeysCollection={sortKeysCollection}
-            />
+            {filteredRoadmaps.length > 0 && (
+                <FilterControls
+                    searchTerm={searchTerm}
+                    setSearchTerm={setSearchTerm}
+                    sortKey={sortKey}
+                    setSortKey={setSortKey}
+                    sortAsc={sortAsc}
+                    setSortAsc={setSortAsc}
+                    sortKeysCollection={sortKeysCollection}
+                />
+            )}
             {filteredRoadmaps.length === 0 ? (
-                <VStack gap={4} mt={20}>
-                    <Text fontSize="lg" color="gray.500">
-                        You haven’t created any roadmaps yet.
+                <VStack gap={4} py={20}>
+                    <Icon as={FaShareNodes} boxSize={12} color={headerColor} />
+                    <Text fontSize="lg" fontWeight="medium" color={emptyTextColor}>
+                        No tracks found.
                     </Text>
                 </VStack>
             ) : (

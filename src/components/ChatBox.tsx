@@ -1,11 +1,12 @@
 import { Box, Button, CloseButton, Drawer, HStack, Input, Portal, VStack, Text, Avatar, Heading, Badge, Status } from "@chakra-ui/react";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, use } from "react";
 import aiBuddy from "../assets/ai-buddy.png";
 import ReactMarkdown, { type Components } from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { type ChatMessage } from "../types";
 import { useUser } from "../contexts/UserContext";
+import { useColorModeValue } from "./ui/color-mode";
 
 export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -24,6 +25,8 @@ const ChatBox: React.FC<ChatBoxProps> = ({ open, setOpenChatBox, chatMessages, s
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
+
+    const chatTextColor = useColorModeValue("teal.700", "teal.200");
 
     const TypingIndicator: React.FC = () => {
         const [dots, setDots] = useState(0);
@@ -278,7 +281,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({ open, setOpenChatBox, chatMessages, s
                                                     </VStack>
                                                     <Avatar.Root size="sm">
                                                         <Avatar.Image src="/user-avatar.png" alt="You" />
-                                                        <Avatar.Fallback>{user?.name}</Avatar.Fallback>
+                                                        <Avatar.Fallback>{user?.name[0]}</Avatar.Fallback>
                                                     </Avatar.Root>
                                                 </>
                                             )}
@@ -286,8 +289,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({ open, setOpenChatBox, chatMessages, s
 
                                         <Box
                                             maxW="85%"
-                                            bg={m.role === "user" ? "teal.500" : "gray.300"}
-                                            color={m.role === "user" ? "white" : "gray.800"}
+                                            color={m.role === "user" ? chatTextColor : undefined}
                                             px={4}
                                             py={3}
                                             borderRadius="xl"

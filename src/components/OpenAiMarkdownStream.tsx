@@ -2,14 +2,11 @@ import React, { useEffect, useState, useCallback } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import "./tutorialMarkdown.css";
-import { Alert, Button, Link, Spinner } from "@chakra-ui/react";
-import { RiAiGenerate } from "react-icons/ri";
+import { Alert, Link, Spinner, Card, Box, Text, VStack, HStack } from "@chakra-ui/react";
 import CodeBlock from "./CodeBlock.tsx";
 import { useColorModeValue } from "../components/ui/color-mode";
 import "./LessonCard.css";
-import { useUser } from "../contexts/UserContext.tsx";
-
-
+import { Sparkles, AlertCircle } from "lucide-react";
 
 interface StreamingProps {
     apiUrl: string;
@@ -20,34 +17,39 @@ interface StreamingProps {
         token?: string;
     };
     content?: string;
+    isGenerating: boolean;
+    setIsGenerating: (val: boolean) => void;
+    shouldStartGeneration?: boolean;
+    onGenerationComplete?: () => void;
 }
-
 
 const OpenAIStreamingMarkdown: React.FC<StreamingProps> = ({
     apiUrl,
     body,
     content: initialContent,
+    isGenerating = false,
+    setIsGenerating,
+    shouldStartGeneration = false,
+    onGenerationComplete,
 }) => {
     const [content, setContent] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [creditInfo, setCreditInfo] = useState<string | null>(null);
-    const [isStreaming, setIsStreaming] = useState(false);
-    const { user, refreshUser } = useUser();
 
     const tealTextColor = useColorModeValue("teal.700", "teal.300");
 
-    console.log("User in OpenAIStreamingMarkdown:", user);
-
-    console.log("Initial content:", initialContent);
     useEffect(() => {
         setContent(initialContent ?? null);
     }, [initialContent]);
 
     const startStreaming = useCallback(async () => {
         if (initialContent) setContent(null);
-        setIsStreaming(true);
+        setIsGenerating(true);
+        setError(null);
+        setCreditInfo(null);
 
         try {
+            console.log("Starting streaming request to:", apiUrl, "with body:", body);
             const response = await fetch(apiUrl, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -56,9 +58,7 @@ const OpenAIStreamingMarkdown: React.FC<StreamingProps> = ({
 
             if (!response.body) throw new Error("Stream response has no body.");
 
-            // Check for error status codes BEFORE consuming the body
             if (!response.ok) {
-                // Now it's safe to parse as JSON since we know it's an error
                 const respJson = await response.json();
                 console.log("Error response:", respJson);
 
@@ -68,11 +68,9 @@ const OpenAIStreamingMarkdown: React.FC<StreamingProps> = ({
                     return;
                 }
 
-                // Handle other errors
                 throw new Error(respJson.detail || `Request failed with status: ${response.status}`);
             }
 
-            // Only read stream if response is OK
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
             let done = false;
@@ -86,13 +84,22 @@ const OpenAIStreamingMarkdown: React.FC<StreamingProps> = ({
                     setContent((prev) => (prev || "") + chunk);
                 }
             }
+            if (onGenerationComplete) onGenerationComplete();
         } catch (err) {
             console.error("Error during streaming:", err);
             setError(err instanceof Error ? err.message : "Failed to stream content.");
         } finally {
-            setIsStreaming(false);
+            if (setIsGenerating) setIsGenerating(false);
         }
-    }, [apiUrl, body, initialContent]);
+    }, [apiUrl, body, initialContent, setIsGenerating, onGenerationComplete]);
+
+    useEffect(() => {
+        console.log("shouldStartGeneration changed:", shouldStartGeneration, isGenerating);
+        if (shouldStartGeneration && !isGenerating) {
+            console.log("Initiating streaming generation...");
+            startStreaming();
+        }
+    }, [shouldStartGeneration, isGenerating, startStreaming]);
 
     const components: Components = {
         code: ({ inline, className, children, ...props }: any) => {
@@ -103,7 +110,6 @@ const OpenAIStreamingMarkdown: React.FC<StreamingProps> = ({
                 return <CodeBlock lang={lang} code={codeText} />;
             }
 
-            // Inline code
             return (
                 <code className={className} {...props}>
                     {children}
@@ -111,46 +117,103 @@ const OpenAIStreamingMarkdown: React.FC<StreamingProps> = ({
             );
         },
     };
+
     return (
-        <>
-            <Button
-                variant="outline"
-                onClick={startStreaming}
-                disabled={isStreaming}
-                // className={"glow"}
-                // boxShadow={isStreaming ? "0 0 16px rgba(9, 154, 132, 0.45)" : undefined}
-                _hover={{ boxShadow: isStreaming ? "0 0 26px rgba(19, 179, 144, 0.6)" : undefined }}
-            >
-                <Spinner color="teal" size="sm" mr={2} hidden={!isStreaming} />
-                <RiAiGenerate />
-                {content && !isStreaming ? "Regenerate" : "Generate"}
-            </Button>
+        <VStack align="stretch" gap={4} w="full">
+            {/* Alerts */}
+            {error && (
+                <Alert.Root status="error">
+                    <Alert.Indicator />
+                    <Box flex="1">
+                        <Alert.Title>Generation Failed</Alert.Title>
+                        <Alert.Description>{error}</Alert.Description>
+                    </Box>
+                </Alert.Root>
+            )}
 
-            <div className="tutorial-md">
-                {error && (
-                    <Alert.Root status="error">
-                        <Alert.Indicator />
-                        <Alert.Title>{error}</Alert.Title>
-                    </Alert.Root>
-                )}
-                {creditInfo && (
-                    <Alert.Root status="info" width="fit-content" mb={4}>
-                        <Alert.Indicator />
+            {creditInfo && (
+                <Alert.Root status="warning">
+                    <Alert.Indicator />
+                    <Box flex="1">
                         <Alert.Title>{creditInfo}</Alert.Title>
-                        <Link alignSelf="center" fontWeight="medium" href="/upgrade" ml={2} color={tealTextColor}>
-                            Upgrade
-                        </Link>
-                    </Alert.Root>
-                )}
+                    </Box>
+                    <Link
+                        href="/upgrade"
+                        fontWeight="semibold"
+                        color={tealTextColor}
+                    >
+                        Upgrade Now →
+                    </Link>
+                </Alert.Root>
+            )}
 
-                <ReactMarkdown
-                    remarkPlugins={[remarkGfm]}
-                    components={components}
-                >
-                    {content || ""}
-                </ReactMarkdown>
-            </div>
-        </>
+            {/* Empty State */}
+            {!content && !isGenerating && !error && (
+                <Card.Root>
+                    <Card.Body>
+                        <VStack gap={4} py={12} textAlign="center">
+                            <Box
+                                p={4}
+                                borderRadius="full"
+                                bg="teal.100"
+                                _dark={{ bg: "teal.900/30" }}
+                            >
+                                <Sparkles className="w-8 h-8 text-teal-600" />
+                            </Box>
+                            <VStack gap={2}>
+                                <Text fontSize="lg" fontWeight="semibold" color="gray.800" _dark={{ color: "white" }}>
+                                    Ready to Learn?
+                                </Text>
+                                <Text fontSize="sm" color="gray.600" _dark={{ color: "gray.400" }} maxW="md">
+                                    Click the "Generate Content" button above to create your personalized lesson content with AI.
+                                </Text>
+                            </VStack>
+                            <HStack gap={2} mt={2}>
+                                <AlertCircle className="w-4 h-4 text-blue-500" />
+                                <Text fontSize="xs" color="gray.500">
+                                    Content generation typically takes 10-30 seconds
+                                </Text>
+                            </HStack>
+                        </VStack>
+                    </Card.Body>
+                </Card.Root>
+            )}
+
+            {/* Streaming Indicator */}
+            {isGenerating && !content && (
+                <Card.Root>
+                    <Card.Body>
+                        <VStack gap={4} py={8} textAlign="center">
+                            <Spinner size="xl" color="teal.500" />
+                            <VStack gap={1}>
+                                <Text fontWeight="semibold" color="gray.800" _dark={{ color: "white" }}>
+                                    Generating your lesson...
+                                </Text>
+                                <Text fontSize="sm" color="gray.600" _dark={{ color: "gray.400" }}>
+                                    This may take a moment
+                                </Text>
+                            </VStack>
+                        </VStack>
+                    </Card.Body>
+                </Card.Root>
+            )}
+
+            {/* Markdown Content */}
+            {content && (
+                <Card.Root>
+                    <Card.Body>
+                        <div className="tutorial-md">
+                            <ReactMarkdown
+                                remarkPlugins={[remarkGfm]}
+                                components={components}
+                            >
+                                {content}
+                            </ReactMarkdown>
+                        </div>
+                    </Card.Body>
+                </Card.Root>
+            )}
+        </VStack>
     );
 };
 

@@ -9,25 +9,32 @@ import {
   Spinner,
   Alert,
   Link,
-  CloseButton,
+  Badge,
+  Card,
 } from "@chakra-ui/react";
-import type { Course, Status } from "../types";
+import type { Course } from "../types";
 import LessonCard from "./LessonCard";
-import { HiChevronRight } from "react-icons/hi";
 import ModuleQuiz from "./Quiz";
-import fetchWithTimeout, { updateCourseStatusDb, updateLessonStatusDb, updateModulStatusDb } from "../utils/dbUtils";
+import fetchWithTimeout from "../utils/dbUtils";
 import type { Quiz } from "../types";
 import { useUser } from "../contexts/UserContext";
-import { MdOutlineDoneAll, MdOutlineRemoveDone } from "react-icons/md";
-import { GiChoice } from "react-icons/gi";
-import { RiRobot3Fill } from "react-icons/ri";
 import ChatBox from "./ChatBox";
 import { type ChatMessage } from "../types";
 import { useColorModeValue } from "./ui/color-mode";
+import { Stats } from "./Stats";
+import {
+  ChevronLeft,
+  ChevronRight,
+  BookOpen,
+  Brain,
+  MessageCircle,
+  CheckCircle2,
+  Trophy,
+  Sparkles,
+  ArrowRight
+} from "lucide-react";
 
 export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
-
-
 
 interface CourseRendererProps {
   courseState: Course;
@@ -70,6 +77,8 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
   }]);
   const [error, setError] = useState<string | null>(null);
   const [creditInfo, setCreditInfo] = useState<string | null>(null);
+  const [isGeneratingLesson, setIsGeneratingLesson] = useState(false);
+  const [lessonGenerationTriggered, setLessonGenerationTriggered] = useState(false);
 
   const tealTextColor = useColorModeValue("teal.700", "teal.300");
 
@@ -96,61 +105,6 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
     }
   };
 
-
-  const handleUpdateStatus = () => {
-    const currentLessonStatus = lesson.status as Status;
-
-    let courseIdForDb: string | null = null;
-    let moduleIdForDb: string | null = null;
-    let moduleNewStatus: Status | null = null;
-    let courseNewStatus: Status | null = null;
-    const newLessonStatus: Status = currentLessonStatus === "COMPLETED" ? "IN_PROGRESS" : "COMPLETED";
-
-    setCourseState((prev) => {
-      courseIdForDb = prev.id;
-      const updatedModules = [...prev.modules];
-      const updatedModule = { ...updatedModules[currentModuleIndex] };
-
-      // toggle current lesson status
-      updatedModule.lessons = updatedModule.lessons.map((l, i) =>
-        i === currentLessonIndex ? { ...l, status: newLessonStatus } : l
-      );
-
-      // compute module status from the updated lessons
-      const allLessonsComplete = updatedModule.lessons.every((l) => l.status === "COMPLETED");
-      const anyLessonStarted = updatedModule.lessons.some((l) => l.status === "IN_PROGRESS" || l.status === "COMPLETED");
-      updatedModule.status = allLessonsComplete ? ("COMPLETED" as Status) : (anyLessonStarted ? ("IN_PROGRESS" as Status) : ("NOT_GENERATED" as Status));
-
-      moduleIdForDb = updatedModule.id;
-      moduleNewStatus = updatedModule.status;
-
-      updatedModules[currentModuleIndex] = updatedModule;
-
-      // compute course completeness from the UPDATED modules array
-      const courseComplete = updatedModules.every((m) => m.status === "COMPLETED");
-      const anyModuleInProgress = updatedModules.some((m) => m.status === "IN_PROGRESS");
-      courseNewStatus = courseComplete ? ("COMPLETED" as Status) : (anyModuleInProgress ? ("IN_PROGRESS" as Status) : ("NOT_GENERATED" as Status));
-
-      return {
-        ...prev,
-        modules: updatedModules,
-        status: courseNewStatus,
-      };
-    });
-
-    // persist changes to DB (do side-effects after updater)
-    updateLessonStatusDb(user, lesson.id, newLessonStatus);
-    if (moduleIdForDb && moduleNewStatus) {
-      updateModulStatusDb(user, moduleIdForDb, moduleNewStatus);
-    }
-    if (courseIdForDb && courseNewStatus) {
-      updateCourseStatusDb(user, courseIdForDb, courseNewStatus);
-    }
-  };
-
-
-
-
   const handleGenerateQuiz = () => {
     setLoadingQuiz(true);
     fetchWithTimeout(`${BACKEND_URL}/quiz/generate-quiz`, {
@@ -173,13 +127,14 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
             setLoadingQuiz(false);
             return;
           }
-          // Update the course state with the new quiz
           setQuizTaskId(data.task_id);
-
         }
       });
   };
 
+  const handleGenerateLesson = () => {
+    setLessonGenerationTriggered(true);
+  };
 
   const startPollingTask = (taskId: string) => {
     if (!taskId || pollersRef.current[taskId]) return;
@@ -217,128 +172,245 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
     pollersRef.current[taskId] = id;
   };
 
+  // Determine what to show next: lesson or module
+  const isLastLesson = currentLessonIndex === module.lessons.length - 1;
+  const showNextModule = isLastLesson && moduleComplete && nextModule;
+  const showNextLesson = !isLastLesson && lesson.status === "COMPLETED" && nextLesson;
+
   return (
-    <Box ref={contentRef} wordWrap="break-word" w="100%" overflowY="auto" p={{ base: 4, md: 6 }}>
-      <VStack align="start" gap={6}>
-        {/* Header */}
-        <VStack align="start" gap={2}>
-          <Heading size="lg">
-            Module {currentModuleIndex + 1}: {module.title}
-          </Heading>
-        </VStack>
+    <Box
+      ref={contentRef}
+      w="100%"
+      overflowY="auto"
+      p={{ base: 4, md: 1 }}
+    >
+      <Box maxW="5xl" mx="auto">
+        <VStack align="stretch" gap={3}>
+          {/* Combined Header Card with Stats and Actions */}
+          <Card.Root>
+            <Card.Body>
+              <VStack align="stretch" gap={4}>
+                {/* Top Row: Title, Stats, Badge */}
+                <HStack justify="space-between" align="start" flexWrap="wrap" gap={4}>
+                  <VStack align="start" gap={1} flex="1" minW="200px">
+                    <HStack>
+                      <BookOpen className="w-5 h-5 text-teal-500" />
+                      <Text fontSize="sm" fontWeight="medium" color="gray.500">
+                        Module {currentModuleIndex + 1} of {courseState.modules.length}
+                      </Text>
+                    </HStack>
+                    <Heading size="xl" color="gray.800" _dark={{ color: "white" }}>
+                      {module.title}
+                    </Heading>
+                    <Text fontSize="sm" color="gray.500">
+                      Lesson {currentLessonIndex + 1} of {module.lessons.length}
+                    </Text>
+                  </VStack>
 
-
-        <HStack w="full" justify="flex-start" align="center">
-          <Text fontSize="sm" color="gray.500">
-            Lesson {currentLessonIndex + 1} of {module.lessons.length}
-          </Text>
-          {
-            <Button size="sm" variant="ghost" onClick={handleUpdateStatus}>
-              {lesson.status === "COMPLETED" ? <MdOutlineRemoveDone /> : <MdOutlineDoneAll />}
-              {lesson.status === "COMPLETED" ? "Incomplete" : "Complete"}
-            </Button>
-          }
-
-
-          {loadingQuiz ? (
-            <>
-              <Spinner />
-              <Text color={tealTextColor}>Generating Quiz...</Text>
-            </>
-          ) : (
-            <>
-              <Button size="sm" variant="ghost" onClick={handleGenerateQuiz}>Generate Quiz
-                <GiChoice />
-              </Button>
-            </>
-          )}
-          <Button size="sm" variant="ghost" onClick={(e) => {
-            e.preventDefault();
-            setOpenChatBox(true);
-          }}>
-            <RiRobot3Fill /> Ask AI Buddy
-          </Button>
-
-
-        </HStack>
-        {creditInfo && (
-          <Alert.Root status="info" mb={4} width="fit-content">
-            <Alert.Indicator />
-            <Alert.Title>{creditInfo}</Alert.Title>
-            <Link alignSelf="center" fontWeight="medium" href="/upgrade" ml={2} color={tealTextColor}>
-              Upgrade
-            </Link>
-          </Alert.Root>
-        )}
-        {openChatBox && <ChatBox open={openChatBox} setOpenChatBox={setOpenChatBox} chatMessages={chatMessages} setChatMessages={setChatMessages} />}
-
-        {!showQuiz && <LessonCard
-          courseState={courseState}
-          setCourseState={setCourseState}
-          lessonIndex={currentLessonIndex}
-          moduleIndex={currentModuleIndex}
-        />}
-
-        {/* Upcoming Module Preview */}
-        {!showQuiz && moduleComplete && nextModule && (
-          <Box
-            w="full"
-            p={4}
-            borderRadius="lg"
-            bg="gray.50"
-            _dark={{ bg: "gray.700" }}
-            boxShadow="sm"
-            cursor="pointer"
-            _hover={{ bg: "blue.50", _dark: { bg: "blue.900" } }}
-            onClick={() => onLessonChange(0, currentModuleIndex + 1)} // jump to first lesson of next module
-            transition="background 0.2s ease"
-          >
-            <Text fontSize="sm" color="gray.500" mb={1}>
-              Upcoming Module
-            </Text>
-            <HStack justify="space-between" align="center">
-              <Heading size="sm" color="blue.600" _dark={{ color: "blue.300" }}>
-                {nextModule.title}
-              </Heading>
-              <HiChevronRight color="blue.400" />
-            </HStack>
-          </Box>
-        )}
-
-        {showQuiz && quiz && (
-          <ModuleQuiz quiz={quiz} setShowQuiz={setShowQuiz} />
-        )}
-
-        {!showQuiz && currentLessonIndex > 0 && (
-          <HStack w="full" justify="space-between" flexWrap="wrap">
-            <Button variant="subtle" onClick={handlePrevLesson} disabled={currentLessonIndex === 0}>
-              Previous
-            </Button>
-
-            {!showQuiz && lesson.status === "COMPLETED" && nextLesson && (
-              <Box
-                role="button"
-                tabIndex={0}
-                onClick={() => onLessonChange(currentLessonIndex + 1, currentModuleIndex)}
-                p={4}
-                borderRadius="lg"
-                bg="gray.50"
-                _dark={{ bg: "gray.700" }}
-                _hover={{ bg: "blue.50", _dark: { bg: "blue.900" } }}
-              >
-                <Text fontSize="sm" color="gray.500" mb={1}>
-                  Next Lesson
-                </Text>
-                <HStack justify="space-between">
-                  <Heading size="sm">{nextLesson.title}</Heading>
-                  <HiChevronRight />
+                  {moduleComplete && (
+                    <Badge colorPalette="green" size="lg" px={3} py={1} alignSelf="center">
+                      <HStack gap={1}>
+                        <Trophy className="w-4 h-4" />
+                        <Text>Completed</Text>
+                      </HStack>
+                    </Badge>
+                  )}
                 </HStack>
+
+                {/* Divider */}
+                <Box h="1px" bg="gray.200" _dark={{ bg: "gray.700" }} />
+
+                {/* Action Row */}
+                <HStack justify="space-between" flexWrap="wrap" gap={3}>
+                  <HStack gap={2} flexWrap="wrap">
+                    {isGeneratingLesson ? (
+                      <Button
+                        disabled
+                        size="md"
+                        colorScheme="teal"
+                        variant="surface"
+                      >
+                        <Spinner size="sm" mr={2} />
+                        Generating Content...
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={handleGenerateLesson}
+                        size="md"
+                        colorPalette="teal"
+                        variant="outline"
+                      >
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        {lesson.content ? "Regenerate Content" : "Generate Content"}
+                      </Button>
+                    )}
+
+                    {loadingQuiz ? (
+                      <Button
+                        disabled
+                        size="md"
+                        colorPalette="purple"
+                        variant="outline"
+                      >
+                        <Spinner size="sm" mr={2} />
+                        Generating Quiz...
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={handleGenerateQuiz}
+                        size="md"
+                        colorPalette="purple"
+                        variant="outline"
+                      >
+                        <Brain className="w-4 h-4 mr-2" />
+                        Generate Quiz
+                      </Button>
+                    )}
+
+                    <Button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setOpenChatBox(true);
+                      }}
+                      size="md"
+                      colorPalette="blue"
+                      variant="outline"
+                    >
+                      <MessageCircle className="w-4 h-4 mr-2" />
+                      Ask AI Buddy
+                    </Button>
+                  </HStack>
+
+                  {lesson.status === "COMPLETED" && (
+                    <Badge colorPalette="green" size="lg" px={3}>
+                      <HStack gap={1}>
+                        <CheckCircle2 className="w-4 h-4" />
+                        <Text>Lesson Complete</Text>
+                      </HStack>
+                    </Badge>
+                  )}
+                </HStack>
+              </VStack>
+            </Card.Body>
+          </Card.Root>
+
+          {/* Credit Info Alert */}
+          {creditInfo && (
+            <Alert.Root status="info">
+              <Alert.Indicator />
+              <Box flex="1">
+                <Alert.Title>{creditInfo}</Alert.Title>
               </Box>
-            )}
-          </HStack>
-        )}
-      </VStack>
+              <Link
+                href="/upgrade"
+                fontWeight="semibold"
+                color={tealTextColor}
+              >
+                Upgrade Now →
+              </Link>
+            </Alert.Root>
+          )}
+
+          {/* Chat Box */}
+          {openChatBox && (
+            <ChatBox
+              open={openChatBox}
+              setOpenChatBox={setOpenChatBox}
+              chatMessages={chatMessages}
+              setChatMessages={setChatMessages}
+            />
+          )}
+
+          {/* Main Content */}
+          {!showQuiz && (
+            <LessonCard
+              courseState={courseState}
+              setCourseState={setCourseState}
+              lessonIndex={currentLessonIndex}
+              moduleIndex={currentModuleIndex}
+              isGeneratingLesson={isGeneratingLesson}
+              setIsGeneratingLesson={setIsGeneratingLesson}
+              lessonGenerationTriggered={lessonGenerationTriggered}
+              setLessonGenerationTriggered={setLessonGenerationTriggered}
+            />
+          )}
+
+          {showQuiz && quiz && (
+            <ModuleQuiz quiz={quiz} setShowQuiz={setShowQuiz} />
+          )}
+
+          {/* Unified Navigation Card (Previous & Next) */}
+          {!showQuiz && (currentLessonIndex > 0 || showNextLesson || showNextModule) && (
+            <Card.Root>
+              <Card.Body>
+                <HStack justify="space-between" gap={4} flexWrap="wrap">
+                  {/* Previous Lesson Button */}
+                  {currentLessonIndex > 0 && (
+                    <Button
+                      onClick={handlePrevLesson}
+                      variant="outline"
+                      size="lg"
+                    >
+                      <ChevronLeft className="w-4 h-4 mr-2" />
+                      Previous Lesson
+                    </Button>
+                  )}
+
+                  {/* Next Content (Lesson or Module) */}
+                  {(showNextLesson || showNextModule) && (
+                    <Box
+                      as="button"
+                      onClick={() => {
+                        if (showNextLesson) {
+                          onLessonChange(currentLessonIndex + 1, currentModuleIndex);
+                        } else if (showNextModule) {
+                          onLessonChange(0, currentModuleIndex + 1);
+                        }
+                      }}
+                      flex="1"
+                      minW="250px"
+                      p={4}
+                      bg="teal.50"
+                      _dark={{ bg: "teal.900/20" }}
+                      borderRadius="md"
+                      borderLeftWidth="3px"
+                      borderLeftColor="teal.500"
+                      _hover={{
+                        bg: "teal.100",
+                        _dark: { bg: "teal.900/30" },
+                        transform: "translateX(4px)"
+                      }}
+                      transition="all 0.2s"
+                      textAlign="left"
+                    >
+                      <VStack align="start" gap={1}>
+                        <HStack>
+                          {showNextModule ? (
+                            <Sparkles className="w-4 h-4 text-teal-500" />
+                          ) : (
+                            <ArrowRight className="w-4 h-4 text-teal-500" />
+                          )}
+                          <Text fontSize="xs" color="gray.600" _dark={{ color: "gray.400" }}>
+                            {showNextModule ? "Upcoming Module" : "Next Lesson"}
+                          </Text>
+                        </HStack>
+                        <HStack justify="space-between" w="full">
+                          <Text fontWeight="semibold" color="gray.800" _dark={{ color: "white" }}>
+                            {showNextModule ? nextModule.title : nextLesson.title}
+                          </Text>
+                          <ChevronRight className="w-5 h-5 text-teal-500 flex-shrink-0" />
+                        </HStack>
+                      </VStack>
+                    </Box>
+                  )}
+                </HStack>
+              </Card.Body>
+            </Card.Root>
+          )}
+        </VStack>
+      </Box>
     </Box>
   );
 };
+
 export default CourseRenderer;

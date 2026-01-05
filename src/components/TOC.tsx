@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import {
     Box,
@@ -8,19 +7,19 @@ import {
     Text,
     Button,
     Spinner,
-    Circle
+    Circle,
+    Badge,
+    Progress,
+    Checkbox
 } from "@chakra-ui/react";
 import { Timeline } from "@chakra-ui/react";
-import { BiCheck, BiChevronLeft, BiChevronRight, BiTime } from "react-icons/bi";
+import { BiCheck, BiChevronLeft, BiChevronRight, BiTime, BiLockAlt } from "react-icons/bi";
 import { MdInfo } from "react-icons/md";
 import { useLocation } from "react-router-dom";
-import type { Course, Status } from "../types";
+import type { Course, Status, Module } from "../types";
 import { useColorModeValue } from "../components/ui/color-mode";
 import { Tooltip } from "../components/ui/tooltip";
-import type { Module } from "../types";
-
-
-
+import { useUser } from "../contexts/UserContext";
 
 type TOCProps = {
     courseState: Course;
@@ -31,13 +30,11 @@ type TOCProps = {
     setCurrentLessonIndex: (index: number) => void;
 };
 
-const FancyHeading = (props: any) => (
-    <Heading fontWeight="semibold" letterSpacing="-0.5px" color="teal.600" {...props} />
-);
-
 interface LocationState {
     course: Course;
 }
+
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 export const TOC = ({
     courseState,
@@ -47,25 +44,94 @@ export const TOC = ({
     currentLessonIndex,
     setCurrentLessonIndex
 }: TOCProps) => {
-
     const location = useLocation();
+
     const course = (location?.state as LocationState)?.course ?? null;
-
-
     const [tocCollapsed, setTocCollapsed] = useState(false);
 
-    const connectorColor = useColorModeValue("gray.300", "gray.600");
+    const bgColor = useColorModeValue("gray.200", "gray.900");
+    const borderColor = useColorModeValue("gray.200", "gray.700");
+    const hoverBg = useColorModeValue("gray.50", "gray.900");
+    const activeBg = useColorModeValue("teal.50", "teal.900");
+    const textColor = useColorModeValue("gray.700", "gray.200");
+    const mutedTextColor = useColorModeValue("gray.500", "gray.400");
+    const checkboxColor = useColorModeValue("white", "black");
+    const mutedTealTextColor = useColorModeValue("teal.600", "teal.400");
+
+    const { user } = useUser();
 
     useEffect(() => {
         if (!course) return;
         const modulesWithStatus = course.modules.map((module: Module) => ({
             ...module,
-            status: module.status || "not-generated",
+            status: module.status || "NOT_GENERATED",
         }));
         setCourseState({ ...course, modules: modulesWithStatus });
     }, [course]);
 
+    const updateCourseInDB = async (updatedCourse: Course) => {
+        try {
+            const response = await fetch(`${BACKEND_URL}/course/${updatedCourse.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${user?.token}`,
+                },
+                body: JSON.stringify(updatedCourse),
+            });
 
+            if (!response.ok) {
+                throw new Error('Failed to update course');
+            }
+
+            const data = await response.json();
+            console.log('Course updated successfully:', data);
+        } catch (error) {
+            console.error('Error updating course:', error);
+            // Optionally show an error toast/notification to the user
+        }
+    };
+
+    const handleModuleToggle = (moduleIndex: number, checked: boolean) => {
+        setCourseState((prev: Course) => {
+            const updated = [...prev.modules];
+            updated[moduleIndex].status = checked ? "COMPLETED" : "IN_PROGRESS";
+            const updatedCourse = { ...prev, modules: updated };
+            updatedCourse.modules[moduleIndex].lessons = updatedCourse.modules[moduleIndex].lessons.map(lesson => ({
+                ...lesson,
+                status: checked ? "COMPLETED" : "IN_PROGRESS"
+            }));
+
+            // Update database
+            updateCourseInDB(updatedCourse);
+
+            return updatedCourse;
+        });
+    };
+
+    const handleLessonToggle = (lessonIndex: number, moduleIndex: number, checked: boolean) => {
+        setCourseState((prev: Course) => {
+            const updated = [...prev.modules];
+            if (updated[moduleIndex].lessons) {
+                updated[moduleIndex].lessons[lessonIndex].status = checked ? "COMPLETED" : "IN_PROGRESS";
+            }
+            const updatedCourse = { ...prev, modules: updated };
+            if (updatedCourse.modules[moduleIndex].lessons) {
+                const allLessonsCompleted = updatedCourse.modules[moduleIndex].lessons.every(
+                    lesson => lesson.status === "COMPLETED"
+                );
+                updatedCourse.modules[moduleIndex].status = allLessonsCompleted ? "COMPLETED" : "IN_PROGRESS";
+            }
+            else {
+                updatedCourse.modules[moduleIndex].status = "IN_PROGRESS";
+            }
+
+            // Update database
+            updateCourseInDB(updatedCourse);
+
+            return updatedCourse;
+        });
+    };
 
     const handleModuleOpen = (id: number) => {
         setActiveModuleIndex(id);
@@ -86,143 +152,222 @@ export const TOC = ({
     };
 
 
-    const getStatusIcon = (status: string) => {
-        switch (status) {
-            case "COMPLETED":
-                return (
-                    <Circle bg={useColorModeValue("green.100", "green.900")}>
-                        <BiCheck size={30} color="green" />
-                    </Circle>
-                );
-            case "IN_PROGRESS":
-                return (
-                    <Circle bg={useColorModeValue("teal.100", "teal.900")}>
-                        <BiTime size={30} color="teal" />
-                    </Circle>
-                );
-            case "NOT_GENERATED":
-                return (
-                    <Circle bg={useColorModeValue("gray.100", "gray.400")}>
-                        <MdInfo size={30} color="gray.500" />
-                    </Circle>
-                );
-            case "LOADING":
-                return (
-                    <Circle bg={useColorModeValue("cyan.100", "cyan.900")}>
-                        <Spinner size="lg" color="cyan.500" />
-                    </Circle>
-                );
-            default:
-                return (
-                    <Circle bg={useColorModeValue("gray.100", "gray.400")}>
-                        <MdInfo size={30} color="gray.400" />
-                    </Circle>
-                );
-        }
+    const getCompletedLessons = (module: Module) => {
+        if (!module.lessons) return 0;
+        return module.lessons.filter(l => l.status === "COMPLETED").length;
     };
-    console.log("TOC Rendered with courseState:", courseState);
+
     return (
         <Box
             minW={tocCollapsed ? "70px" : "400px"}
             maxW={tocCollapsed ? "70px" : "400px"}
-            overflowY="auto"   // independent scrolling
+            h="100%"
+            overflowY="auto"
             borderRight="1px solid"
-            borderColor={useColorModeValue("gray.200", "gray.600")}
+            borderColor={borderColor}
+            // bg={bgColor}
             position="relative"
-            transition="all 0.3s"
-            minH={0}
+            transition="all 0.3s ease"
             flexShrink={0}
+            boxShadow={useColorModeValue("sm", "dark-lg")}
         >
-            {/* Collapse/Expand Button */}
-            <Button
-                size="xs"
-                position="absolute"
-                variant="ghost"
-                top={2}
-                right={tocCollapsed ? "10px" : "4px"}
-                onClick={() => setTocCollapsed(!tocCollapsed)}
+            {/* Header with collapse button */}
+            <Box
+                position="sticky"
+                top={0}
+                bg={bgColor}
+                zIndex={10}
+                borderBottom="1px solid"
+                borderColor={borderColor}
+                p={4}
             >
-                {tocCollapsed ? <BiChevronRight /> : <BiChevronLeft />}
-            </Button>
+                <HStack justify="space-between">
+                    {!tocCollapsed && (
+                        <Heading size="md" fontWeight="semibold">
+                            Course Outline
+                        </Heading>
+                    )}
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setTocCollapsed(!tocCollapsed)}
+                        aria-label={tocCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                    >
+                        {tocCollapsed ? <BiChevronRight size={20} /> : <BiChevronLeft size={20} />}
+                    </Button>
+                </HStack>
+            </Box>
 
+            {/* Content */}
             {!tocCollapsed ? (
-                <VStack align="stretch" gap={2} p={2}>
-                    <FancyHeading size="md" mb={2}>
-                        Course Outline
-                    </FancyHeading>
-
+                <VStack align="stretch" gap={0} p={4} pt={2}>
                     <Timeline.Root>
-                        {courseState.modules.map((module, idx) => (
-                            <Timeline.Item key={idx}>
-                                <Timeline.Connector borderColor={connectorColor}>
-                                    <Timeline.Separator />
-                                    <Timeline.Indicator>{getStatusIcon(module.status)}</Timeline.Indicator>
-                                </Timeline.Connector>
-                                <Timeline.Content>
+                        {courseState.modules.map((module, idx) => {
+                            const isActive = activeModuleIndex === idx;
+                            const completedLessons = getCompletedLessons(module);
+                            const totalLessons = module.lessons?.length || 0;
 
-                                    <HStack justify="space-between" align="center" mb={2}>
-                                        <Heading size="sm">{module.title}</Heading>
-                                    </HStack>
+                            return (
+                                <Timeline.Item key={idx}>
+                                    <Timeline.Connector>
+                                        <Timeline.Separator />
+                                        <Timeline.Indicator background={checkboxColor} border="none">
+                                            <Checkbox.Root
+                                                size="sm"
+                                                colorPalette="green"
+                                                checked={module.status === "COMPLETED"}
+                                                onCheckedChange={(details) => handleModuleToggle(idx, details.checked === true)}
+                                            >
+                                                <Checkbox.HiddenInput />
+                                                <Checkbox.Control />
+                                            </Checkbox.Root>
+                                        </Timeline.Indicator>
+                                    </Timeline.Connector>
+                                    <Timeline.Content pb={6}>
+                                        <Box
+                                            p={3}
+                                            borderRadius="lg"
+                                            border="0.1px solid"
+                                            bg={isActive ? activeBg : "transparent"}
+                                            cursor="pointer"
+                                            transition="all 0.2s"
+                                            _hover={{ bg: hoverBg }}
+                                            onClick={() => handleModuleOpen(idx)}
 
-                                    {module.lessons && (
-                                        <VStack align="start" gap={1} pl={6}>
-                                            {module.lessons.map((lesson, i) => (
-                                                <HStack>
-                                                    {lesson.status === "COMPLETED" && (
-                                                        <Circle size={4} bg="green.500">
-                                                            <BiCheck size={16} color="green" />
-                                                        </Circle>
-                                                    )}
-                                                    <Text
-                                                        key={i}
-                                                        fontSize="sm"
-                                                        color={
-                                                            activeModuleIndex === idx && currentLessonIndex === i
-                                                                ? "teal.500"
-                                                                : "gray.500"
-                                                        }
-                                                        cursor="pointer"
-                                                        onClick={() => handleLessonChange(i, idx)}
-                                                        _hover={{ color: "teal.600" }}
-                                                    >
-                                                        {lesson.title}
+                                        >
+                                            <HStack justify="space-between" align="start" mb={2}>
+                                                <VStack align="start" gap={1} flex={1}>
+                                                    <HStack>
+                                                        <Text fontSize="xs" fontWeight="bold" color={mutedTextColor}>
+                                                            Module {idx + 1}
+                                                        </Text>
+                                                        {/* {getStatusBadge(module.status)} */}
+                                                    </HStack>
+                                                    <Heading size="lg" color={textColor}>
+                                                        {module.title}
+                                                    </Heading>
+                                                </VStack>
+                                            </HStack>
+
+                                            {/* Module progress */}
+                                            {totalLessons > 0 && (
+                                                <Box mt={2}>
+                                                    <Text fontSize="xs" color={mutedTealTextColor} mb={1}>
+                                                        {completedLessons} of {totalLessons} Lessons Completed
                                                     </Text>
+                                                    <Progress.Root
+                                                        value={(completedLessons / totalLessons) * 100}
+                                                        size="xs"
+                                                        colorScheme={module.status === "COMPLETED" ? "green" : "teal"}
+                                                        borderRadius="full"
+                                                    />
+                                                </Box>
+                                            )}
 
-                                                </HStack>
-
-                                            ))}
-                                        </VStack>
-                                    )}
-                                </Timeline.Content>
-                            </Timeline.Item>
-                        ))}
+                                            {/* Lessons */}
+                                            {module.lessons && isActive && (
+                                                <VStack align="stretch" gap={1} mt={3} pl={2}>
+                                                    {module.lessons.map((lesson, i) => {
+                                                        const isActiveLesson = currentLessonIndex === i;
+                                                        return (
+                                                            <HStack
+                                                                key={i}
+                                                                p={2}
+                                                                borderRadius="md"
+                                                                bg={isActiveLesson ? useColorModeValue("teal.100", "teal.800") : "transparent"}
+                                                                cursor="pointer"
+                                                                transition="all 0.2s"
+                                                                _hover={{
+                                                                    bg: isActiveLesson
+                                                                        ? useColorModeValue("teal.100", "teal.800")
+                                                                        : useColorModeValue("gray.100", "gray.600")
+                                                                }}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleLessonChange(i, idx);
+                                                                }}
+                                                            >
+                                                                <Checkbox.Root
+                                                                    size="sm"
+                                                                    colorPalette="green"
+                                                                    checked={lesson.status === "COMPLETED"}
+                                                                    onCheckedChange={(details) => handleLessonToggle(i, idx, details.checked === true)}
+                                                                >
+                                                                    <Checkbox.HiddenInput />
+                                                                    <Checkbox.Control />
+                                                                </Checkbox.Root>
+                                                                <Text
+                                                                    fontSize="sm"
+                                                                    color={isActiveLesson ? "teal.700" : textColor}
+                                                                    fontWeight={isActiveLesson ? "medium" : "normal"}
+                                                                    flex={1}
+                                                                >
+                                                                    {lesson.title}
+                                                                </Text>
+                                                            </HStack>
+                                                        );
+                                                    })}
+                                                </VStack>
+                                            )}
+                                        </Box>
+                                    </Timeline.Content>
+                                </Timeline.Item>
+                            );
+                        })}
                     </Timeline.Root>
                 </VStack>
             ) : (
-                <VStack align="center" gap={4} mt={12}>
+                <VStack align="center" gap={4} mt={4} p={2}>
                     {courseState.modules.map((module, idx) => (
                         <Tooltip
                             key={idx}
                             content={
-                                <VStack align="start" gap={1}>
-                                    <Box fontWeight="bold">{module.title}</Box>
-                                    {module.lessons?.map((lesson, i) => (
-                                        <Text key={i} fontSize="sm">
-                                            {lesson.title}
-                                        </Text>
-                                    ))}
+                                <VStack align="start" gap={1} p={2}>
+                                    <Text fontWeight="bold" fontSize="sm">{module.title}</Text>
+                                    <Text fontSize="xs" color={mutedTextColor}>
+                                        Module {idx + 1}
+                                    </Text>
+                                    {module.lessons && (
+                                        <>
+                                            <Box borderTop="1px solid" borderColor={borderColor} w="100%" my={1} />
+                                            {module.lessons.map((lesson, i) => (
+                                                <HStack key={i} gap={2}>
+                                                    {lesson.status === "COMPLETED" && (
+                                                        <BiCheck size={14} color="green" />
+                                                    )}
+                                                    <Text fontSize="sm">{lesson.title}</Text>
+                                                </HStack>
+                                            ))}
+                                        </>
+                                    )}
                                 </VStack>
                             }
-
                             showArrow
+                            positioning={{ placement: "right" }}
                         >
-                            <Box cursor="pointer" onClick={() => handleModuleOpen(idx)}>
-                                {getStatusIcon(module.status)}
+                            <Box
+                                cursor="pointer"
+                                onClick={() => handleModuleOpen(idx)}
+                                p={2}
+                                borderRadius="md"
+                                bg={activeModuleIndex === idx ? activeBg : "transparent"}
+                                _hover={{ bg: hoverBg }}
+                                transition="all 0.2s"
+                            >
+                                <Checkbox.Root
+                                    size="sm"
+                                    colorPalette="teal"
+                                    checked={module.status === "COMPLETED"}
+                                    onCheckedChange={(details) => handleModuleToggle(idx, details.checked === true)}
+                                >
+                                    <Checkbox.HiddenInput />
+                                    <Checkbox.Control />
+                                </Checkbox.Root>
                             </Box>
                         </Tooltip>
                     ))}
                 </VStack>
             )}
         </Box>
-    )
-}
+    );
+};

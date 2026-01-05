@@ -251,16 +251,18 @@ const UserCourses: React.FC = () => {
                     </Button>
 
                     {/* Controls */}
-                    <FilterControls
-                        searchTerm={searchTerm}
-                        setSearchTerm={setSearchTerm}
-                        sortKey={sortKey}
-                        setSortKey={setSortKey}
-                        sortAsc={sortAsc}
-                        setSortAsc={setSortAsc}
-                        sortKeysCollection={sortKeysCollection}
-                    />
+                    {filteredCourses.length > 0 && (
+                        <FilterControls
+                            searchTerm={searchTerm}
+                            setSearchTerm={setSearchTerm}
+                            sortKey={sortKey}
+                            setSortKey={setSortKey}
+                            sortAsc={sortAsc}
+                            setSortAsc={setSortAsc}
+                            sortKeysCollection={sortKeysCollection}
+                        />
 
+                    )}
                     {/* Course Grid */}
                     {isLoading ? (
                         <Box

@@ -12,23 +12,21 @@ interface LessonCardProps {
     setCourseState: React.Dispatch<React.SetStateAction<Course>>;
     lessonIndex: number;
     moduleIndex: number;
+    isGeneratingLesson: boolean;
+    setIsGeneratingLesson: React.Dispatch<React.SetStateAction<boolean>>;
+    lessonGenerationTriggered: boolean;
+    setLessonGenerationTriggered: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-const LessonCard: React.FC<LessonCardProps> = ({ courseState, lessonIndex, moduleIndex }) => {
+const LessonCard: React.FC<LessonCardProps> = ({ courseState, lessonIndex, moduleIndex, isGeneratingLesson, setIsGeneratingLesson, lessonGenerationTriggered, setLessonGenerationTriggered }) => {
     const lesson = courseState.modules[moduleIndex].lessons[lessonIndex];
     const { user } = useUser();
     const [lessonContent, setLessonContent] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
-
-    console.log("lessonIndex", lessonIndex, "moduleIndex", moduleIndex);
-    console.log("lessonid:", lesson.id);
-
-
     const fetchLesson = async () => {
         setIsLoading(true);
         try {
-            console.log("Fetching lesson content for lesson ID:", lesson.id);
             const dbRes = await fetchWithTimeout(`${BACKEND_URL}/course/lessons/${lesson.id}`, {
                 method: "GET",
                 headers: {
@@ -42,7 +40,6 @@ const LessonCard: React.FC<LessonCardProps> = ({ courseState, lessonIndex, modul
             }
 
             const dbData = await dbRes.json();
-            console.log("Fetched lesson content from DB:", dbData);
             setIsLoading(false);
             setLessonContent(dbData.content);
 
@@ -85,6 +82,10 @@ const LessonCard: React.FC<LessonCardProps> = ({ courseState, lessonIndex, modul
                 apiUrl={`${BACKEND_URL}/course/generate-lesson-stream`}
                 body={requestBody}
                 content={lessonContent || undefined}
+                isGenerating={isGeneratingLesson}
+                setIsGenerating={setIsGeneratingLesson}
+                shouldStartGeneration={lessonGenerationTriggered}
+                onGenerationComplete={() => setLessonGenerationTriggered(false)}
             />
 
         </Box>
