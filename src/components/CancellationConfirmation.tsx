@@ -18,11 +18,11 @@ export default function CancellationConfirmation({
 }) {
     const { refreshUser } = useUser();
 
-    useEffect(() => {
-        (async () => {
-            await refreshUser();
-        })();
-    }, [refreshUser]);
+    // useEffect(() => {
+    //     (async () => {
+    //         await refreshUser();
+    //     })();
+    // }, [refreshUser]);
 
     const formatDate = (timestamp: number) => {
         return new Date(timestamp * 1000).toLocaleDateString('en-US', {

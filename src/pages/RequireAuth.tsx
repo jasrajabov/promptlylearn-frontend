@@ -6,7 +6,7 @@ const RequireAuth = () => {
     const { isAuthenticated, loading, logout } = useUser();
 
     if (loading) return null;
-
+    console.log("Checking authentication status in RequireAuth.");
     if (!isAuthenticated) {
         logout();
         return <AuthRequiredPage />;

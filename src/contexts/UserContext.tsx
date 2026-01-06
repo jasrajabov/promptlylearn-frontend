@@ -6,6 +6,7 @@ import {
   useRef,
   type ReactNode,
 } from "react";
+import { useNavigate } from "react-router-dom";
 
 export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, use } from "react";
 import { useUser } from "../contexts/UserContext";
 import { useNavigate } from "react-router-dom";
 import {
@@ -13,10 +13,9 @@ import {
     Input,
     Button,
     Spinner,
-    // Divider,
+    Dialog,
     Grid,
     Icon,
-    // useToast,
 } from "@chakra-ui/react";
 import { toaster as toast } from "../components/ui/toaster";
 import { motion } from "framer-motion";
@@ -30,6 +29,8 @@ import {
     Building,
     Award,
 } from "lucide-react";
+import CancellationHandler from "../components/CancellationHandler";
+import { useColorModeValue } from "../components/ui/color-mode";
 
 const MotionBox = motion(Box);
 
@@ -52,9 +53,8 @@ interface UserData {
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 export default function UserInfoPage() {
-    const { user } = useUser();
+    const { user, refreshUser } = useUser();
     const navigate = useNavigate();
-
 
     const [userData, setUserData] = useState<UserData | null>(null);
     const [isEditing, setIsEditing] = useState(false);
@@ -66,6 +66,10 @@ export default function UserInfoPage() {
     const [editPhone, setEditPhone] = useState("");
     const [editOrganization, setEditOrganization] = useState("");
     const [editRole, setEditRole] = useState("");
+    const [showCancellationHandler, setShowCancellationHandler] = useState(false);
+    const [cancellationSuccess, setCancellationSuccess] = useState(false);
+
+    const cardBg = useColorModeValue("gray.50", "gray.900");
 
     useEffect(() => {
         if (!user) {
@@ -74,6 +78,28 @@ export default function UserInfoPage() {
         }
         fetchUserData();
     }, [user, navigate]);
+
+    // Separate effect to handle cancellation success
+    useEffect(() => {
+        if (cancellationSuccess) {
+            const refreshData = async () => {
+                await refreshUser();
+                await fetchUserData(); // Refetch user data to update the UI
+
+                toast.create({
+                    title: "Membership cancelled",
+                    description: "Your premium membership has been cancelled successfully",
+                    type: "success",
+                    duration: 3000,
+                });
+
+                // Reset the success flag
+                setCancellationSuccess(false);
+            };
+
+            refreshData();
+        }
+    }, [cancellationSuccess, refreshUser]);
 
     const fetchUserData = async () => {
         try {
@@ -226,11 +252,10 @@ export default function UserInfoPage() {
 
                     <Grid templateColumns={{ base: "1fr", lg: "2fr 1fr" }} gap={6}>
                         {/* Personal Information */}
-                        <Card.Root>
+                        <Card.Root bg={cardBg}>
                             <Card.Body>
                                 <VStack align="stretch" gap={6}>
                                     <Heading size="lg">Personal Information</Heading>
-                                    {/* <Divider /> */}
 
                                     {/* Name */}
                                     <HStack align="start">
@@ -345,7 +370,7 @@ export default function UserInfoPage() {
                         {/* Membership & Credits */}
                         <VStack gap={6} align="stretch">
                             {/* Membership Status */}
-                            <Card.Root>
+                            <Card.Root bg={cardBg}>
                                 <Card.Body>
                                     <VStack align="stretch" gap={4}>
                                         <HStack justify="space-between">
@@ -363,7 +388,6 @@ export default function UserInfoPage() {
                                                 {userData.membership_status.toUpperCase()}
                                             </Badge>
                                         </HStack>
-                                        {/* <Divider /> */}
 
                                         <HStack align="start">
                                             <Icon fontSize="xl" color="purple.500">
@@ -392,12 +416,28 @@ export default function UserInfoPage() {
                                                 </Text>
                                             </Box>
                                         </HStack>
+                                        <HStack>
+                                            {userData.membership_plan === "premium" && userData.membership_status === "ACTIVE" ? (
+                                                <Button onClick={() => setShowCancellationHandler(true)} size="sm" variant="outline">
+                                                    Cancel Membership
+                                                </Button>
+                                            ) : (userData.membership_status !== "ACTIVE" || userData.membership_plan === "free") && (
+                                                <Button
+                                                    onClick={() => navigate("/upgrade")}
+                                                    size="sm"
+                                                    colorScheme="teal"
+                                                    variant="solid"
+                                                >
+                                                    Upgrade to Premium
+                                                </Button>
+                                            )}
+                                        </HStack>
                                     </VStack>
                                 </Card.Body>
                             </Card.Root>
 
                             {/* Credits */}
-                            <Card.Root>
+                            <Card.Root bg={cardBg}>
                                 <Card.Body>
                                     <VStack align="stretch" gap={4}>
                                         <HStack>
@@ -406,7 +446,6 @@ export default function UserInfoPage() {
                                             </Icon>
                                             <Heading size="md">Credits</Heading>
                                         </HStack>
-                                        {/* <Divider borderColor="teal.200" /> */}
                                         {userData.membership_plan === "free" ? (
                                             <>
                                                 <Box>
@@ -428,12 +467,15 @@ export default function UserInfoPage() {
                                                 </Box>
                                             </>
                                         ) : (
-                                            <Text color="gray.600">
-                                                Unlimited credits with your {userData.membership_plan} plan.
-                                            </Text>
+                                            <VStack align="stretch" gap={2}>
+                                                <Text color="gray.600">
+                                                    Unlimited credits with your {userData.membership_plan} plan.
+                                                </Text>
+                                                <Text color="gray.600">
+                                                    Enjoy all the benefits of premium membership.
+                                                </Text>
+                                            </VStack>
                                         )}
-
-
                                     </VStack>
                                 </Card.Body>
                             </Card.Root>
@@ -453,6 +495,14 @@ export default function UserInfoPage() {
                     </Card.Root>
                 </VStack>
             </MotionBox>
+
+            {/* Render cancellation dialog */}
+            <CancellationHandler
+                open={showCancellationHandler}
+                onOpenChange={setShowCancellationHandler}
+                cancellationSuccess={cancellationSuccess}
+                setCancellationSuccess={setCancellationSuccess}
+            />
         </Container>
     );
 }

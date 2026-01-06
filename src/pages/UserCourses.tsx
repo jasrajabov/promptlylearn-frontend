@@ -16,16 +16,27 @@ import {
     Portal,
     Dialog,
     CloseButton,
+    Badge,
 } from "@chakra-ui/react";
 import { useColorModeValue } from "../components/ui/color-mode";
 import { useNavigate } from "react-router-dom";
 import React, { useEffect, useState, useRef } from "react";
-import { FaBookOpen, FaTrash } from "react-icons/fa";
 import { Loader } from "../components/Loader";
 import TagHandler from "../components/TagHandler";
 import FilterControls from "../components/Filters.tsx";
 import { formatDate } from "../utils/utils";
 import { type Course } from "../types";
+import {
+    BookOpen,
+    Plus,
+    Trash2,
+    Clock,
+    BookMarked,
+    Loader2,
+    AlertCircle,
+    CheckCircle,
+    TrendingUp
+} from "lucide-react";
 
 export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -38,10 +49,9 @@ const UserCourses: React.FC = () => {
     const [sortKey, setSortKey] = useState<"created" | "modules" | "progress">("created");
 
     // UI Colors
-    const headerColor = useColorModeValue("teal.700", "teal.300");
-    const cardBg = useColorModeValue("white", "black:900");
-    const emptyTextColor = useColorModeValue("gray.600", "gray.400");
-    const cardBorderColor = useColorModeValue("teal.200", "teal.700");
+    const cardBg = useColorModeValue("gray.50", "gray.900");
+    const emptyBg = useColorModeValue("gray.50", "gray.900");
+    const cardBorderColor = useColorModeValue("gray.200", "gray.700");
 
     const navigate = useNavigate();
 
@@ -201,9 +211,8 @@ const UserCourses: React.FC = () => {
             console.error("Error deleting course:", error);
         }
     }
-    console.log("sortKey", sortKey, "sortAsc", sortAsc);
 
-    // 4. Filter & Sort Logic (UPDATED)
+    // 4. Filter & Sort Logic
     const filteredCourses = courses
         .filter((c) => c.title?.toLowerCase().includes(searchTerm.toLowerCase()))
         .sort((a, b) => {
@@ -221,7 +230,6 @@ const UserCourses: React.FC = () => {
             if (sortKey === "created") {
                 valA = new Date(a.created_at).getTime();
                 valB = new Date(b.created_at).getTime();
-                console.log("Sorting by created:", valA, valB);
             } else if (sortKey === "modules") {
                 valA = a.modules?.length || 0;
                 valB = b.modules?.length || 0;
@@ -233,53 +241,128 @@ const UserCourses: React.FC = () => {
             return sortAsc ? (valA as number) - (valB as number) : (valB as number) - (valA as number);
         });
 
+    // Stats
+    const totalCourses = courses.length;
+    const inProgressCourses = courses.filter(c => {
+        const prog = getProgress(c);
+        return prog > 0 && prog < 100;
+    }).length;
+    const completedCourses = courses.filter(c => getProgress(c) === 100).length;
+
     return (
         <>
             {loading ? (
                 <Loader />
             ) : (
-                <Box maxW="7xl" textAlign="center" mx="auto" px={6} py={10}>
-                    {/* Header */}
-                    <Heading mb={2} color="brand.fg">
-                        My Courses
-                    </Heading>
-                    <Text color="brand.fg" mb={10}>
-                        Explore and continue your learning journeys
-                    </Text>
-                    <Button borderRadius={100} variant="subtle" onClick={() => navigate("/")} colorScheme="teal" mb={6}>
-                        Create New Course
-                    </Button>
+                <Box maxW="7xl" mx="auto" px={{ base: 4, md: 6 }} py={8}>
+                    {/* Header Section */}
+                    <VStack gap={4} mb={8} align="stretch">
+                        <HStack justify="space-between" align="center" flexWrap="wrap">
+                            <Box>
+                                <Heading size="xl" mb={1}>
+                                    My Courses
+                                </Heading>
+                                <Text color="gray.600" _dark={{ color: "gray.400" }} fontSize="sm">
+                                    Explore and continue your learning journeys
+                                </Text>
+                            </Box>
+                            <Button
+                                size="sm"
+                                colorPalette="teal"
+                                onClick={() => navigate("/")}
+                            >
+                                <Plus size={16} />
+                                Create Course
+                            </Button>
+                        </HStack>
+
+                        {/* Stats Cards */}
+                        {totalCourses > 0 && (
+                            <HStack gap={3} flexWrap="wrap">
+                                <Box
+                                    flex="1"
+                                    minW="150px"
+                                    bg={cardBg}
+                                    p={3}
+                                    borderRadius="lg"
+                                    borderWidth="1px"
+                                    borderColor={cardBorderColor}
+                                >
+                                    <HStack gap={2}>
+                                        <BookMarked size={16} color="#14b8a6" />
+                                        <Box>
+                                            <Text fontSize="xs" color="gray.600">Total Courses</Text>
+                                            <Text fontSize="lg" fontWeight="bold">{totalCourses}</Text>
+                                        </Box>
+                                    </HStack>
+                                </Box>
+                                <Box
+                                    flex="1"
+                                    minW="150px"
+                                    bg={cardBg}
+                                    p={3}
+                                    borderRadius="lg"
+                                    borderWidth="1px"
+                                    borderColor={cardBorderColor}
+                                >
+                                    <HStack gap={2}>
+                                        <TrendingUp size={16} color="#14b8a6" />
+                                        <Box>
+                                            <Text fontSize="xs" color="gray.600">In Progress</Text>
+                                            <Text fontSize="lg" fontWeight="bold">{inProgressCourses}</Text>
+                                        </Box>
+                                    </HStack>
+                                </Box>
+                                <Box
+                                    flex="1"
+                                    minW="150px"
+                                    bg={cardBg}
+                                    p={3}
+                                    borderRadius="lg"
+                                    borderWidth="1px"
+                                    borderColor={cardBorderColor}
+                                >
+                                    <HStack gap={2}>
+                                        <CheckCircle size={16} color="#14b8a6" />
+                                        <Box>
+                                            <Text fontSize="xs" color="gray.600">Completed</Text>
+                                            <Text fontSize="lg" fontWeight="bold">{completedCourses}</Text>
+                                        </Box>
+                                    </HStack>
+                                </Box>
+                            </HStack>
+                        )}
+                    </VStack>
 
                     {/* Controls */}
                     {filteredCourses.length > 0 && (
-                        <FilterControls
-                            searchTerm={searchTerm}
-                            setSearchTerm={setSearchTerm}
-                            sortKey={sortKey}
-                            setSortKey={setSortKey}
-                            sortAsc={sortAsc}
-                            setSortAsc={setSortAsc}
-                            sortKeysCollection={sortKeysCollection}
-                        />
-
+                        <Box mb={6}>
+                            <FilterControls
+                                searchTerm={searchTerm}
+                                setSearchTerm={setSearchTerm}
+                                sortKey={sortKey}
+                                setSortKey={setSortKey}
+                                sortAsc={sortAsc}
+                                setSortAsc={setSortAsc}
+                                sortKeysCollection={sortKeysCollection}
+                            />
+                        </Box>
                     )}
+
                     {/* Course Grid */}
                     {isLoading ? (
                         <Box
                             display="grid"
                             gridTemplateColumns="repeat(auto-fill, minmax(280px, 1fr))"
-                            gap={6}
-                            alignItems="stretch"
-                            mt={8}
+                            gap={4}
                         >
                             {[...Array(4)].map((_, idx) => (
                                 <Card.Root
                                     key={idx}
                                     bg={cardBg}
-                                    shadow="md"
-                                    rounded="lg"
+                                    borderWidth="1px"
+                                    borderColor={cardBorderColor}
                                     p={4}
-                                    minH="250px"
                                 >
                                     <Skeleton height="20px" width="70%" mb={3} />
                                     <SkeletonText mt="2" noOfLines={3} gap="2" />
@@ -287,113 +370,179 @@ const UserCourses: React.FC = () => {
                             ))}
                         </Box>
                     ) : filteredCourses.length === 0 ? (
-                        <VStack gap={4} py={20}>
-                            <Icon as={FaBookOpen} boxSize={12} color={headerColor} />
-                            <Text fontSize="lg" fontWeight="medium" color={emptyTextColor}>
-                                No courses found.
-                            </Text>
+                        <VStack
+                            gap={4}
+                            py={16}
+                            bg={emptyBg}
+                            borderRadius="xl"
+                            borderWidth="2px"
+                            borderStyle="dashed"
+                            borderColor={cardBorderColor}
+                        >
+                            <Box
+                                w={16}
+                                h={16}
+                                bg="teal.50"
+                                _dark={{ bg: "teal.900/20" }}
+                                borderRadius="full"
+                                display="flex"
+                                alignItems="center"
+                                justifyContent="center"
+                            >
+                                <BookOpen size={32} color="#14b8a6" />
+                            </Box>
+                            <VStack gap={1}>
+                                <Text fontSize="lg" fontWeight="semibold">
+                                    No courses yet
+                                </Text>
+                                <Text fontSize="sm" color="gray.600" _dark={{ color: "gray.400" }}>
+                                    Create your first course to get started
+                                </Text>
+                            </VStack>
+                            <Button
+                                size="sm"
+                                colorPalette="teal"
+                                onClick={() => navigate("/")}
+                            >
+                                <Plus size={16} />
+                                Create Course
+                            </Button>
                         </VStack>
                     ) : (
                         <Box
                             display="grid"
-                            gridTemplateColumns="repeat(auto-fill, minmax(280px, 1fr))"
-                            gap={6}
-                            alignItems="stretch"
-                            mt={8} // Added Top Margin to separate from controls
+                            gridTemplateColumns="repeat(auto-fill, minmax(300px, 1fr))"
+                            gap={4}
                         >
                             {filteredCourses.map((course) => {
                                 const isGenerating = course.status === "GENERATING";
+                                const progress = getProgress(course);
 
                                 return (
-                                    <Box
+                                    <Card.Root
                                         key={course.id}
+                                        bg={cardBg}
+                                        borderColor={isGenerating ? "teal.400" : cardBorderColor}
+                                        borderWidth={isGenerating ? "2px" : "1px"}
                                         cursor={isGenerating ? "wait" : "pointer"}
                                         transition="all 0.2s"
-                                        _hover={{ transform: "translateY(-4px)" }}
+                                        _hover={{
+                                            borderColor: "teal.400",
+                                            shadow: "lg",
+                                            transform: isGenerating ? "none" : "translateY(-2px)",
+                                        }}
                                         onClick={() => !isGenerating && navigate(`/course/${course.id}`)}
-                                        display="flex"
+                                        position="relative"
+                                        overflow="hidden"
                                     >
-                                        <Card.Root
-                                            bg={cardBg}
-                                            borderColor={isGenerating ? "teal.400" : cardBorderColor}
-                                            borderWidth={isGenerating ? "2px" : "1px"}
-                                            boxShadow={isGenerating ? "0 0 10px var(--chakra-colors-teal-400)" : "md"}
-                                            _hover={{
-                                                boxShadow: "0 0 18px var(--chakra-colors-teal-400)",
-                                                borderColor: "teal.400",
-                                                transform: "translateY(-2px)",
-                                            }}
-                                            rounded="lg"
-                                            p={4}
-                                            display="flex"
-                                            flexDirection="column"
-                                            flex="1"
-                                            h="100%"
-                                            minH="250px"
-                                            borderRadius="xl"
+                                        {/* Generating Pulse Effect */}
+                                        {isGenerating && (
+                                            <Box
+                                                position="absolute"
+                                                top={0}
+                                                left={0}
+                                                right={0}
+                                                h="3px"
+                                                bg="teal.400"
+                                                animation="pulse 2s ease-in-out infinite"
+                                            />
+                                        )}
 
-                                        >
-                                            <Card.Header pb={2}>
-                                                <Card.Title lineClamp={2}>{course.title}</Card.Title>
-                                            </Card.Header>
+                                        <Card.Body p={5}>
+                                            <VStack align="stretch" gap={3}>
+                                                {/* Header */}
+                                                <HStack justify="space-between" align="start">
+                                                    <VStack align="start" gap={1} flex={1}>
+                                                        <Text
+                                                            fontSize="md"
+                                                            fontWeight="semibold"
+                                                            lineClamp={2}
+                                                        >
+                                                            {course.title}
+                                                        </Text>
+                                                        <HStack gap={2} fontSize="xs" color="gray.500">
+                                                            <HStack gap={1}>
+                                                                <Clock size={12} />
+                                                                <Text>{formatDate(course.created_at)}</Text>
+                                                            </HStack>
+                                                            <Text>•</Text>
+                                                            <HStack gap={1}>
+                                                                <BookMarked size={12} />
+                                                                <Text>{course.modules?.length || 0} modules</Text>
+                                                            </HStack>
+                                                        </HStack>
+                                                    </VStack>
 
-                                            <Card.Body flex="1" display="flex" flexDirection="column" gap={3}>
-                                                {/* Logic to show simplified content if Generating */}
+                                                    {isGenerating ? (
+                                                        <Badge colorPalette="teal" fontSize="xs" px={2} py={1}>
+                                                            <HStack gap={1}>
+                                                                <Loader2 size={12} className="animate-spin" />
+                                                                <Text>Building</Text>
+                                                            </HStack>
+                                                        </Badge>
+                                                    ) : progress === 100 ? (
+                                                        <Badge colorPalette="green" fontSize="xs" px={2} py={1}>
+                                                            <HStack gap={1}>
+                                                                <CheckCircle size={12} />
+                                                                <Text>Done</Text>
+                                                            </HStack>
+                                                        </Badge>
+                                                    ) : progress > 0 ? (
+                                                        <Badge colorPalette="blue" fontSize="xs" px={2} py={1}>
+                                                            <HStack gap={1}>
+                                                                <TrendingUp size={12} />
+                                                                <Text>{progress}%</Text>
+                                                            </HStack>
+                                                        </Badge>
+                                                    ) : null}
+                                                </HStack>
+
+                                                {/* Description */}
                                                 {isGenerating ? (
-                                                    <VStack align="start" justify="center" flex="1" gap={4}>
-                                                        <TagHandler status={course.status} />
-                                                        <Text fontSize="sm" color="gray.500" fontStyle="italic">
-                                                            AI is currently building your modules and curriculum.
-                                                        </Text>
-                                                    </VStack>
-                                                ) : (
-                                                    <VStack align="start" gap={1} flex="1">
-                                                        <Text fontSize="xs" color="gray.500">
-                                                            Created: {formatDate(course.created_at)}
-                                                        </Text>
-                                                        <Text fontSize="sm" fontWeight="medium" color="gray.600">
-                                                            Modules: {course.modules?.length || 0}
-                                                        </Text>
-                                                        <TagHandler status={course.status} />
-                                                        {course.description && (
-                                                            <Text fontSize="sm" color="gray.600" lineClamp={4} mt={1}>
-                                                                {course.description}
-                                                            </Text>
-                                                        )}
-                                                    </VStack>
-                                                )}
+                                                    <Text fontSize="xs" color="gray.500" fontStyle="italic">
+                                                        AI is building your modules and curriculum...
+                                                    </Text>
+                                                ) : course.description ? (
+                                                    <Text
+                                                        fontSize="xs"
+                                                        color="gray.600"
+                                                        _dark={{ color: "gray.400" }}
+                                                        lineClamp={3}
+                                                    >
+                                                        {course.description}
+                                                    </Text>
+                                                ) : null}
 
-                                                <Box w="100%" mt="auto" pt={4}>
+                                                {/* Progress Bar */}
+                                                <Box>
                                                     <Progress.Root
-                                                        value={isGenerating ? null : getProgress(course)}
+                                                        value={isGenerating ? null : progress}
                                                         size="sm"
-                                                        colorScheme="teal"
-                                                        borderRadius="md"
+                                                        colorPalette="teal"
+                                                        borderRadius="full"
                                                         striped={isGenerating}
                                                         animated={isGenerating}
                                                     >
                                                         <Progress.Track>
-                                                            {(getProgress(course) > 0 || isGenerating) && (
-                                                                <Progress.Range bg="teal.500" />
-                                                            )}
+                                                            <Progress.Range />
                                                         </Progress.Track>
                                                     </Progress.Root>
-                                                    <HStack justify="space-between" mt={1}>
+
+                                                    <HStack justify="space-between" mt={2}>
                                                         <Text fontSize="xs" color="gray.500">
-                                                            {isGenerating ? "Processing..." : `${getProgress(course)}% completed`}
+                                                            {isGenerating ? "Processing..." : `${progress}% completed`}
                                                         </Text>
 
-                                                        {/* Hide Delete Button if Generating */}
                                                         {!isGenerating && (
                                                             <Dialog.Root>
                                                                 <Dialog.Trigger asChild>
                                                                     <Button
                                                                         onClick={(e) => e.stopPropagation()}
                                                                         variant="ghost"
-                                                                        size="sm"
-                                                                        h="24px"
+                                                                        size="xs"
+                                                                        colorPalette="red"
                                                                     >
-                                                                        <FaTrash />
+                                                                        <Trash2 size={14} />
                                                                     </Button>
                                                                 </Dialog.Trigger>
                                                                 <Portal>
@@ -404,25 +553,40 @@ const UserCourses: React.FC = () => {
                                                                                 <Dialog.Title>Delete Course</Dialog.Title>
                                                                             </Dialog.Header>
                                                                             <Dialog.Body>
-                                                                                <Text>Do you want to delete this course?</Text>
+                                                                                <VStack align="start" gap={3}>
+                                                                                    <HStack gap={2}>
+                                                                                        <AlertCircle size={20} color="#ef4444" />
+                                                                                        <Text fontWeight="semibold">
+                                                                                            Are you sure?
+                                                                                        </Text>
+                                                                                    </HStack>
+                                                                                    <Text fontSize="sm" color="gray.600">
+                                                                                        This will permanently delete "{course.title}" and all its modules. This action cannot be undone.
+                                                                                    </Text>
+                                                                                </VStack>
                                                                             </Dialog.Body>
                                                                             <Dialog.Footer>
                                                                                 <Dialog.ActionTrigger asChild>
-                                                                                    <Button onClick={(e) => e.stopPropagation()} variant="outline">Cancel</Button>
+                                                                                    <Button
+                                                                                        onClick={(e) => e.stopPropagation()}
+                                                                                        variant="outline"
+                                                                                        size="sm"
+                                                                                    >
+                                                                                        Cancel
+                                                                                    </Button>
                                                                                 </Dialog.ActionTrigger>
                                                                                 <Button
                                                                                     colorPalette="red"
+                                                                                    size="sm"
                                                                                     onClick={(e) => {
                                                                                         e.stopPropagation()
                                                                                         handleDeleteCourse(course.id);
                                                                                     }}
                                                                                 >
-                                                                                    Delete
+                                                                                    Delete Course
                                                                                 </Button>
                                                                             </Dialog.Footer>
-                                                                            <Dialog.CloseTrigger asChild>
-                                                                                <CloseButton size="sm" />
-                                                                            </Dialog.CloseTrigger>
+                                                                            <Dialog.CloseTrigger />
                                                                         </Dialog.Content>
                                                                     </Dialog.Positioner>
                                                                 </Portal>
@@ -430,14 +594,14 @@ const UserCourses: React.FC = () => {
                                                         )}
                                                     </HStack>
                                                 </Box>
-                                            </Card.Body>
-                                        </Card.Root>
-                                    </Box>
+                                            </VStack>
+                                        </Card.Body>
+                                    </Card.Root>
                                 );
                             })}
                         </Box>
                     )}
-                </Box >
+                </Box>
             )}
         </>
     );

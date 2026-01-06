@@ -29,9 +29,6 @@ export default function CourseTimeline() {
     const [courseState, setCourseState] = useState<Course>({} as Course);
     const [loading, setLoading] = useState(true);
 
-    const bgColor = useColorModeValue("white", "gray.800");
-    const borderColor = useColorModeValue("gray.200", "gray.700");
-
     const completedPercentageModules = courseState.modules
         ? Math.round(
             (courseState.modules.filter((m) => m.status === "COMPLETED").length /
@@ -161,8 +158,6 @@ export default function CourseTimeline() {
                             <Box
                                 p={2}
                                 borderRadius="lg"
-                            // bg="teal.100"
-                            // _dark={{ bg: "teal.900/30" }}
                             >
                                 <GraduationCap size={50} className="w-6 h-6 text-teal-600" />
                             </Box>

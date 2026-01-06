@@ -5,7 +5,8 @@ import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { useUser } from '../contexts/UserContext';
 import { useColorMode } from "../components/ui/color-mode";
-import CancellationConfirmation from '../components/CancellationForm';
+import CancellationConfirmation from '../components/CancellationConfirmation';
+import { Check, ArrowLeft, CreditCard, Shield, Zap, Crown, Calendar, Lock } from 'lucide-react';
 
 export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 export const VITE_STRIPE_PUBLIC_KEY = import.meta.env.VITE_STRIPE_PUBLIC_KEY;
@@ -51,7 +52,7 @@ function ProductsStep({ onSelectPlan }: { onSelectPlan: (plan: typeof products[0
 
     const handleCancelSubscription = async () => {
         if (!user) return alert("You must be logged in");
-        setShowCancelDialog(false); // Close dialog
+        setShowCancelDialog(false);
         try {
             setLoading(true);
             const res = await fetch(`${BACKEND_URL}/payment/cancel-subscription`, {
@@ -63,7 +64,6 @@ function ProductsStep({ onSelectPlan }: { onSelectPlan: (plan: typeof products[0
             });
             if (!res.ok) throw new Error('Failed to cancel subscription');
             const data = await res.json();
-            console.log('Cancellation response:', data);
             setCancellationResponse(data);
         } catch (err) {
             console.error(err);
@@ -76,7 +76,7 @@ function ProductsStep({ onSelectPlan }: { onSelectPlan: (plan: typeof products[0
     // Show loading spinner
     if (loading) {
         return (
-            <VStack minH="400px" justify="center" align="center" gap={4}>
+            <VStack minH="300px" justify="center" align="center" gap={4}>
                 <Spinner size="xl" color="teal.500" />
                 <Text color="gray.600" _dark={{ color: 'gray.400' }}>
                     Processing your request...
@@ -88,7 +88,7 @@ function ProductsStep({ onSelectPlan }: { onSelectPlan: (plan: typeof products[0
     // Show cancellation confirmation
     if (cancellationResponse) {
         return (
-            <VStack gap={6} align="stretch">
+            <VStack gap={6} align="stretch" maxW="2xl" mx="auto">
                 <CancellationConfirmation cancellationResponse={cancellationResponse} />
                 <Box textAlign="center">
                     <Button
@@ -105,40 +105,39 @@ function ProductsStep({ onSelectPlan }: { onSelectPlan: (plan: typeof products[0
 
     // Show products
     return (
-        <VStack gap={8} align="stretch">
+        <VStack gap={6} align="stretch" maxW="4xl" mx="auto">
             <Box textAlign="center">
-                <Heading size="2xl" mb={2} bgGradient="to-r" gradientFrom="teal.400" gradientTo="teal.600" bgClip="text">
-                    Upgrade to Premium
+                <Heading size="xl" mb={2}>
+                    Choose Your Plan
                 </Heading>
-                <Text fontSize="lg">
+                <Text fontSize="md" color="gray.600" _dark={{ color: 'gray.400' }}>
                     Unlock all courses and roadmaps
                 </Text>
             </Box>
 
-            <HStack gap={6} align="stretch" flexDir={{ base: 'column', md: 'row' }}>
+            <HStack gap={4} align="stretch" flexDir={{ base: 'column', md: 'row' }}>
                 {products.map((product) => (
                     <Card.Root
                         key={product.id}
                         flex={1}
                         borderWidth={product.isPremium ? '2px' : '1px'}
-                        borderColor={product.isPremium ? 'teal.500' : 'teal.200'}
+                        borderColor={product.isPremium ? 'teal.500' : 'gray.200'}
                         position="relative"
                         bg={product.isPremium ? 'rgba(0, 128, 128, 0.02)' : 'transparent'}
                         _hover={{
-                            transform: product.isPremium ? 'translateY(-4px)' : 'none',
-                            shadow: product.isPremium ? 'xl' : 'none',
-                            borderColor: product.isPremium ? 'teal.600' : 'teal.200',
+                            transform: product.isPremium ? 'translateY(-2px)' : 'none',
+                            shadow: product.isPremium ? 'lg' : 'none',
                         }}
-                        transition="all 0.3s ease"
+                        transition="all 0.2s ease"
                     >
                         {product.badge && (
                             <Badge
                                 position="absolute"
-                                top={-3}
+                                top={-2}
                                 right={4}
                                 colorScheme="teal"
-                                fontSize="sm"
-                                px={4}
+                                fontSize="xs"
+                                px={3}
                                 py={1}
                                 borderRadius="full"
                             >
@@ -146,72 +145,69 @@ function ProductsStep({ onSelectPlan }: { onSelectPlan: (plan: typeof products[0
                             </Badge>
                         )}
 
-                        <Card.Body p={6}>
-                            <VStack align="stretch" gap={2}>
+                        <Card.Body p={5}>
+                            <VStack align="stretch" gap={3}>
                                 <Box>
-                                    <Text fontSize="md" fontWeight="semibold" mb={2}>
-                                        {product.name}
-                                    </Text>
+                                    <HStack mb={2}>
+                                        {product.isPremium && <Crown size={18} color="#14b8a6" />}
+                                        <Text fontSize="sm" fontWeight="semibold">
+                                            {product.name}
+                                        </Text>
+                                    </HStack>
                                     <HStack align="baseline">
-                                        <Heading size="3xl">
+                                        <Heading size="xl">
                                             {product.price}
                                         </Heading>
-                                        <Text color="teal.600" fontSize="md">/month</Text>
+                                        {product.isPremium && (
+                                            <Text color="gray.600" fontSize="sm">/month</Text>
+                                        )}
                                     </HStack>
                                 </Box>
 
                                 <Separator />
 
-                                <VStack align="stretch" gap={1}>
+                                <VStack align="stretch" gap={2}>
                                     {product.features.map((feature, idx) => (
-                                        <HStack key={idx} align="start">
-                                            <Box color="teal.500" fontSize="lg" mt={0.5}>✓</Box>
-                                            <Text fontSize="sm">{feature}</Text>
+                                        <HStack key={idx} align="start" gap={2}>
+                                            <Check size={16} color="#14b8a6" style={{ marginTop: '2px', flexShrink: 0 }} />
+                                            <Text fontSize="xs">{feature}</Text>
                                         </HStack>
                                     ))}
                                 </VStack>
 
-                                <HStack>
+                                <VStack gap={2} pt={2}>
                                     <Button
-                                        colorScheme={product.isPremium ? 'teal' : 'teal'}
+                                        colorScheme="teal"
                                         variant={product.isPremium ? 'solid' : 'outline'}
-                                        size="md"
+                                        size="sm"
+                                        w="full"
                                         onClick={() => onSelectPlan(product)}
                                         disabled={!product.isPremium}
-                                        _hover={{
-                                            transform: product.isPremium ? 'scale(1.02)' : 'none',
-                                        }}
-                                        transition="all 0.2s"
                                     >
                                         {getButtonLabel(product)}
                                     </Button>
-                                    {showCancelButton && (
+                                    {showCancelButton && product.isPremium && (
                                         <Button
                                             colorScheme="red"
                                             variant="ghost"
-                                            size="md"
+                                            size="sm"
+                                            w="full"
                                             onClick={() => setShowCancelDialog(true)}
-                                            _hover={{
-                                                bg: 'red.50',
-                                                _dark: { bg: 'red.900/20' }
-                                            }}
-                                            transition="all 0.2s"
                                         >
-                                            Cancel
+                                            Cancel Subscription
                                         </Button>
                                     )}
-                                </HStack>
+                                </VStack>
                             </VStack>
                         </Card.Body>
                     </Card.Root>
                 ))}
             </HStack>
 
-            <Box textAlign="center" pt={2}>
-                <Text fontSize="sm">
-                    🔒 Secure payment powered by Stripe
-                </Text>
-            </Box>
+            <HStack justify="center" gap={1} fontSize="xs" color="gray.500">
+                <Lock size={12} />
+                <Text>Secure payment powered by Stripe</Text>
+            </HStack>
 
             {/* Cancel Confirmation Dialog */}
             <Dialog.Root open={showCancelDialog} onOpenChange={(e) => setShowCancelDialog(e.open)}>
@@ -233,7 +229,6 @@ function ProductsStep({ onSelectPlan }: { onSelectPlan: (plan: typeof products[0
                                     borderRadius="md"
                                     borderWidth="1px"
                                     borderColor="teal.200"
-
                                 >
                                     <Text fontSize="sm" color="teal.900" _dark={{ color: 'teal.100' }}>
                                         <Text as="span" fontWeight="semibold">Note:</Text> You'll retain access to premium features until the end of your current billing period.
@@ -292,7 +287,7 @@ function CheckoutForm({ amount, onSuccess }: { amount: number; onSuccess: () => 
     };
 
     return (
-        <VStack gap={6} align="stretch">
+        <VStack gap={4} align="stretch">
             <Box>
                 <PaymentElement
                     options={{
@@ -305,8 +300,7 @@ function CheckoutForm({ amount, onSuccess }: { amount: number; onSuccess: () => 
             </Box>
 
             {error && (
-                <Alert.Root status="error" borderRadius="lg">
-                    {/* s<Alert.Icon /> */}
+                <Alert.Root status="error" borderRadius="md" fontSize="sm">
                     <Alert.Title>{error}</Alert.Title>
                 </Alert.Root>
             )}
@@ -314,15 +308,11 @@ function CheckoutForm({ amount, onSuccess }: { amount: number; onSuccess: () => 
             <Button
                 onClick={handleSubmit}
                 colorScheme="teal"
-                size="lg"
+                size="md"
                 disabled={!stripe || processing}
-                h={14}
-                fontSize="lg"
-                _hover={{
-                    transform: 'scale(1.02)',
-                }}
-                transition="all 0.2s"
+
             >
+                <CreditCard size={18} />
                 {processing ? (
                     <HStack>
                         <Spinner size="sm" />
@@ -333,9 +323,10 @@ function CheckoutForm({ amount, onSuccess }: { amount: number; onSuccess: () => 
                 )}
             </Button>
 
-            <Text textAlign="center" fontSize="sm" >
-                Your payment information is encrypted and secure
-            </Text>
+            <HStack justify="center" gap={1} fontSize="xs" color="gray.500">
+                <Shield size={12} />
+                <Text>Your payment information is encrypted and secure</Text>
+            </HStack>
         </VStack>
     );
 }
@@ -442,58 +433,57 @@ function PaymentStep({ selectedPlan, onBack, onSuccess }: {
     } : undefined;
 
     return (
-        <VStack gap={8} align="stretch">
-            <HStack justify="space-between" align="center">
-                <Button
-                    variant="surface"
-                    onClick={onBack}
-                    alignContent={"center"}
-                    alignItems={"center"}
-                    size="md"
-                >
-                    Back to Plans
-                </Button>
-            </HStack>
+        <VStack gap={6} align="stretch" maxW="2xl" mx="auto">
+            <Button
+                variant="ghost"
+                onClick={onBack}
+                size="sm"
+                alignSelf="flex-start"
+            >
+                <ArrowLeft size={16} />
+                Back to Plans
+            </Button>
 
             <Box textAlign="center">
-                <Heading size="2xl" mb={2} bgGradient="to-r" gradientFrom="teal.400" gradientTo="teal.600" bgClip="text">
+                <Heading size="lg" mb={1}>
                     Complete Your Purchase
                 </Heading>
-                <Text fontSize="lg">Subscribe to {selectedPlan.name}</Text>
+                <Text fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }}>
+                    Subscribe to {selectedPlan.name}
+                </Text>
             </Box>
 
-            <Card.Root bg="transparent" borderWidth="1px" borderColor="gray.200" shadow="lg">
-                <Card.Body p={8}>
+            <Card.Root borderWidth="1px" borderColor="gray.200">
+                <Card.Body p={6}>
                     {loading ? (
-                        <VStack py={16} gap={4}>
-                            <Spinner size="xl" color="teal.500" />
-                            <Text >Loading payment form...</Text>
+                        <VStack py={8} gap={3}>
+                            <Spinner size="lg" color="teal.500" />
+                            <Text fontSize="sm">Loading payment form...</Text>
                         </VStack>
                     ) : error ? (
                         <VStack gap={4}>
-                            <Alert.Root status="error" borderRadius="lg">
-                                {/* <Alert.Icon /> */}
+                            <Alert.Root status="error" borderRadius="md">
                                 <Alert.Title>{error}</Alert.Title>
                             </Alert.Root>
-                            <Button onClick={onBack} colorScheme="teal" variant="outline">
+                            <Button onClick={onBack} colorScheme="teal" variant="outline" size="sm">
                                 Go Back
                             </Button>
                         </VStack>
                     ) : (
-                        <VStack gap={8} align="stretch">
+                        <VStack gap={5} align="stretch">
                             <Box
                                 bg="rgba(20, 184, 166, 0.05)"
-                                p={6}
-                                borderRadius="xl"
+                                p={4}
+                                borderRadius="lg"
                                 borderWidth="1px"
                                 borderColor="teal.200"
                             >
                                 <HStack justify="space-between" align="center">
-                                    <VStack align="start" gap={1}>
-                                        <Text fontWeight="medium" >Total due today</Text>
-                                        <Text fontSize="sm" >Billed monthly</Text>
+                                    <VStack align="start" gap={0}>
+                                        <Text fontWeight="medium" fontSize="sm">Total due today</Text>
+                                        <Text fontSize="xs" color="gray.600">Billed monthly</Text>
                                     </VStack>
-                                    <Heading size="2xl" color="teal.600">{selectedPlan.price}</Heading>
+                                    <Heading size="xl" color="teal.600">{selectedPlan.price}</Heading>
                                 </HStack>
                             </Box>
 
@@ -517,64 +507,65 @@ function PaymentStep({ selectedPlan, onBack, onSuccess }: {
 function SuccessStep({ selectedPlan }: { selectedPlan: typeof products[0] }) {
     const navigate = useNavigate();
 
-    // Centered, compact confirmation layout
     return (
         <Box display="flex" justifyContent="center">
-            <Box maxW="640px" w="100%" px={4}>
-                <VStack gap={6} align="stretch">
+            <Box maxW="480px" w="100%" px={4}>
+                <VStack gap={5} align="stretch">
                     <Box textAlign="center">
                         <Box
-                            w={16}
-                            h={16}
+                            w={14}
+                            h={14}
                             bg="teal.500"
                             borderRadius="full"
                             display="flex"
                             alignItems="center"
                             justifyContent="center"
                             mx="auto"
-                            mb={4}
-                            shadow="md"
+                            mb={3}
                         >
-                            <Text fontSize="3xl" color="white">✓</Text>
+                            <Check size={28} color="white" strokeWidth={3} />
                         </Box>
-                        <Heading size="lg" mb={1} bgGradient="to-r" gradientFrom="teal.400" gradientTo="teal.600" bgClip="text">
+                        <Heading size="lg" mb={1}>
                             Welcome to Premium!
                         </Heading>
-                        <Text fontSize="md" color="gray.600">
+                        <Text fontSize="sm" color="gray.600">
                             Your subscription is now active
                         </Text>
                     </Box>
 
-                    <Card.Root bg="transparent" borderWidth="1px" borderColor="gray.200" shadow="sm" borderRadius="lg" overflow="hidden">
+                    <Card.Root borderWidth="1px" borderColor="gray.200">
                         <Card.Body p={4}>
-                            <VStack gap={3} align="stretch">
-                                <HStack justify="space-between" p={2} borderRadius="md">
-                                    <Text fontWeight="medium" fontSize="sm">Plan</Text>
-                                    <Text fontSize="md" fontWeight="semibold" color="teal.600">{selectedPlan.name}</Text>
+                            <VStack gap={2} align="stretch">
+                                <HStack justify="space-between" fontSize="sm">
+                                    <Text color="gray.600">Plan</Text>
+                                    <Text fontWeight="semibold" color="teal.600">{selectedPlan.name}</Text>
                                 </HStack>
 
                                 <Separator />
 
-                                <HStack justify="space-between" p={2} borderRadius="md">
-                                    <Text fontWeight="medium" fontSize="sm">Amount</Text>
-                                    <Text fontSize="md" fontWeight="semibold">{selectedPlan.price}/month</Text>
+                                <HStack justify="space-between" fontSize="sm">
+                                    <Text color="gray.600">Amount</Text>
+                                    <Text fontWeight="semibold">{selectedPlan.price}/month</Text>
                                 </HStack>
 
                                 <Separator />
 
-                                <HStack justify="space-between" p={2} borderRadius="md">
-                                    <Text fontWeight="medium" fontSize="sm">Next billing date</Text>
-                                    <Text fontSize="md" fontWeight="semibold">
+                                <HStack justify="space-between" fontSize="sm">
+                                    <HStack gap={1}>
+                                        <Calendar size={14} />
+                                        <Text color="gray.600">Next billing</Text>
+                                    </HStack>
+                                    <Text fontWeight="semibold">
                                         {new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', {
-                                            month: 'long',
+                                            month: 'short',
                                             day: 'numeric',
                                             year: 'numeric'
                                         })}
                                     </Text>
                                 </HStack>
 
-                                <Alert.Root status="info" mt={2} borderRadius="md" bg="rgba(20, 184, 166, 0.04)" borderColor="teal.100">
-                                    <Alert.Title fontSize="sm">
+                                <Alert.Root status="info" mt={2} borderRadius="md" bg="rgba(20, 184, 166, 0.04)">
+                                    <Alert.Title fontSize="xs">
                                         A confirmation email has been sent to your email address.
                                     </Alert.Title>
                                 </Alert.Root>
@@ -582,30 +573,31 @@ function SuccessStep({ selectedPlan }: { selectedPlan: typeof products[0] }) {
                         </Card.Body>
                     </Card.Root>
 
-                    <HStack gap={3}>
+                    <VStack gap={2}>
                         <Button
                             colorScheme="teal"
-                            size="md"
-                            flex={1}
+                            size="sm"
+                            w="full"
                             onClick={() => navigate('/my-courses')}
+
                         >
+                            <Zap size={16} />
                             Browse Courses
                         </Button>
                         <Button
-                            // variant="outline"
+                            variant="outline"
                             colorScheme="teal"
-                            size="md"
-                            flex={1}
+                            size="sm"
+                            w="full"
                             onClick={() => navigate('/my-roadmaps')}
                         >
                             Explore Roadmaps
                         </Button>
-                    </HStack>
+                    </VStack>
                 </VStack>
             </Box>
         </Box>
     );
-
 }
 
 // Main Payment Stepper Component
@@ -619,13 +611,10 @@ export default function PaymentStepper() {
     React.useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         if (params.get('success') === 'true') {
-            // Set the selected plan for display (premium plan)
             setSelectedPlan(products.find(p => p.isPremium) || products[1]);
             setStep(3);
-            // Refresh user data to update membership status
             const updateUser = async () => {
                 if (refreshUser) {
-                    console.log('🔄 Refreshing user after payment success...');
                     await refreshUser();
                 }
             };
@@ -640,17 +629,10 @@ export default function PaymentStepper() {
 
     const handlePaymentSuccess = async () => {
         setStep(3);
-        // Refresh user data immediately after successful payment
         if (refreshUser) {
-            console.log('🔄 Refreshing user after payment confirmation...');
-            // Wait a moment for webhook to process
             await new Promise(resolve => setTimeout(resolve, 2000));
             await refreshUser();
-
-            // If still not premium, try again after another delay
-            // This handles cases where webhook takes longer
             setTimeout(async () => {
-                console.log('🔄 Second refresh attempt...');
                 await refreshUser();
             }, 3000);
         }
@@ -661,44 +643,43 @@ export default function PaymentStepper() {
     };
 
     return (
-        <Container maxW="container.lg" py={16}>
-            {/* Progress Indicator */}
-            <HStack justify="center" mb={16} gap={2}>
+        <Container maxW="container.xl" py={8}>
+            {/* Compact Progress Indicator */}
+            <HStack justify="center" mb={8} gap={1}>
                 {[1, 2, 3].map((s) => (
                     <React.Fragment key={s}>
-                        <VStack gap={2}>
+                        <VStack gap={1}>
                             <Box
-                                w={12}
-                                h={12}
+                                w={8}
+                                h={8}
                                 borderRadius="full"
                                 bg={step >= s ? 'teal.500' : 'gray.200'}
                                 color={step >= s ? 'white' : 'gray.500'}
                                 display="flex"
                                 alignItems="center"
                                 justifyContent="center"
-                                fontWeight="bold"
-                                fontSize="lg"
-                                transition="all 0.3s"
-                                shadow={step === s ? 'lg' : 'none'}
+                                fontWeight="semibold"
+                                fontSize="sm"
+                                transition="all 0.2s"
                             >
-                                {step > s ? '✓' : s}
+                                {step > s ? <Check size={16} /> : s}
                             </Box>
                             <Text
-                                fontSize="sm"
+                                fontSize="xs"
                                 fontWeight={step >= s ? 'semibold' : 'normal'}
                                 color={step >= s ? 'teal.600' : 'gray.500'}
-                                display={{ base: 'none', md: 'block' }}
+                                display={{ base: 'none', sm: 'block' }}
                             >
-                                {s === 1 ? 'Select Plan' : s === 2 ? 'Payment' : 'Confirmation'}
+                                {s === 1 ? 'Plan' : s === 2 ? 'Payment' : 'Done'}
                             </Text>
                         </VStack>
                         {s < 3 && (
                             <Box
-                                w={16}
+                                w={12}
                                 h={0.5}
                                 bg={step > s ? 'teal.500' : 'gray.200'}
-                                transition="all 0.3s"
-                                mb={8}
+                                transition="all 0.2s"
+                                mb={6}
                             />
                         )}
                     </React.Fragment>
