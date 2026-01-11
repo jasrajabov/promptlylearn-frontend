@@ -12,7 +12,7 @@ import {
 import React from "react";
 
 export const toaster = createToaster({
-  placement: "top-end",
+  placement: "top",
   pauseOnPageIdle: true,
 })
 

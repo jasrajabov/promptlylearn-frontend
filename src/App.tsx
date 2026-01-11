@@ -14,6 +14,7 @@ import PaymentStepper from "./pages/PaymentsPage";
 import AboutPage from "./pages/About";
 import RequireAuth from "./pages/RequireAuth";
 import UserInfoPage from "./pages/UserInfo";
+import AdminDashboard from "./pages/AdminPage";
 
 
 const App: React.FC = () => {
@@ -34,6 +35,7 @@ const App: React.FC = () => {
               <Route path="/roadmap/:id/" element={<TrackRoadmap />} />
               <Route path="/my-courses" element={<UserCourses />} />
               <Route path="/my-roadmaps" element={<UserRoadmaps />} />
+              <Route path="/admin" element={<AdminDashboard />} />
               {/* Premium routes */}
               <Route element={<PremiumRoute />}>
 

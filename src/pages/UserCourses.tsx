@@ -35,7 +35,8 @@ import {
     Loader2,
     AlertCircle,
     CheckCircle,
-    TrendingUp
+    TrendingUp,
+    SearchX
 } from "lucide-react";
 
 export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
@@ -49,7 +50,7 @@ const UserCourses: React.FC = () => {
     const [sortKey, setSortKey] = useState<"created" | "modules" | "progress">("created");
 
     // UI Colors
-    const cardBg = useColorModeValue("gray.50", "gray.900");
+    const cardBg = useColorModeValue("gray.50", "gray.950");
     const emptyBg = useColorModeValue("gray.50", "gray.900");
     const cardBorderColor = useColorModeValue("gray.200", "gray.700");
 
@@ -131,6 +132,7 @@ const UserCourses: React.FC = () => {
                 });
                 if (!res.ok) return;
                 const data = await res.json();
+                console.log("Polled task", taskId, data);
 
                 if (data.status === "SUCCESS" || data.status === "COMPLETED") {
                     await refreshCourses();
@@ -249,6 +251,10 @@ const UserCourses: React.FC = () => {
     }).length;
     const completedCourses = courses.filter(c => getProgress(c) === 100).length;
 
+    // Check if we're showing empty state due to filters vs no courses at all
+    const hasCoursesButFiltered = courses.length > 0 && filteredCourses.length === 0;
+    const hasNoCourses = courses.length === 0;
+
     return (
         <>
             {loading ? (
@@ -291,7 +297,7 @@ const UserCourses: React.FC = () => {
                                     <HStack gap={2}>
                                         <BookMarked size={16} color="#14b8a6" />
                                         <Box>
-                                            <Text fontSize="xs" color="gray.600">Total Courses</Text>
+                                            <Text fontSize="xs">Total Courses</Text>
                                             <Text fontSize="lg" fontWeight="bold">{totalCourses}</Text>
                                         </Box>
                                     </HStack>
@@ -308,7 +314,7 @@ const UserCourses: React.FC = () => {
                                     <HStack gap={2}>
                                         <TrendingUp size={16} color="#14b8a6" />
                                         <Box>
-                                            <Text fontSize="xs" color="gray.600">In Progress</Text>
+                                            <Text fontSize="xs" >In Progress</Text>
                                             <Text fontSize="lg" fontWeight="bold">{inProgressCourses}</Text>
                                         </Box>
                                     </HStack>
@@ -325,7 +331,7 @@ const UserCourses: React.FC = () => {
                                     <HStack gap={2}>
                                         <CheckCircle size={16} color="#14b8a6" />
                                         <Box>
-                                            <Text fontSize="xs" color="gray.600">Completed</Text>
+                                            <Text fontSize="xs" >Completed</Text>
                                             <Text fontSize="lg" fontWeight="bold">{completedCourses}</Text>
                                         </Box>
                                     </HStack>
@@ -334,8 +340,8 @@ const UserCourses: React.FC = () => {
                         )}
                     </VStack>
 
-                    {/* Controls */}
-                    {filteredCourses.length > 0 && (
+                    {/* Controls - Show if there are any courses at all */}
+                    {totalCourses > 0 && (
                         <Box mb={6}>
                             <FilterControls
                                 searchTerm={searchTerm}
@@ -345,6 +351,8 @@ const UserCourses: React.FC = () => {
                                 sortAsc={sortAsc}
                                 setSortAsc={setSortAsc}
                                 sortKeysCollection={sortKeysCollection}
+                                totalResults={totalCourses}
+                                filteredResults={filteredCourses.length}
                             />
                         </Box>
                     )}
@@ -369,7 +377,8 @@ const UserCourses: React.FC = () => {
                                 </Card.Root>
                             ))}
                         </Box>
-                    ) : filteredCourses.length === 0 ? (
+                    ) : hasNoCourses ? (
+                        // No courses at all
                         <VStack
                             gap={4}
                             py={16}
@@ -408,7 +417,47 @@ const UserCourses: React.FC = () => {
                                 Create Course
                             </Button>
                         </VStack>
+                    ) : hasCoursesButFiltered ? (
+                        // Has courses but filtered out
+                        <VStack
+                            gap={4}
+                            py={16}
+                            bg={emptyBg}
+                            borderRadius="xl"
+                            borderWidth="2px"
+                            borderStyle="dashed"
+                            borderColor={cardBorderColor}
+                        >
+                            <Box
+                                w={16}
+                                h={16}
+                                bg="blue.50"
+                                _dark={{ bg: "blue.900/20" }}
+                                borderRadius="full"
+                                display="flex"
+                                alignItems="center"
+                                justifyContent="center"
+                            >
+                                <SearchX size={32} color="#3b82f6" />
+                            </Box>
+                            <VStack gap={1}>
+                                <Text fontSize="lg" fontWeight="semibold">
+                                    No courses found
+                                </Text>
+                                <Text fontSize="sm" color="gray.600" _dark={{ color: "gray.400" }}>
+                                    Try adjusting your search term "{searchTerm}"
+                                </Text>
+                            </VStack>
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setSearchTerm("")}
+                            >
+                                Clear Search
+                            </Button>
+                        </VStack>
                     ) : (
+                        // Show courses
                         <Box
                             display="grid"
                             gridTemplateColumns="repeat(auto-fill, minmax(300px, 1fr))"
@@ -499,7 +548,7 @@ const UserCourses: React.FC = () => {
 
                                                 {/* Description */}
                                                 {isGenerating ? (
-                                                    <Text fontSize="xs" color="gray.500" fontStyle="italic">
+                                                    <Text fontSize="xs" color={useColorModeValue("purple.800", "purple.400")} fontStyle="italic">
                                                         AI is building your modules and curriculum...
                                                     </Text>
                                                 ) : course.description ? (
@@ -532,66 +581,63 @@ const UserCourses: React.FC = () => {
                                                         <Text fontSize="xs" color="gray.500">
                                                             {isGenerating ? "Processing..." : `${progress}% completed`}
                                                         </Text>
-
-                                                        {!isGenerating && (
-                                                            <Dialog.Root>
-                                                                <Dialog.Trigger asChild>
-                                                                    <Button
-                                                                        onClick={(e) => e.stopPropagation()}
-                                                                        variant="ghost"
-                                                                        size="xs"
-                                                                        colorPalette="red"
-                                                                    >
-                                                                        <Trash2 size={14} />
-                                                                    </Button>
-                                                                </Dialog.Trigger>
-                                                                <Portal>
-                                                                    <Dialog.Backdrop />
-                                                                    <Dialog.Positioner>
-                                                                        <Dialog.Content>
-                                                                            <Dialog.Header>
-                                                                                <Dialog.Title>Delete Course</Dialog.Title>
-                                                                            </Dialog.Header>
-                                                                            <Dialog.Body>
-                                                                                <VStack align="start" gap={3}>
-                                                                                    <HStack gap={2}>
-                                                                                        <AlertCircle size={20} color="#ef4444" />
-                                                                                        <Text fontWeight="semibold">
-                                                                                            Are you sure?
-                                                                                        </Text>
-                                                                                    </HStack>
-                                                                                    <Text fontSize="sm" color="gray.600">
-                                                                                        This will permanently delete "{course.title}" and all its modules. This action cannot be undone.
+                                                        <Dialog.Root>
+                                                            <Dialog.Trigger asChild>
+                                                                <Button
+                                                                    onClick={(e) => e.stopPropagation()}
+                                                                    variant="ghost"
+                                                                    size="xs"
+                                                                    colorPalette="red"
+                                                                >
+                                                                    <Trash2 size={14} />
+                                                                </Button>
+                                                            </Dialog.Trigger>
+                                                            <Portal>
+                                                                <Dialog.Backdrop />
+                                                                <Dialog.Positioner>
+                                                                    <Dialog.Content>
+                                                                        <Dialog.Header>
+                                                                            <Dialog.Title>Delete Course</Dialog.Title>
+                                                                        </Dialog.Header>
+                                                                        <Dialog.Body>
+                                                                            <VStack align="start" gap={3}>
+                                                                                <HStack gap={2}>
+                                                                                    <AlertCircle size={20} color="#ef4444" />
+                                                                                    <Text fontWeight="semibold">
+                                                                                        Are you sure?
                                                                                     </Text>
-                                                                                </VStack>
-                                                                            </Dialog.Body>
-                                                                            <Dialog.Footer>
-                                                                                <Dialog.ActionTrigger asChild>
-                                                                                    <Button
-                                                                                        onClick={(e) => e.stopPropagation()}
-                                                                                        variant="outline"
-                                                                                        size="sm"
-                                                                                    >
-                                                                                        Cancel
-                                                                                    </Button>
-                                                                                </Dialog.ActionTrigger>
+                                                                                </HStack>
+                                                                                <Text fontSize="sm" color="gray.600">
+                                                                                    This will permanently delete "{course.title}" and all its modules. This action cannot be undone.
+                                                                                </Text>
+                                                                            </VStack>
+                                                                        </Dialog.Body>
+                                                                        <Dialog.Footer>
+                                                                            <Dialog.ActionTrigger asChild>
                                                                                 <Button
-                                                                                    colorPalette="red"
+                                                                                    onClick={(e) => e.stopPropagation()}
+                                                                                    variant="outline"
                                                                                     size="sm"
-                                                                                    onClick={(e) => {
-                                                                                        e.stopPropagation()
-                                                                                        handleDeleteCourse(course.id);
-                                                                                    }}
                                                                                 >
-                                                                                    Delete Course
+                                                                                    Cancel
                                                                                 </Button>
-                                                                            </Dialog.Footer>
-                                                                            <Dialog.CloseTrigger />
-                                                                        </Dialog.Content>
-                                                                    </Dialog.Positioner>
-                                                                </Portal>
-                                                            </Dialog.Root>
-                                                        )}
+                                                                            </Dialog.ActionTrigger>
+                                                                            <Button
+                                                                                colorPalette="red"
+                                                                                size="sm"
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation()
+                                                                                    handleDeleteCourse(course.id);
+                                                                                }}
+                                                                            >
+                                                                                Delete Course
+                                                                            </Button>
+                                                                        </Dialog.Footer>
+                                                                        <Dialog.CloseTrigger />
+                                                                    </Dialog.Content>
+                                                                </Dialog.Positioner>
+                                                            </Portal>
+                                                        </Dialog.Root>
                                                     </HStack>
                                                 </Box>
                                             </VStack>

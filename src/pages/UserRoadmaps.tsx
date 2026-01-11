@@ -30,6 +30,7 @@ import {
     AlertCircle,
     CheckCircle,
     TrendingUp,
+    SearchX,
 } from "lucide-react";
 import FilterControls from "../components/Filters";
 
@@ -54,7 +55,7 @@ const UserRoadmaps: React.FC = () => {
     const [sortAsc, setSortAsc] = useState(false);
     const [sortKey, setSortKey] = useState<"created" | "modules" | "progress">("created");
 
-    const cardBg = useColorModeValue("white", "gray.900");
+    const cardBg = useColorModeValue("white", "gray.950");
     const emptyBg = useColorModeValue("gray.50", "gray.900");
     const cardBorderColor = useColorModeValue("gray.200", "gray.700");
 
@@ -262,6 +263,10 @@ const UserRoadmaps: React.FC = () => {
     }).length;
     const completedRoadmaps = allRoadmaps.filter((r) => getProgress(r) === 100).length;
 
+    // Check empty states
+    const hasRoadmapsButFiltered = allRoadmaps.length > 0 && filteredRoadmaps.length === 0;
+    const hasNoRoadmaps = allRoadmaps.length === 0;
+
     if (loading || isLoading) {
         return (
             <VStack py={20}>
@@ -280,7 +285,7 @@ const UserRoadmaps: React.FC = () => {
                 <HStack justify="space-between" align="center" flexWrap="wrap">
                     <Box>
                         <Heading size="xl" mb={1}>
-                            My Roadmaps
+                            My Tracks
                         </Heading>
                         <Text color="gray.600" _dark={{ color: "gray.400" }} fontSize="sm">
                             Track your learning paths and milestones
@@ -311,7 +316,7 @@ const UserRoadmaps: React.FC = () => {
                             <HStack gap={2}>
                                 <Map size={16} color="#14b8a6" />
                                 <Box>
-                                    <Text fontSize="xs" color="gray.600">Total Roadmaps</Text>
+                                    <Text fontSize="xs" >Total Tracks</Text>
                                     <Text fontSize="lg" fontWeight="bold">{totalRoadmaps}</Text>
                                 </Box>
                             </HStack>
@@ -328,7 +333,7 @@ const UserRoadmaps: React.FC = () => {
                             <HStack gap={2}>
                                 <TrendingUp size={16} color="#14b8a6" />
                                 <Box>
-                                    <Text fontSize="xs" color="gray.600">In Progress</Text>
+                                    <Text fontSize="xs" >In Progress</Text>
                                     <Text fontSize="lg" fontWeight="bold">{inProgressRoadmaps}</Text>
                                 </Box>
                             </HStack>
@@ -345,7 +350,7 @@ const UserRoadmaps: React.FC = () => {
                             <HStack gap={2}>
                                 <CheckCircle size={16} color="#14b8a6" />
                                 <Box>
-                                    <Text fontSize="xs" color="gray.600">Completed</Text>
+                                    <Text fontSize="xs" >Completed</Text>
                                     <Text fontSize="lg" fontWeight="bold">{completedRoadmaps}</Text>
                                 </Box>
                             </HStack>
@@ -354,8 +359,8 @@ const UserRoadmaps: React.FC = () => {
                 )}
             </VStack>
 
-            {/* Controls */}
-            {filteredRoadmaps.length > 0 && (
+            {/* Controls - Show if there are any roadmaps at all */}
+            {totalRoadmaps > 0 && (
                 <Box mb={6}>
                     <FilterControls
                         searchTerm={searchTerm}
@@ -365,12 +370,15 @@ const UserRoadmaps: React.FC = () => {
                         sortAsc={sortAsc}
                         setSortAsc={setSortAsc}
                         sortKeysCollection={sortKeysCollection}
+                        totalResults={totalRoadmaps}
+                        filteredResults={filteredRoadmaps.length}
                     />
                 </Box>
             )}
 
             {/* Roadmaps Grid */}
-            {filteredRoadmaps.length === 0 ? (
+            {hasNoRoadmaps ? (
+                // No roadmaps at all
                 <VStack
                     gap={4}
                     py={16}
@@ -409,7 +417,47 @@ const UserRoadmaps: React.FC = () => {
                         Create Roadmap
                     </Button>
                 </VStack>
+            ) : hasRoadmapsButFiltered ? (
+                // Has roadmaps but filtered out
+                <VStack
+                    gap={4}
+                    py={16}
+                    bg={emptyBg}
+                    borderRadius="xl"
+                    borderWidth="2px"
+                    borderStyle="dashed"
+                    borderColor={cardBorderColor}
+                >
+                    <Box
+                        w={16}
+                        h={16}
+                        bg="blue.50"
+                        _dark={{ bg: "blue.900/20" }}
+                        borderRadius="full"
+                        display="flex"
+                        alignItems="center"
+                        justifyContent="center"
+                    >
+                        <SearchX size={32} color="#3b82f6" />
+                    </Box>
+                    <VStack gap={1}>
+                        <Text fontSize="lg" fontWeight="semibold">
+                            No roadmaps found
+                        </Text>
+                        <Text fontSize="sm" color="gray.600" _dark={{ color: "gray.400" }}>
+                            Try adjusting your search term "{searchTerm}"
+                        </Text>
+                    </VStack>
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setSearchTerm("")}
+                    >
+                        Clear Search
+                    </Button>
+                </VStack>
             ) : (
+                // Show roadmaps
                 <Box
                     display="grid"
                     gridTemplateColumns="repeat(auto-fill, minmax(300px, 1fr))"

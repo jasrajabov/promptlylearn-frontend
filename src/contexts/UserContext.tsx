@@ -110,6 +110,23 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       credits: data.user.credits,
       credits_reset_at: data.user.credits_reset_at,
       membership_active_until: data.user.membership_active_until,
+      role: data.user.role,
+      status: data.user.status,
+      is_email_verified: data.user.is_email_verified,
+      suspended_at: data.user.suspended_at,
+      suspended_reason: data.user.suspended_reason,
+      suspended_by: data.user.suspended_by,
+      stripe_customer_id: data.user.stripe_customer_id,
+      total_credits_used: data.user.total_credits_used,
+      last_login_at: data.user.last_login_at,
+      login_count: data.user.login_count,
+      admin_notes: data.user.admin_notes,
+      total_courses: data.user.total_courses,
+      total_roadmaps: data.user.total_roadmaps,
+      completed_courses: data.user.completed_courses,
+      created_at: data.user.created_at,
+      updated_at: data.user.updated_at,
+      deleted_at: data.user.deleted_at,
     };
 
     setUser(u);

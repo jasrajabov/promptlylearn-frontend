@@ -188,22 +188,6 @@ const ChatBox: React.FC<ChatBoxProps> = ({ open, setOpenChatBox, chatMessages, s
                 <Drawer.Backdrop />
                 <Drawer.Positioner>
                     <Drawer.Content boxShadow="2xl">
-                        <Drawer.Header
-                            borderBottom="1px solid"
-                            borderColor="gray.200"
-                            p={5}
-                            bg="gradient-to-r from-teal.50 to-blue.50"
-                        >
-                            <VStack align="flex-start" gap={1}>
-                                <HStack>
-                                    <Heading size="lg" >AI Buddy</Heading>
-
-                                </HStack>
-                                <Text fontSize="sm">
-                                    Ask questions and get instant clarification
-                                </Text>
-                            </VStack>
-                        </Drawer.Header>
 
                         <Drawer.CloseTrigger asChild>
                             <CloseButton
@@ -281,7 +265,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({ open, setOpenChatBox, chatMessages, s
                                                     </VStack>
                                                     <Avatar.Root size="sm">
                                                         <Avatar.Image src="/user-avatar.png" alt="You" />
-                                                        <Avatar.Fallback>{user?.name[0]}</Avatar.Fallback>
+                                                        <Avatar.Fallback>{user?.name?.[0]}</Avatar.Fallback>
                                                     </Avatar.Root>
                                                 </>
                                             )}

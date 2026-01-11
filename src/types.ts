@@ -1,17 +1,36 @@
-export type MembershipStatus = "ACTIVE" | "INACTIVE" | "CANCELED";
+type UserRole = "USER" | "ADMIN" | "SUPER_ADMIN";
+type UserStatus = "ACTIVE" | "SUSPENDED" | "DELETED";
+type MembershipStatus = "ACTIVE" | "INACTIVE" | "CANCELED";
 
 export type User = {
   id: string;
-  name: string;
+  name: string | null;
   email: string;
-  avatar_url?: string;
-  token: string;
-  expires_at: number; // unix ms timestamp
-  membership_status: MembershipStatus;
+  role: UserRole;
+  status: UserStatus;
+  is_email_verified: boolean;
+  suspended_at: string | null;
+  suspended_reason: string | null;
+  suspended_by: string | null;
   membership_plan: string;
-  membership_active_until: number | null; // unix ms timestamp
+  membership_status: MembershipStatus;
+  membership_active_until: string | null;
+  stripe_customer_id: string | null;
   credits: number;
-  credits_reset_at: number; // unix ms timestamp
+  credits_reset_at: string | null;
+  total_credits_used: number;
+  last_login_at: string | null;
+  login_count: number;
+  admin_notes: string | null;
+  total_courses: number;
+  total_roadmaps: number;
+  completed_courses: number;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+  token: string;
+  expires_at: number;
+  avatar_url: string | null;
 };
 
 export interface Course {

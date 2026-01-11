@@ -49,10 +49,10 @@ export const TOC = ({
     const course = (location?.state as LocationState)?.course ?? null;
     const [tocCollapsed, setTocCollapsed] = useState(false);
 
-    const bgColor = useColorModeValue("gray.200", "gray.900");
+    const bgColor = useColorModeValue("gray.200", "gray.950");
     const borderColor = useColorModeValue("gray.200", "gray.700");
     const hoverBg = useColorModeValue("gray.50", "gray.900");
-    const activeBg = useColorModeValue("teal.50", "teal.900");
+    const activeBg = useColorModeValue("teal.50", "teal.950");
     const textColor = useColorModeValue("gray.700", "gray.200");
     const mutedTextColor = useColorModeValue("gray.500", "gray.400");
     const checkboxColor = useColorModeValue("white", "black");
@@ -298,7 +298,6 @@ export const TOC = ({
                                                                 </Checkbox.Root>
                                                                 <Text
                                                                     fontSize="sm"
-                                                                    color={isActiveLesson ? "teal.700" : textColor}
                                                                     fontWeight={isActiveLesson ? "medium" : "normal"}
                                                                     flex={1}
                                                                 >
