@@ -21,7 +21,7 @@ const App: React.FC = () => {
 
   return (
     <Provider>
-      <Box minH="100vh">
+      <Box minH="100vh" bg="bg.canvas">
         <Header />
         <Box as="main" mt={4} px={4}>
           <Routes>

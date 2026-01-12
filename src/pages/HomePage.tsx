@@ -141,7 +141,7 @@ const HomePage: React.FC<HomePageProps> = ({ _mode = "course" }) => {
         />
 
         {/* TABS */}
-        <Card.Root w="100%" background={"transparent"} borderWidth="2px" borderColor={borderColor}>
+        <Card.Root w="100%" background="transparent" borderRadius="xl" borderWidth="2px" borderColor={accentColor}>
           <Card.Body p={6}>
             <Tabs.Root
               value={mode}

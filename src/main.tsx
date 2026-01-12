@@ -6,19 +6,19 @@ import App from "./App";
 import { UserProvider } from "./contexts/UserContext";
 import { system } from './theme';
 import { ColorModeProvider } from './components/ui/color-mode';
-import { Toaster } from './components/ui/toaster'; // Add this import
+import { Toaster } from './components/ui/toaster';
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <ChakraProvider value={system}>
-      <UserProvider>
-        <BrowserRouter>
-          <ColorModeProvider>
+      <ColorModeProvider>
+        <UserProvider>
+          <BrowserRouter>
             <App />
             <Toaster />
-          </ColorModeProvider>
-        </BrowserRouter>
-      </UserProvider>
+          </BrowserRouter>
+        </UserProvider>
+      </ColorModeProvider>
     </ChakraProvider>
   </React.StrictMode>
 );

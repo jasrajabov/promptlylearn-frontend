@@ -11,10 +11,15 @@ import {
   Link,
   Heading,
   Spinner,
+  Separator,
 } from "@chakra-ui/react";
 import { motion, AnimatePresence } from "framer-motion";
+import { FaGithub, FaGoogle } from "react-icons/fa";
+import type { User } from "../types";
 
 const MotionBox = motion(Box);
+
+export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 export default function AuthPage() {
   const { login, signup, user } = useUser();
@@ -34,6 +39,95 @@ export default function AuthPage() {
   useEffect(() => {
     if (user) navigate("/");
   }, [user, navigate]);
+
+  // Handle OAuth callback
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    const errorParam = params.get('error');
+
+    if (token) {
+      handleOAuthSuccess(token);
+    }
+
+    if (errorParam) {
+      setError(decodeURIComponent(errorParam));
+    }
+  }, []);
+
+  const handleOAuthSuccess = async (accessToken: string) => {
+    try {
+      setLoading(true);
+      setMessage("Logging in...");
+
+      // Fetch user data with the access token
+      // The refresh token is already set as a cookie by the backend
+      const response = await fetch(`${BACKEND_URL}/authentication/me`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        },
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch user data");
+      }
+
+      const userData = await response.json();
+
+      // Create User object matching your UserContext structure
+      // The token expires in 60 minutes (based on your backend)
+      const expiresAt = Date.now() + 60 * 60 * 1000;
+
+      const userObj: User = {
+        name: userData.name,
+        email: userData.email,
+        token: accessToken,
+        expires_at: expiresAt,
+        membership_plan: userData.membership_plan,
+        membership_status: userData.membership_status,
+        id: userData.id,
+        avatar_url: userData.avatar_url,
+        credits: userData.credits,
+        credits_reset_at: userData.credits_reset_at,
+        membership_active_until: userData.membership_active_until,
+        role: userData.role,
+        status: userData.status,
+        is_email_verified: userData.is_email_verified,
+        suspended_at: userData.suspended_at,
+        suspended_reason: userData.suspended_reason,
+        suspended_by: userData.suspended_by,
+        stripe_customer_id: userData.stripe_customer_id,
+        total_credits_used: userData.total_credits_used,
+        last_login_at: userData.last_login_at,
+        login_count: userData.login_count,
+        admin_notes: userData.admin_notes,
+        total_courses: userData.total_courses,
+        total_roadmaps: userData.total_roadmaps,
+        completed_courses: userData.completed_courses,
+        created_at: userData.created_at,
+        updated_at: userData.updated_at,
+        deleted_at: userData.deleted_at,
+      };
+
+      // Store user in localStorage (matching your UserContext pattern)
+      localStorage.setItem("user", JSON.stringify(userObj));
+
+      // Clean up URL
+      window.history.replaceState({}, '', '/login');
+
+      setMessage("Login successful!");
+
+      // Reload to trigger UserContext to pick up the user from localStorage
+      // This matches how your UserContext loads user on mount
+      window.location.href = '/';
+
+    } catch (err) {
+      console.error('OAuth error:', err);
+      setError("Authentication failed. Please try again.");
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     setName("");
@@ -66,7 +160,6 @@ export default function AuthPage() {
     setMessage("");
     setLoading(true);
     try {
-      // Pass additional fields to signup function
       await signup(name, email, password, { phone, organization, role });
       setMessage("Signup successful! You are now logged in.");
       navigate("/");
@@ -75,6 +168,11 @@ export default function AuthPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleOAuthLogin = (provider: 'google' | 'github') => {
+    // Redirect to backend OAuth endpoint
+    window.location.href = `${BACKEND_URL}/authentication/${provider}`;
   };
 
   const panelVariants = {
@@ -94,6 +192,7 @@ export default function AuthPage() {
           fontWeight={activeTab === "login" ? "bold" : "normal"}
           color={activeTab === "login" ? "teal.500" : "gray.500"}
           onClick={() => setActiveTab("login")}
+          cursor="pointer"
         >
           Login
         </Link>
@@ -102,9 +201,44 @@ export default function AuthPage() {
           fontWeight={activeTab === "signup" ? "bold" : "normal"}
           color={activeTab === "signup" ? "teal.500" : "gray.500"}
           onClick={() => setActiveTab("signup")}
+          cursor="pointer"
         >
           Signup
         </Link>
+      </HStack>
+
+      {/* OAuth Buttons */}
+      <VStack gap={3} mb={6}>
+        <Button
+          w="full"
+          variant="outline"
+          onClick={() => handleOAuthLogin('google')}
+          colorScheme="red"
+          size="lg"
+          disabled={loading}
+        >
+          <FaGoogle />
+          Continue with Google
+        </Button>
+        <Button
+          w="full"
+          variant="outline"
+          onClick={() => handleOAuthLogin('github')}
+          colorScheme="gray"
+          size="lg"
+          disabled={loading}
+        >
+          <FaGithub />
+          Continue with GitHub
+        </Button>
+      </VStack>
+
+      <HStack w="full" my={4}>
+        <Separator flex="1" />
+        <Text fontSize="sm" color="gray.500" px={3}>
+          OR
+        </Text>
+        <Separator flex="1" />
       </HStack>
 
       <AnimatePresence mode="wait" initial={false}>
@@ -129,9 +263,12 @@ export default function AuthPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={loading}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleLogin();
+                }}
               />
-              {error && <Text color="red">{error}</Text>}
-              {message && <Text color="green">{message}</Text>}
+              {error && <Text color="red.500">{error}</Text>}
+              {message && <Text color="green.500">{message}</Text>}
               <Button
                 colorScheme="teal"
                 w="full"
@@ -192,8 +329,8 @@ export default function AuthPage() {
                 onChange={(e) => setRole(e.target.value)}
                 disabled={loading}
               />
-              {error && <Text color="red">{error}</Text>}
-              {message && <Text color="green">{message}</Text>}
+              {error && <Text color="red.500">{error}</Text>}
+              {message && <Text color="green.500">{message}</Text>}
               <Button
                 colorScheme="teal"
                 w="full"

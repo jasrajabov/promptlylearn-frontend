@@ -2,9 +2,47 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="icon" type="image/png" href="src/assets/pl-logo-dark.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + React + TS</title>
+    <title>PromptlyLearn</title>
+    
+    <script>
+      (function() {
+        try {
+          // next-themes uses 'theme' as the key
+          const savedMode = localStorage.getItem('theme') || localStorage.getItem('chakra-ui-color-mode');
+          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          const mode = savedMode || (prefersDark ? 'dark' : 'light');
+          
+          const root = document.documentElement;
+          // next-themes uses class, not data-theme
+          root.classList.add(mode);
+          root.style.colorScheme = mode;
+        } catch (e) {}
+      })();
+    </script>
+    
+    <style>
+      /* Default to dark to prevent white flash */
+      html {
+        background-color: #000000;
+        color-scheme: dark;
+      }
+      
+      /* Light mode override */
+      html.light {
+        background-color: #ffffff;
+        color-scheme: light;
+      }
+      
+      body, #root {
+        background: inherit;
+        min-height: 100vh;
+        margin: 0;
+        padding: 0;
+      }
+    </style>
+    
   </head>
   <body>
     <div id="root"></div>

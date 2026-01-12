@@ -4,6 +4,7 @@ import { useUser } from "../contexts/UserContext";
 import OpenAIStreamingMarkdown from "./OpenAiMarkdownStream";
 import type { Course } from "../types";
 import fetchWithTimeout from "../utils/dbUtils";
+import "./markdown-enhanced.css";
 
 export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 

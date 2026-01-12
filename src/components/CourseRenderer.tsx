@@ -184,7 +184,7 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
       overflowY="auto"
       p={{ base: 4, md: 1 }}
     >
-      <Box maxW="5xl" mx="auto">
+      <Box maxW="10xl" mx="auto">
         <VStack align="stretch" gap={3}>
           {/* Combined Header Card with Stats and Actions */}
           <Card.Root>

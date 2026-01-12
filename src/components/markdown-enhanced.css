@@ -1,0 +1,303 @@
+/* Enhanced Markdown Styling with Theme Support */
+
+.markdown-content {
+  /* Smooth transitions for theme changes */
+  transition: all 0.2s ease-in-out;
+}
+
+/* Code blocks - additional styling beyond CodeBlock component */
+.markdown-content pre {
+  margin: 1.5rem 0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Inline code improvements */
+.markdown-content code:not(pre code) {
+  font-size: 0.9em;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Images */
+.markdown-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 1.5rem 0;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="dark"] .markdown-content img {
+  box-shadow: 0 1px 3px 0 rgba(255, 255, 255, 0.1), 0 1px 2px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* Task list styling */
+.markdown-content input[type="checkbox"] {
+  width: 1em;
+  height: 1em;
+  cursor: default;
+}
+
+/* Nested lists indentation */
+.markdown-content ul ul,
+.markdown-content ol ul,
+.markdown-content ul ol,
+.markdown-content ol ol {
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Definition lists (if used) */
+.markdown-content dl {
+  margin: 1rem 0;
+}
+
+.markdown-content dt {
+  font-weight: 600;
+  margin-top: 1rem;
+}
+
+.markdown-content dd {
+  margin-left: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Abbreviations */
+.markdown-content abbr {
+  text-decoration: underline dotted;
+  cursor: help;
+}
+
+/* Mark/Highlight */
+.markdown-content mark {
+  background-color: #fef08a;
+  padding: 0.1em 0.2em;
+  border-radius: 2px;
+}
+
+[data-theme="dark"] .markdown-content mark {
+  background-color: #854d0e;
+  color: #fef08a;
+}
+
+/* Details/Summary for collapsible sections */
+.markdown-content details {
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid var(--chakra-colors-gray-200);
+  border-radius: 8px;
+  background-color: var(--chakra-colors-gray-50);
+}
+
+[data-theme="dark"] .markdown-content details {
+  border-color: var(--chakra-colors-gray-700);
+  background-color: var(--chakra-colors-gray-800);
+}
+
+.markdown-content summary {
+  cursor: pointer;
+  font-weight: 600;
+  user-select: none;
+}
+
+.markdown-content summary:hover {
+  color: var(--chakra-colors-teal-600);
+}
+
+[data-theme="dark"] .markdown-content summary:hover {
+  color: var(--chakra-colors-teal-400);
+}
+
+/* Keyboard keys */
+.markdown-content kbd {
+  display: inline-block;
+  padding: 0.25em 0.5em;
+  font-size: 0.85em;
+  font-family: 'Fira Code', 'Courier New', monospace;
+  background-color: var(--chakra-colors-gray-100);
+  border: 1px solid var(--chakra-colors-gray-300);
+  border-radius: 4px;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="dark"] .markdown-content kbd {
+  background-color: var(--chakra-colors-gray-700);
+  border-color: var(--chakra-colors-gray-600);
+  box-shadow: 0 2px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Subscript and Superscript */
+.markdown-content sub,
+.markdown-content sup {
+  font-size: 0.75em;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+}
+
+.markdown-content sup {
+  top: -0.5em;
+}
+
+.markdown-content sub {
+  bottom: -0.25em;
+}
+
+/* Math equations (KaTeX) */
+.markdown-content .katex {
+  font-size: 1.1em;
+}
+
+.markdown-content .katex-display {
+  margin: 1.5rem 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* Footnotes */
+.markdown-content .footnotes {
+  margin-top: 3rem;
+  padding-top: 1.5rem;
+  border-top: 2px solid var(--chakra-colors-gray-200);
+  font-size: 0.9em;
+}
+
+[data-theme="dark"] .markdown-content .footnotes {
+  border-top-color: var(--chakra-colors-gray-700);
+}
+
+/* Animated typing cursor for streaming */
+@keyframes blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+.streaming-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  background-color: var(--chakra-colors-teal-500);
+  margin-left: 2px;
+  animation: blink 1s infinite;
+  vertical-align: text-bottom;
+}
+
+/* Smooth fade-in for content */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.markdown-content > * {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Print styles */
+@media print {
+  .markdown-content {
+    font-size: 12pt;
+    line-height: 1.6;
+  }
+
+  .markdown-content pre {
+    page-break-inside: avoid;
+  }
+
+  .markdown-content h1, 
+  .markdown-content h2, 
+  .markdown-content h3 {
+    page-break-after: avoid;
+  }
+
+  .markdown-content img {
+    max-width: 100%;
+    page-break-inside: avoid;
+  }
+}
+
+/* Accessibility improvements */
+.markdown-content :focus {
+  outline: 2px solid var(--chakra-colors-teal-500);
+  outline-offset: 2px;
+}
+
+.markdown-content a:focus {
+  outline: 2px solid var(--chakra-colors-teal-500);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Selection styling */
+.markdown-content ::selection {
+  background-color: var(--chakra-colors-teal-100);
+  color: var(--chakra-colors-gray-900);
+}
+
+[data-theme="dark"] .markdown-content ::selection {
+  background-color: var(--chakra-colors-teal-900);
+  color: var(--chakra-colors-white);
+}
+
+/* Smooth scroll for anchor links */
+.markdown-content {
+  scroll-behavior: smooth;
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .markdown-content {
+    font-size: 0.95rem;
+  }
+
+  .markdown-content h1 {
+    font-size: 1.75rem;
+  }
+
+  .markdown-content h2 {
+    font-size: 1.5rem;
+  }
+
+  .markdown-content h3 {
+    font-size: 1.25rem;
+  }
+
+  .markdown-content pre {
+    font-size: 0.85rem;
+    overflow-x: auto;
+  }
+
+  .markdown-content table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .markdown-content {
+    font-weight: 500;
+  }
+
+  .markdown-content a {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .markdown-content,
+  .markdown-content * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
