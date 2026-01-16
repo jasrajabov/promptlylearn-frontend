@@ -7,7 +7,7 @@
 
 [data-theme="dark"] .tutorial-md,
 .tutorial-md[data-dark="true"] {
-  color: #e5e5e5;           /* dark mode text */
+  color: #e5e5e5; /* dark mode text */
 }
 
 /* HEADINGS */

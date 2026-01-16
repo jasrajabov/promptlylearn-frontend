@@ -1,39 +1,80 @@
-import { Box, Button, CloseButton, Drawer, HStack, Input, Portal, VStack, Text, Avatar, Heading, Badge, Status } from "@chakra-ui/react";
-import React, { useState, useEffect, useRef, use } from "react";
-import aiBuddy from "../assets/ai-buddy.png";
+import {
+    Box,
+    Button,
+    HStack,
+    Input,
+    VStack,
+    Text,
+    Avatar,
+    IconButton,
+    Card,
+    Link,
+} from "@chakra-ui/react";
+import React, {
+    forwardRef,
+    useState,
+    useEffect,
+    useRef,
+    useImperativeHandle,
+} from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { type ChatMessage } from "../types";
 import { useUser } from "../contexts/UserContext";
 import { useColorModeValue } from "./ui/color-mode";
+import {
+    X,
+    Send,
+    Minimize2,
+    Maximize2,
+    MessageCircle,
+    Sparkles,
+    Minus, // Add this import
+    Maximize,
+} from "lucide-react";
 
 export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 interface ChatBoxProps {
     open?: boolean;
+    sessionId?: string | null;
     setOpenChatBox?: (open: boolean) => void;
     chatMessages: Array<ChatMessage>;
     setChatMessages: React.Dispatch<React.SetStateAction<Array<ChatMessage>>>;
 }
 
-const ChatBox: React.FC<ChatBoxProps> = ({ open, setOpenChatBox, chatMessages, setChatMessages }) => {
+export interface ChatBoxRef {
+    sendMessage: (message: string) => Promise<void>;
+}
+
+const ChatBox = forwardRef<ChatBoxRef, ChatBoxProps>((props, ref) => {
+    const { open, setOpenChatBox, chatMessages, setChatMessages, sessionId } =
+        props;
+
     const [input, setInput] = useState("");
-    const [sessionId] = useState(() => crypto.randomUUID());
     const [chatReplying, setChatReplying] = useState(false);
+    const [isMinimized, setIsMinimized] = useState(false);
+    const [isExpanded, setIsExpanded] = useState(false);
     const { user } = useUser();
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
 
-    const chatTextColor = useColorModeValue("teal.700", "teal.200");
+    // Theme colors
+    const bgColor = useColorModeValue("white", "gray.900");
+    const borderColor = useColorModeValue("gray.200", "gray.700");
+    const headerBg = useColorModeValue("teal.700", "teal.00");
+    const userMessageBg = useColorModeValue("teal.500", "teal.600");
+    const assistantMessageBg = useColorModeValue("gray.100", "gray.800");
+    const inputBg = useColorModeValue("gray.50", "gray.800");
+    const inputBorder = useColorModeValue("gray.300", "gray.600");
+    const shadowColor = useColorModeValue(
+        "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+        "0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2)",
+    );
 
     const TypingIndicator: React.FC = () => {
-        const [dots, setDots] = useState(0);
-        useEffect(() => {
-            const id = window.setInterval(() => setDots(d => (d + 1) % 4), 400);
-            return () => clearInterval(id);
-        }, []);
         return (
             <HStack gap={1}>
                 <Box
@@ -66,48 +107,55 @@ const ChatBox: React.FC<ChatBoxProps> = ({ open, setOpenChatBox, chatMessages, s
     }, [chatMessages, chatReplying]);
 
     useEffect(() => {
-        if (open && !chatReplying) {
+        if (open && !chatReplying && !isMinimized) {
             inputRef.current?.focus();
         }
-    }, [open, chatReplying]);
+    }, [open, chatReplying, isMinimized]);
 
     const formatTime = (date: Date): string => {
-        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     };
 
-    const sendMessage = async (input: string) => {
-        const trimmedInput = input.trim();
-        if (!trimmedInput || chatReplying) return;
+    const sendMessage = async (messageText: string) => {
+        const trimmedInput = messageText.trim();
+        if (!trimmedInput || chatReplying) {
+            console.log("⚠️ Message not sent - empty or already replying");
+            return;
+        }
+
+        console.log("📤 Sending message:", trimmedInput);
 
         const newUserMessage: ChatMessage = {
             role: "user",
             content: trimmedInput,
-            timestamp: new Date()
+            timestamp: new Date(),
         };
 
-        setChatMessages(prev => [...prev, newUserMessage]);
+        setChatMessages((prev) => [...prev, newUserMessage]);
         setInput("");
 
         try {
+            setChatReplying(true);
+
             const res = await fetch(`${BACKEND_URL}/chat/send`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     session_id: sessionId,
-                    message: trimmedInput
-                })
+                    message: trimmedInput,
+                }),
             });
 
             const { task_id } = await res.json();
+            console.log("✅ Received task ID:", task_id);
 
             if (task_id) {
-                setChatReplying(true);
                 pollTask(task_id);
             } else {
                 setChatReplying(false);
             }
         } catch (error) {
-            console.error("Error sending message:", error);
+            console.error("❌ Error sending message:", error);
             setChatReplying(false);
         }
     };
@@ -115,17 +163,19 @@ const ChatBox: React.FC<ChatBoxProps> = ({ open, setOpenChatBox, chatMessages, s
     const pollTask = (taskId: string) => {
         const interval = setInterval(async () => {
             try {
-                const res = await fetch(`${BACKEND_URL}/tasks/status/chat_stream/${taskId}`);
+                const res = await fetch(
+                    `${BACKEND_URL}/tasks/status/chat_stream/${taskId}`,
+                );
                 const data = await res.json();
 
                 if (data.status === "ready") {
                     const newAssistantMessage: ChatMessage = {
                         role: "assistant",
                         content: data.reply,
-                        timestamp: new Date()
+                        timestamp: new Date(),
                     };
 
-                    setChatMessages(prev => [...prev, newAssistantMessage]);
+                    setChatMessages((prev) => [...prev, newAssistantMessage]);
                     setChatReplying(false);
                     clearInterval(interval);
                 }
@@ -137,6 +187,16 @@ const ChatBox: React.FC<ChatBoxProps> = ({ open, setOpenChatBox, chatMessages, s
         }, 1000);
     };
 
+    useImperativeHandle(
+        ref,
+        () => ({
+            sendMessage: async (message: string) => {
+                await sendMessage(message);
+            },
+        }),
+        [chatReplying, sessionId],
+    );
+
     const prismStyle: { [key: string]: React.CSSProperties } = oneDark;
     const components: Components = {
         code: ({ className, children, ...props }) => {
@@ -144,14 +204,36 @@ const ChatBox: React.FC<ChatBoxProps> = ({ open, setOpenChatBox, chatMessages, s
 
             if (lang) {
                 return (
-                    <Box borderRadius="md" overflow="hidden" my={2}>
-                        <SyntaxHighlighter
-                            style={prismStyle}
-                            language={lang}
-                            PreTag="div"
+                    <Box borderRadius="md" overflow="hidden" my={2} maxW="100%">
+                        <Box
+                            overflowX="auto"
+                            css={{
+                                "&::-webkit-scrollbar": {
+                                    height: "6px",
+                                },
+                                "&::-webkit-scrollbar-track": {
+                                    background: "#1e1e1e",
+                                },
+                                "&::-webkit-scrollbar-thumb": {
+                                    background: "#4a5568",
+                                    borderRadius: "3px",
+                                },
+                            }}
                         >
-                            {String(children).replace(/\n$/, "")}
-                        </SyntaxHighlighter>
+                            <SyntaxHighlighter
+                                style={prismStyle}
+                                language={lang}
+                                PreTag="div"
+                                customStyle={{
+                                    margin: 0,
+                                    borderRadius: "6px",
+                                    fontSize: "13px",
+                                }}
+                                wrapLongLines={false}
+                            >
+                                {String(children).replace(/\n$/, "")}
+                            </SyntaxHighlighter>
+                        </Box>
                     </Box>
                 );
             }
@@ -163,7 +245,8 @@ const ChatBox: React.FC<ChatBoxProps> = ({ open, setOpenChatBox, chatMessages, s
                         padding: "2px 6px",
                         borderRadius: "4px",
                         fontSize: "0.9em",
-                        color: "#d63384"
+                        color: "#d63384",
+                        wordBreak: "break-word",
                     }}
                     {...props}
                 >
@@ -171,233 +254,430 @@ const ChatBox: React.FC<ChatBoxProps> = ({ open, setOpenChatBox, chatMessages, s
                 </code>
             );
         },
-        p: ({ children }) => <Text mb={2}>{children}</Text>,
-        ul: ({ children }) => <Box as="ul" pl={4} mb={2}>{children}</Box>,
-        ol: ({ children }) => <Box as="ol" pl={4} mb={2}>{children}</Box>,
+        p: ({ children }) => (
+            <Text
+                mb={2}
+                lineHeight="1.6"
+                wordBreak="break-word"
+                whiteSpace="pre-wrap"
+            >
+                {children}
+            </Text>
+        ),
+        ul: ({ children }) => (
+            <Box
+                as="ul"
+                pl={4}
+                mb={2}
+                css={{
+                    "& li": {
+                        wordBreak: "break-word",
+                        marginBottom: "0.25rem",
+                    },
+                }}
+            >
+                {children}
+            </Box>
+        ),
+        ol: ({ children }) => (
+            <Box
+                as="ol"
+                pl={4}
+                mb={2}
+                css={{
+                    "& li": {
+                        wordBreak: "break-word",
+                        marginBottom: "0.25rem",
+                    },
+                }}
+            >
+                {children}
+            </Box>
+        ),
+        a: ({ href, children }) => (
+            <Link
+                href={href}
+                color="teal.400"
+                textDecoration="underline"
+                wordBreak="break-all"
+                _hover={{ color: "teal.300" }}
+                target="_blank"
+                rel="noopener noreferrer"
+            >
+                {children}
+            </Link>
+        ),
+        pre: ({ children }) => (
+            <Box as="pre" maxW="100%" overflowX="auto" my={2}>
+                {children}
+            </Box>
+        ),
+        table: ({ children }) => (
+            <Box overflowX="auto" my={2} maxW="100%">
+                <Box
+                    as="table"
+                    width="full"
+                    fontSize="sm"
+                    css={{
+                        "& th, & td": {
+                            padding: "8px",
+                            borderWidth: "1px",
+                            borderColor: "#e2e8f0",
+                        },
+                        "& th": {
+                            backgroundColor: "#f7fafc",
+                            fontWeight: "semibold",
+                        },
+                    }}
+                >
+                    {children}
+                </Box>
+            </Box>
+        ),
+        blockquote: ({ children }) => (
+            <Box
+                as="blockquote"
+                borderLeftWidth="3px"
+                borderLeftColor="teal.400"
+                pl={3}
+                py={1}
+                my={2}
+                fontStyle="italic"
+                color="gray.600"
+                _dark={{ color: "gray.400" }}
+            >
+                {children}
+            </Box>
+        ),
+        h1: ({ children }) => (
+            <Text as="h1" fontSize="xl" fontWeight="bold" mt={3} mb={2}>
+                {children}
+            </Text>
+        ),
+        h2: ({ children }) => (
+            <Text as="h2" fontSize="lg" fontWeight="bold" mt={3} mb={2}>
+                {children}
+            </Text>
+        ),
+        h3: ({ children }) => (
+            <Text as="h3" fontSize="md" fontWeight="semibold" mt={2} mb={1}>
+                {children}
+            </Text>
+        ),
     };
 
+    if (!open) return null;
+
     return (
-        <Drawer.Root
-            open={open}
-            size="lg"
-            closeOnInteractOutside={true}
-            onInteractOutside={() => setOpenChatBox && setOpenChatBox(false)}
+        <Box
+            position="fixed"
+            bottom={4}
+            right={4}
+            zIndex={1000}
+            w={
+                isExpanded
+                    ? { base: "95vw", md: "600px", lg: "700px" }
+                    : { base: "95vw", md: "420px" }
+            }
+            h={
+                isMinimized
+                    ? "auto"
+                    : isExpanded
+                        ? "85vh"
+                        : { base: "600px", md: "650px" }
+            }
+            transition="all 0.3s ease"
         >
-            <Drawer.Trigger asChild></Drawer.Trigger>
-            <Portal>
-                <Drawer.Backdrop />
-                <Drawer.Positioner>
-                    <Drawer.Content boxShadow="2xl">
+            <Card.Root
+                // bg={bgColor}
+                borderRadius="xl"
+                overflow="hidden"
+                boxShadow={shadowColor}
+                borderWidth="1px"
+                borderColor={borderColor}
+                h="full"
+                display="flex"
+                flexDirection="column"
+            >
+                {/* Header */}
+                <Box
+                    bg={headerBg}
+                    color="white"
+                    px={4}
+                    py={3}
+                    display="flex"
+                    alignItems="center"
+                    justifyContent="space-between"
+                >
+                    <HStack gap={3}>
+                        <Box position="relative">
+                            <Avatar.Root size="sm">
+                                {/* <Avatar.Image src={aiBuddy} alt="AI Buddy" /> */}
+                                <Avatar.Fallback>AI</Avatar.Fallback>
+                            </Avatar.Root>
+                        </Box>
+                        <VStack align="start" gap={0}>
+                            <Text fontWeight="semibold" fontSize="md">
+                                AI Buddy
+                            </Text>
+                            <HStack gap={1}>
+                                <Box w="6px" h="6px" bg="green.300" borderRadius="full" />
+                                <Text fontSize="xs" opacity={0.9}>
+                                    Online
+                                </Text>
+                            </HStack>
+                        </VStack>
+                    </HStack>
 
-                        <Drawer.CloseTrigger asChild>
-                            <CloseButton
-                                size="md"
-                                onClick={() => setOpenChatBox && setOpenChatBox(false)}
-                                position="absolute"
-                                right={5}
-                                top={5}
-                                _hover={{ bg: "gray.100" }}
-                            />
-                        </Drawer.CloseTrigger>
+                    <HStack gap={1}>
+                        <IconButton
+                            aria-label="Toggle expand"
+                            size="sm"
+                            variant="ghost"
+                            color="white"
+                            _hover={{ bg: "whiteAlpha.200" }}
+                            onClick={() => setIsExpanded(!isExpanded)}
+                        >
+                            {isExpanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                        </IconButton>
+                        <IconButton
+                            aria-label="Minimize"
+                            size="sm"
+                            variant="ghost"
+                            color="white"
+                            _hover={{ bg: "whiteAlpha.200" }}
+                            onClick={() => setIsMinimized(!isMinimized)}
+                        >
+                            {!isMinimized ? <Minus size={16} /> : <Maximize size={16} />}
+                        </IconButton>
+                        <IconButton
+                            aria-label="Close"
+                            size="sm"
+                            variant="ghost"
+                            color="white"
+                            _hover={{ bg: "whiteAlpha.200" }}
+                            onClick={() => setOpenChatBox && setOpenChatBox(false)}
+                        >
+                            <X size={16} />
+                        </IconButton>
+                    </HStack>
+                </Box>
 
-                        <Drawer.Body p={0} overflow="hidden">
-                            <VStack
-                                gap={4}
-                                align="stretch"
-                                p={5}
-                                height="calc(75vh - 80px)"
-                                overflowY="auto"
-                                css={{
-                                    '&::-webkit-scrollbar': {
-                                        width: '8px',
-                                    },
-                                    '&::-webkit-scrollbar-track': {
-                                        background: '#f1f1f1',
-                                    },
-                                    '&::-webkit-scrollbar-thumb': {
-                                        background: '#cbd5e0',
-                                        borderRadius: '4px',
-                                    },
-                                    '&::-webkit-scrollbar-thumb:hover': {
-                                        background: '#a0aec0',
-                                    },
-                                }}
-                            >
+                {/* Messages Area */}
+                {!isMinimized && (
+                    <>
+                        <Box
+                            flex="1"
+                            overflowY="auto"
+                            p={4}
+                            css={{
+                                "&::-webkit-scrollbar": {
+                                    width: "6px",
+                                },
+                                "&::-webkit-scrollbar-track": {
+                                    background: "transparent",
+                                },
+                                "&::-webkit-scrollbar-thumb": {
+                                    background: "#cbd5e0",
+                                    borderRadius: "3px",
+                                },
+                                "&::-webkit-scrollbar-thumb:hover": {
+                                    background: "#a0aec0",
+                                },
+                            }}
+                        >
+                            <VStack gap={4} align="stretch">
+                                {/* Welcome Message */}
+                                {chatMessages.length <= 1 && (
+                                    <Box
+                                        p={4}
+                                        bg={useColorModeValue("teal.50", "teal.900/20")}
+                                        borderRadius="lg"
+                                        borderWidth="1px"
+                                        borderColor={useColorModeValue("teal.200", "teal.700")}
+                                    >
+                                        <HStack gap={2} mb={2}>
+                                            <Sparkles size={18} color="#319795" />
+                                            <Text
+                                                fontWeight="semibold"
+                                                color={useColorModeValue("teal.700", "teal.300")}
+                                            >
+                                                Welcome to AI Buddy!
+                                            </Text>
+                                        </HStack>
+                                        <Text
+                                            fontSize="sm"
+                                            color={useColorModeValue("gray.600", "gray.400")}
+                                        >
+                                            I'm here to help you understand the course material
+                                            better. Feel free to ask me anything!
+                                        </Text>
+                                    </Box>
+                                )}
+
                                 {chatMessages.map((m, i) => (
-                                    <VStack
+                                    <HStack
                                         key={i}
-                                        align={m.role === "user" ? "flex-end" : "flex-start"}
+                                        align="start"
+                                        justify={m.role === "user" ? "flex-end" : "flex-start"}
                                         gap={2}
                                     >
-                                        <HStack
-                                            justifyContent={m.role === "user" ? "flex-end" : "flex-start"}
-                                            width="full"
-                                            gap={2}
-                                        >
-                                            {m.role === "assistant" && (
-                                                <>
-                                                    <Avatar.Root size="sm">
-                                                        <Avatar.Image src={aiBuddy} alt="AI Buddy" />
-                                                        <Avatar.Fallback>AI</Avatar.Fallback>
-                                                    </Avatar.Root>
-
-                                                    <VStack align="flex-start" gap={0}>
-                                                        <HStack>
-                                                            <Text fontSize="sm" fontWeight="600">
-                                                                AI Buddy
-                                                            </Text>
-                                                            <Status.Root colorPalette="green">
-                                                                <Status.Indicator />
-                                                            </Status.Root>
-                                                        </HStack>
-                                                        <Text fontSize="xs">
-                                                            {formatTime(m.timestamp)}
-                                                        </Text>
-                                                    </VStack>
-                                                </>
-                                            )}
-                                            {m.role === "user" && (
-                                                <>
-                                                    <VStack align="flex-end" gap={0}>
-                                                        <Text fontSize="xs" color="gray.400">
-                                                            {formatTime(m.timestamp)}
-                                                        </Text>
-                                                    </VStack>
-                                                    <Avatar.Root size="sm">
-                                                        <Avatar.Image src="/user-avatar.png" alt="You" />
-                                                        <Avatar.Fallback>{user?.name?.[0]}</Avatar.Fallback>
-                                                    </Avatar.Root>
-                                                </>
-                                            )}
-                                        </HStack>
-
-                                        <Box
-                                            maxW="85%"
-                                            color={m.role === "user" ? chatTextColor : undefined}
-                                            px={4}
-                                            py={3}
-                                            borderRadius="xl"
-                                            boxShadow="sm"
-                                            border={m.role === "assistant" ? "1px solid" : "none"}
-                                            borderColor={m.role === "assistant" ? "gray.200" : "transparent"}
-                                        >
-                                            <ReactMarkdown components={components}>
-                                                {m.content || ""}
-                                            </ReactMarkdown>
-                                        </Box>
-                                    </VStack>
-                                ))}
-
-                                {chatReplying && (
-                                    <VStack align="flex-start" gap={2}>
-                                        <HStack gap={2}>
-                                            <Avatar.Root size="sm">
-                                                <Avatar.Image src={aiBuddy} alt="AI Buddy" />
+                                        {m.role === "assistant" && (
+                                            <Avatar.Root size="xs" flexShrink={0} mt={1}>
+                                                {/* <Avatar.Image src={aiBuddy} alt="AI" /> */}
                                                 <Avatar.Fallback>AI</Avatar.Fallback>
                                             </Avatar.Root>
-                                            <VStack align="flex-start" gap={0}>
-                                                <Text fontSize="sm" fontWeight="600">
-                                                    AI Buddy
-                                                </Text>
-                                                <Text fontSize="xs">
-                                                    typing...
-                                                </Text>
-                                            </VStack>
-                                        </HStack>
+                                        )}
+
+                                        <VStack
+                                            align={m.role === "user" ? "flex-end" : "flex-start"}
+                                            gap={1}
+                                            maxW="80%"
+                                        >
+                                            <Box
+                                                bg={
+                                                    m.role === "user" ? userMessageBg : assistantMessageBg
+                                                }
+                                                color={m.role === "user" ? "white" : undefined}
+                                                px={4}
+                                                py={2.5}
+                                                borderRadius="2xl"
+                                                borderTopLeftRadius={
+                                                    m.role === "assistant" ? "md" : "2xl"
+                                                }
+                                                borderTopRightRadius={m.role === "user" ? "md" : "2xl"}
+                                                boxShadow="sm"
+                                                wordBreak="break-word"
+                                                overflowWrap="break-word"
+                                                maxW="100%"
+                                                css={{
+                                                    "& *": {
+                                                        maxWidth: "100%",
+                                                    },
+                                                }}
+                                            >
+                                                <ReactMarkdown components={components}>
+                                                    {m.content || ""}
+                                                </ReactMarkdown>
+                                            </Box>
+                                            <Text fontSize="2xs" color="gray.500" px={2}>
+                                                {formatTime(m.timestamp)}
+                                            </Text>
+                                        </VStack>
+
+                                        {m.role === "user" && (
+                                            <Avatar.Root size="xs" flexShrink={0} mt={1}>
+                                                <Avatar.Image src="/user-avatar.png" alt="You" />
+                                                <Avatar.Fallback>
+                                                    {user?.name?.[0] || "U"}
+                                                </Avatar.Fallback>
+                                            </Avatar.Root>
+                                        )}
+                                    </HStack>
+                                ))}
+
+                                {/* Typing Indicator */}
+                                {chatReplying && (
+                                    <HStack align="start" gap={2}>
+                                        <Avatar.Root size="xs" flexShrink={0} mt={1}>
+                                            {/* <Avatar.Image src={aiBuddy} alt="AI" /> */}
+                                            <Avatar.Fallback>AI</Avatar.Fallback>
+                                        </Avatar.Root>
                                         <Box
-                                            maxW="85%"
+                                            bg={assistantMessageBg}
                                             px={4}
-                                            py={3}
-                                            borderRadius="xl"
+                                            py={2.5}
+                                            borderRadius="2xl"
+                                            borderTopLeftRadius="md"
                                             boxShadow="sm"
-                                            border="1px solid"
-                                            borderColor="gray.200"
                                         >
                                             <TypingIndicator />
                                         </Box>
-                                    </VStack>
+                                    </HStack>
                                 )}
+
                                 <div ref={messagesEndRef} />
                             </VStack>
+                        </Box>
 
-                        </Drawer.Body>
-
+                        {/* Input Area */}
                         <Box
                             borderTop="1px solid"
-                            borderColor="gray.200"
-                            p={5}
-                            boxShadow="0 -2px 10px rgba(0,0,0,0.05)"
+                            borderColor={borderColor}
+                            p={4}
                         >
-                            <HStack gap={3} align="flex-end">
-                                <Box flex="1">
-                                    <textarea
-                                        ref={inputRef}
-                                        value={input}
-                                        onChange={(e) => setInput(e.target.value)}
-                                        placeholder="Type your message here..."
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter' && !e.shiftKey) {
-                                                e.preventDefault();
-                                                sendMessage(input);
-                                            }
-                                        }}
-                                        disabled={chatReplying}
-                                        rows={1}
-                                        style={{
-                                            width: '100%',
-                                            padding: '12px 16px',
-                                            borderRadius: '8px',
-                                            border: '1px solid #CBD5E0',
-                                            fontSize: '16px',
-                                            fontFamily: 'inherit',
-                                            resize: 'none',
-                                            minHeight: '48px',
-                                            maxHeight: '120px',
-                                            overflowY: 'auto',
-                                            transition: 'border-color 0.2s, box-shadow 0.2s',
-                                            background: "transparent",
-                                        }}
-                                        onFocus={(e) => {
-                                            e.target.style.borderColor = '#319795';
-                                            e.target.style.outline = 'none';
-                                            e.target.style.boxShadow = '0 0 0 1px #319795';
-                                        }}
-                                        onBlur={(e) => {
-                                            e.target.style.borderColor = '#CBD5E0';
-                                            e.target.style.boxShadow = 'none';
-                                        }}
-                                        onInput={(e) => {
-                                            const target = e.target as HTMLTextAreaElement;
-                                            target.style.height = 'auto';
-                                            target.style.height = Math.min(target.scrollHeight, 120) + 'px';
-                                        }}
-                                    />
-                                </Box>
-                                <Button
-                                    size="lg"
-                                    onClick={() => sendMessage(input)}
-                                    variant={"solid"}
-                                    disabled={!input.trim() || chatReplying}
-                                    // height="55px"
-                                    px={8}
-                                    borderRadius="lg"
-                                    flexShrink={0}
-                                    _hover={{ transform: "translateY(-1px)", boxShadow: "md" }}
-                                    transition="all 0.2s"
-                                    mb="7px"
-                                >
-                                    {chatReplying ? "Sending..." : "Send"}
-                                </Button>
-                            </HStack>
-                            <Text fontSize="xs" color="gray.400" mt={2} textAlign="center">
-                                Press Enter to send • Shift + Enter for new line
-                            </Text>
+                            <VStack gap={2}>
+                                <HStack gap={2} w="full">
+                                    <Box flex="1" position="relative">
+                                        <textarea
+                                            ref={inputRef}
+                                            value={input}
+                                            onChange={(e) => setInput(e.target.value)}
+                                            placeholder="Type your message..."
+                                            onKeyDown={(e) => {
+                                                if (e.key === "Enter" && !e.shiftKey) {
+                                                    e.preventDefault();
+                                                    sendMessage(input);
+                                                }
+                                            }}
+                                            disabled={chatReplying}
+                                            rows={1}
+                                            style={{
+                                                width: "100%",
+                                                padding: "12px 16px",
+                                                paddingRight: "50px",
+                                                borderRadius: "12px",
+                                                border: `2px solid ${inputBorder}`,
+                                                fontSize: "14px",
+                                                fontFamily: "inherit",
+                                                resize: "none",
+                                                minHeight: "48px",
+                                                maxHeight: "120px",
+                                                overflowY: "auto",
+                                                transition: "all 0.2s",
+                                                background: inputBg,
+                                            }}
+                                            onFocus={(e) => {
+                                                e.target.style.borderColor = "#319795";
+                                                e.target.style.outline = "none";
+                                            }}
+                                            onBlur={(e) => {
+                                                e.target.style.borderColor = inputBorder;
+                                            }}
+                                            onInput={(e) => {
+                                                const target = e.target as HTMLTextAreaElement;
+                                                target.style.height = "auto";
+                                                target.style.height =
+                                                    Math.min(target.scrollHeight, 120) + "px";
+                                            }}
+                                        />
+                                        <IconButton
+                                            aria-label="Send message"
+                                            position="absolute"
+                                            right={2}
+                                            bottom={3}
+                                            size="sm"
+                                            colorPalette="teal"
+                                            onClick={() => sendMessage(input)}
+                                            disabled={!input.trim() || chatReplying}
+                                            borderRadius="lg"
+                                        >
+                                            <Send size={16} />
+                                        </IconButton>
+                                    </Box>
+                                </HStack>
+                                <Text fontSize="2xs" color="gray.500" textAlign="center">
+                                    Press Enter to send • Shift + Enter for new line
+                                </Text>
+                            </VStack>
                         </Box>
-                    </Drawer.Content>
-                </Drawer.Positioner>
-            </Portal>
-        </Drawer.Root >
+                    </>
+                )}
+            </Card.Root>
+        </Box>
     );
-}
+});
+
+ChatBox.displayName = "ChatBox";
 
 export default ChatBox;

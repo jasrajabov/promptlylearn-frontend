@@ -6,7 +6,7 @@ import PremiumRoute from "./components/PremiumRoute";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
 import CourseTimeline from "./pages/CoursePage";
-import { Provider } from "./components/ui/provider"
+import { Provider } from "./components/ui/provider";
 import UserCourses from "./pages/UserCourses";
 import UserRoadmaps from "./pages/UserRoadmaps";
 import TrackRoadmap from "./pages/RoadmapPage";
@@ -16,9 +16,7 @@ import RequireAuth from "./pages/RequireAuth";
 import UserInfoPage from "./pages/UserInfo";
 import AdminDashboard from "./pages/AdminPage";
 
-
 const App: React.FC = () => {
-
   return (
     <Provider>
       <Box minH="100vh" bg="bg.canvas">
@@ -37,9 +35,7 @@ const App: React.FC = () => {
               <Route path="/my-roadmaps" element={<UserRoadmaps />} />
               <Route path="/admin" element={<AdminDashboard />} />
               {/* Premium routes */}
-              <Route element={<PremiumRoute />}>
-
-              </Route>
+              <Route element={<PremiumRoute />}></Route>
 
               {/* Non-premium authenticated routes */}
               <Route path="/upgrade" element={<PaymentStepper />} />

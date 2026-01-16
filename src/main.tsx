@@ -4,9 +4,9 @@ import { ChakraProvider } from "@chakra-ui/react";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import { UserProvider } from "./contexts/UserContext";
-import { system } from './theme';
-import { ColorModeProvider } from './components/ui/color-mode';
-import { Toaster } from './components/ui/toaster';
+import { system } from "./theme";
+import { ColorModeProvider } from "./components/ui/color-mode";
+import { Toaster } from "./components/ui/toaster";
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
@@ -20,5 +20,5 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
         </UserProvider>
       </ColorModeProvider>
     </ChakraProvider>
-  </React.StrictMode>
+  </React.StrictMode>,
 );

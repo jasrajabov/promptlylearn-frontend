@@ -6,7 +6,6 @@ import {
   useRef,
   type ReactNode,
 } from "react";
-import { useNavigate } from "react-router-dom";
 
 export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -18,7 +17,12 @@ interface UserContextType {
   loading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signup: (name: string, email: string, password: string, otherPersonalInfo: { phone?: string; organization?: string; role?: string }) => Promise<void>;
+  signup: (
+    name: string,
+    email: string,
+    password: string,
+    otherPersonalInfo: { phone?: string; organization?: string; role?: string },
+  ) => Promise<void>;
   logout: () => void;
   authFetch: (url: string, options?: RequestInit) => Promise<Response>;
   refreshUser: () => Promise<User | null>;
@@ -133,7 +137,12 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem("user", JSON.stringify(u));
   };
 
-  const signup = async (name: string, email: string, password: string, personal_info: { phone?: string; organization?: string; role?: string }) => {
+  const signup = async (
+    name: string,
+    email: string,
+    password: string,
+    personal_info: { phone?: string; organization?: string; role?: string },
+  ) => {
     const res = await fetch(`${BACKEND_URL}/authentication/signup`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -203,23 +212,23 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return null;
 
     try {
-      console.log('🔄 Fetching fresh user data...');
+      console.log("🔄 Fetching fresh user data...");
       const res = await fetch(`${BACKEND_URL}/authentication/me`, {
         credentials: "include",
         headers: {
           Authorization: `Bearer ${user.token}`,
         },
-        cache: 'no-store', // Prevent caching
+        cache: "no-store", // Prevent caching
       });
 
       if (!res.ok) {
-        console.error('Failed to refresh user data');
+        console.error("Failed to refresh user data");
         logout();
         return null;
       }
 
       const data = await res.json();
-      console.log('Fresh user data received:', data);
+      console.log("Fresh user data received:", data);
 
       // Create updated user object, preserving token and expiration
       const updated: User = {
@@ -228,7 +237,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         expires_at: user.expires_at,
       };
 
-      console.log('Membership status:', {
+      console.log("Membership status:", {
         plan: updated.membership_plan,
         status: updated.membership_status,
       });
@@ -239,7 +248,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
       return updated;
     } catch (error) {
-      console.error('Error refreshing user:', error);
+      console.error("Error refreshing user:", error);
       return null;
     }
   };

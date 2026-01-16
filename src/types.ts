@@ -91,7 +91,7 @@ export interface Quiz {
       options: string[];
       correct_option_index: number;
       explanation: string;
-    }
+    },
   ];
 }
 

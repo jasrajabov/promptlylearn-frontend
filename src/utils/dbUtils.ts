@@ -4,7 +4,7 @@ import type { User } from "../types";
 export const fetchWithTimeout = (
   url: string,
   options: RequestInit,
-  timeout = 600000
+  timeout = 600000,
 ) =>
   new Promise<Response>((resolve, reject) => {
     const controller = new AbortController();
@@ -26,7 +26,7 @@ export default fetchWithTimeout;
 const updateLessonStatusDb = async (
   user: User | undefined,
   lessonId: string,
-  status: Status
+  status: Status,
 ) => {
   if (!user) {
     console.log("User not logged in");
@@ -44,7 +44,7 @@ const updateLessonStatusDb = async (
         },
         body: JSON.stringify({ status }),
       },
-      60000
+      60000,
     );
 
     if (!response.ok) {
@@ -62,7 +62,7 @@ const updateLessonStatusDb = async (
 const updateModulStatusDb = async (
   user: User | undefined,
   moduleId: string,
-  status: Status
+  status: Status,
 ) => {
   if (!user) {
     console.log("User not logged in");
@@ -80,7 +80,7 @@ const updateModulStatusDb = async (
         },
         body: JSON.stringify({ status }),
       },
-      60000
+      60000,
     );
 
     if (!response.ok) {
@@ -100,7 +100,7 @@ export { updateLessonStatusDb, updateModulStatusDb };
 export const updateCourseStatusDb = async (
   user: User | undefined,
   courseId: string,
-  status: Status
+  status: Status,
 ) => {
   if (!user) {
     console.log("User not logged in");
@@ -118,7 +118,7 @@ export const updateCourseStatusDb = async (
         },
         body: JSON.stringify({ status }),
       },
-      60000
+      60000,
     );
 
     if (!response.ok) {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Box,
   VStack,
@@ -18,7 +18,7 @@ import ModuleQuiz from "./Quiz";
 import fetchWithTimeout from "../utils/dbUtils";
 import type { Quiz } from "../types";
 import { useUser } from "../contexts/UserContext";
-import ChatBox from "./ChatBox";
+import ChatBox, { type ChatBoxRef } from "./ChatBox";
 import { type ChatMessage } from "../types";
 import { useColorModeValue } from "./ui/color-mode";
 import { Stats } from "./Stats";
@@ -31,7 +31,7 @@ import {
   CheckCircle2,
   Trophy,
   Sparkles,
-  ArrowRight
+  ArrowRight,
 } from "lucide-react";
 
 export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
@@ -56,9 +56,6 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
   setShowQuiz,
   setCourseState,
 }) => {
-
-  const [quizTaskId, setQuizTaskId] = useState<string | null>(null);
-
   const { user } = useUser();
   const module = courseState.modules[currentModuleIndex];
   const lesson = module.lessons[currentLessonIndex];
@@ -67,28 +64,69 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
 
   const moduleComplete = module.status === "COMPLETED";
 
-  const [quiz, setQuiz] = useState<Quiz | null>(null);
-  const [loadingQuiz, setLoadingQuiz] = useState(false);
+  // Per-lesson quiz state - maps lesson ID to quiz data
+  const [loadingQuizForLesson, setLoadingQuizForLesson] = useState<string | null>(null);
+  const [quizTaskIds, setQuizTaskIds] = useState<Record<string, string>>({});
+
   const [openChatBox, setOpenChatBox] = useState(false);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([{
-    role: "assistant",
-    content: "Hello! I'm your AI learning buddy. Feel free to ask me any questions about the course material or request further explanations on topics you're curious about.",
-    timestamp: new Date(),
-  }]);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [creditInfo, setCreditInfo] = useState<string | null>(null);
-  const [isGeneratingLesson, setIsGeneratingLesson] = useState(false);
-  const [lessonGenerationTriggered, setLessonGenerationTriggered] = useState(false);
 
+  // Track generation state per lesson using a unique key
+  const [generatingLessonKey, setGeneratingLessonKey] = useState<string | null>(null);
+  const [triggerGenerationKey, setTriggerGenerationKey] = useState<string | null>(null);
+
+  const [chatSessionId, setChatSessionId] = useState<string | null>(null);
+
+  const chatBoxRef = useRef<ChatBoxRef>(null);
+
+  // Theme colors matching modern pages
   const tealTextColor = useColorModeValue("teal.700", "teal.300");
+  const cardBg = useColorModeValue("white", "gray.950");
+  const cardBorderColor = useColorModeValue("gray.200", "gray.700");
+  const mutedText = useColorModeValue("gray.600", "gray.400");
+  const headingColor = useColorModeValue("gray.900", "white");
+  const highlightBg = useColorModeValue("teal.50", "rgba(20, 184, 166, 0.1)");
 
   const pollersRef = useRef<{ [key: string]: number | null }>({});
 
+  // Persist quiz state across re-mounts using refs
+  const quizzesRef = useRef<Record<string, Quiz>>({});
+
+  // Use state for triggering re-renders
+  const [, forceUpdate] = useState({});
+  const triggerRerender = () => forceUpdate({});
+
+  // Current lesson's quiz state - read from refs
+  const currentLessonQuiz = quizzesRef.current[lesson.id];
+  const isLoadingCurrentQuiz = loadingQuizForLesson === lesson.id;
+  const showCurrentQuiz = !!currentLessonQuiz; // Show quiz whenever it exists
+
+  // Debug logging
   useEffect(() => {
-    if (quizTaskId) {
-      startPollingTask(quizTaskId);
-    }
-  }, [quizTaskId]);
+    console.log('CourseRenderer Debug:', {
+      lessonId: lesson.id,
+      hasQuiz: !!currentLessonQuiz,
+      showCurrentQuiz: showCurrentQuiz,
+      quizzes: Object.keys(quizzesRef.current),
+      parentShowQuiz: showQuiz
+    });
+  }, [lesson.id, currentLessonQuiz, showCurrentQuiz, showQuiz]);
+
+  // Keep parent showQuiz in sync with our internal state
+  useEffect(() => {
+    setShowQuiz(showCurrentQuiz);
+  }, [showCurrentQuiz, setShowQuiz]);
+
+  useEffect(() => {
+    // Poll for any active quiz tasks
+    Object.entries(quizTaskIds).forEach(([lessonId, taskId]) => {
+      if (taskId && !pollersRef.current[taskId]) {
+        startPollingTask(taskId, lessonId);
+      }
+    });
+  }, [quizTaskIds]);
 
   const nextModule =
     currentModuleIndex < courseState.modules.length - 1
@@ -105,8 +143,29 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
     }
   };
 
+  useEffect(() => {
+    setChatSessionId(
+      `course-${courseState.id}-module-${module.id}-lesson-${lesson.id}`,
+    );
+  }, [courseState.id, module.id, lesson.id]);
+
+  const handleAskAI = useCallback(
+    (selectedText: string) => {
+      const question = `Can you explain this from "${lesson.title}": "${selectedText}"`;
+
+      // Open the chat first
+      setOpenChatBox(true);
+
+      // Use a small delay to ensure the chat is open and ref is available
+      setTimeout(() => {
+        chatBoxRef.current?.sendMessage(question);
+      }, 100);
+    },
+    [lesson.title],
+  );
+
   const handleGenerateQuiz = () => {
-    setLoadingQuiz(true);
+    setLoadingQuizForLesson(lesson.id);
     fetchWithTimeout(`${BACKEND_URL}/quiz/generate-quiz`, {
       method: "POST",
       headers: {
@@ -118,51 +177,92 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
         content: [],
       }),
     })
-      .then(res => res.json())
-      .then(data => {
+      .then((res) => res.json())
+      .then((data) => {
         if (data) {
-          if (data.error_message && data.error_type === "NotEnoughCreditsException") {
+          if (
+            data.error_message &&
+            data.error_type === "NotEnoughCreditsException"
+          ) {
             console.error("Not enough credits to generate quiz.");
             setCreditInfo(data.error_message);
-            setLoadingQuiz(false);
+            setLoadingQuizForLesson(null);
             return;
           }
-          setQuizTaskId(data.task_id);
+          // Store task ID mapped to lesson ID
+          setQuizTaskIds((prev) => ({
+            ...prev,
+            [lesson.id]: data.task_id,
+          }));
         }
+      })
+      .catch((err) => {
+        console.error("Error generating quiz:", err);
+        setLoadingQuizForLesson(null);
       });
   };
 
   const handleGenerateLesson = () => {
-    setLessonGenerationTriggered(true);
+    // Create a unique key for this specific lesson
+    const lessonKey = `${module.id}-${lesson.id}`;
+    setTriggerGenerationKey(lessonKey);
+    setGeneratingLessonKey(lessonKey);
   };
 
-  const startPollingTask = (taskId: string) => {
+  const startPollingTask = (taskId: string, lessonId: string) => {
     if (!taskId || pollersRef.current[taskId]) return;
     const id = window.setInterval(async () => {
       try {
-        const res = await fetchWithTimeout(`${BACKEND_URL}/tasks/status/quiz_generation/${taskId}`, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${user?.token}`,
+        const res = await fetchWithTimeout(
+          `${BACKEND_URL}/tasks/status/quiz_generation/${taskId}`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${user?.token}`,
+            },
           },
-        });
+        );
         if (!res.ok) return;
         const data = await res.json();
         console.log("Polled task data:", data);
 
-        if (data.status === "SUCCESS" || data.status === "COMPLETED" || data.status === "done") {
+        if (
+          data.status === "SUCCESS" ||
+          data.status === "COMPLETED" ||
+          data.status === "done"
+        ) {
           if (pollersRef.current[taskId]) {
             clearInterval(pollersRef.current[taskId] as number);
             pollersRef.current[taskId] = null;
-            setLoadingQuiz(false);
-            setQuiz(data.quiz as Quiz);
-            setShowQuiz(true);
+
+            // Store quiz for this specific lesson in ref
+            quizzesRef.current[lessonId] = data.quiz as Quiz;
+
+            setLoadingQuizForLesson(null);
+
+            // Remove task ID
+            setQuizTaskIds((prev) => {
+              const updated = { ...prev };
+              delete updated[lessonId];
+              return updated;
+            });
+
+            // Force re-render to show the quiz
+            triggerRerender();
           }
         } else if (data.status === "FAILURE") {
           if (pollersRef.current[taskId]) {
             clearInterval(pollersRef.current[taskId] as number);
             pollersRef.current[taskId] = null;
+            setLoadingQuizForLesson(null);
+
+            // Remove task ID
+            setQuizTaskIds((prev) => {
+              const updated = { ...prev };
+              delete updated[lessonId];
+              return updated;
+            });
           }
         }
       } catch (err) {
@@ -172,45 +272,89 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
     pollersRef.current[taskId] = id;
   };
 
+  // Cleanup pollers on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(pollersRef.current).forEach((id) => {
+        if (id) clearInterval(id);
+      });
+    };
+  }, []);
+
   // Determine what to show next: lesson or module
   const isLastLesson = currentLessonIndex === module.lessons.length - 1;
   const showNextModule = isLastLesson && moduleComplete && nextModule;
-  const showNextLesson = !isLastLesson && lesson.status === "COMPLETED" && nextLesson;
+  const showNextLesson =
+    !isLastLesson && lesson.status === "COMPLETED" && nextLesson;
+
+  // Check if the current lesson is generating
+  const currentLessonKey = `${module.id}-${lesson.id}`;
+  const isCurrentLessonGenerating = generatingLessonKey === currentLessonKey;
+  const shouldTriggerGeneration = triggerGenerationKey === currentLessonKey;
 
   return (
-    <Box
-      ref={contentRef}
-      w="100%"
-      overflowY="auto"
-      p={{ base: 4, md: 1 }}
-    >
-      <Box maxW="10xl" mx="auto">
+    <Box ref={contentRef} w="100%" overflowY="auto" minH="100vh" py={{ base: 1, md: 1 }}>
+      <Box maxW="1400px" mx="auto" px={{ base: 1, md: 1 }}>
         <VStack align="stretch" gap={3}>
-          {/* Combined Header Card with Stats and Actions */}
-          <Card.Root>
-            <Card.Body>
-              <VStack align="stretch" gap={4}>
-                {/* Top Row: Title, Stats, Badge */}
-                <HStack justify="space-between" align="start" flexWrap="wrap" gap={4}>
-                  <VStack align="start" gap={1} flex="1" minW="200px">
-                    <HStack>
-                      <BookOpen className="w-5 h-5 text-teal-500" />
-                      <Text fontSize="sm" fontWeight="medium" color="gray.500">
-                        Module {currentModuleIndex + 1} of {courseState.modules.length}
-                      </Text>
+          {/* Modern Header Card */}
+          <Card.Root
+            bg={cardBg}
+            borderWidth="1px"
+            borderColor={cardBorderColor}
+            boxShadow="sm"
+          >
+            <Card.Body p={6}>
+              <VStack align="stretch" gap={5}>
+                {/* Top Row: Title & Badge */}
+                <HStack
+                  justify="space-between"
+                  align="start"
+                  flexWrap="wrap"
+                  gap={4}
+                >
+                  <VStack align="start" gap={2} flex="1" minW="250px">
+                    <HStack gap={2}>
+                      <Box p={2} borderRadius="lg" bg={highlightBg}>
+                        <BookOpen size={18} color="#14b8a6" />
+                      </Box>
+                      <VStack align="start" gap={0}>
+                        <Text
+                          fontSize="xs"
+                          color={mutedText}
+                          fontWeight="600"
+                          textTransform="uppercase"
+                          letterSpacing="wide"
+                        >
+                          Module {currentModuleIndex + 1} of {courseState.modules.length}
+                        </Text>
+                      </VStack>
                     </HStack>
-                    <Heading size="xl" color="gray.800" _dark={{ color: "white" }}>
+                    <Heading
+                      fontSize={{ base: "2xl", md: "3xl" }}
+                      fontWeight="800"
+                      color={headingColor}
+                      lineHeight="1.2"
+                    >
                       {module.title}
                     </Heading>
-                    <Text fontSize="sm" color="gray.500">
+                    <Text fontSize="sm" color={mutedText} fontWeight="500">
                       Lesson {currentLessonIndex + 1} of {module.lessons.length}
                     </Text>
                   </VStack>
 
                   {moduleComplete && (
-                    <Badge colorPalette="green" size="lg" px={3} py={1} alignSelf="center">
-                      <HStack gap={1}>
-                        <Trophy className="w-4 h-4" />
+                    <Badge
+                      colorPalette="green"
+                      fontSize="xs"
+                      px={3}
+                      py={1.5}
+                      borderRadius="lg"
+                      textTransform="uppercase"
+                      letterSpacing="wide"
+                      fontWeight="700"
+                    >
+                      <HStack gap={1.5}>
+                        <Trophy size={14} />
                         <Text>Completed</Text>
                       </HStack>
                     </Badge>
@@ -218,20 +362,23 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
                 </HStack>
 
                 {/* Divider */}
-                <Box h="1px" bg="gray.200" _dark={{ bg: "gray.700" }} />
+                <Box h="1px" bg={cardBorderColor} />
 
                 {/* Action Row */}
                 <HStack justify="space-between" flexWrap="wrap" gap={3}>
-                  <HStack gap={2} flexWrap="wrap">
-                    {isGeneratingLesson ? (
+                  <HStack gap={3} flexWrap="wrap">
+                    {isCurrentLessonGenerating ? (
                       <Button
                         disabled
                         size="md"
-                        colorScheme="teal"
-                        variant="surface"
+                        colorPalette="teal"
+                        variant="solid"
+                        borderRadius="xl"
+                        px={5}
+                        opacity={0.7}
                       >
                         <Spinner size="sm" mr={2} />
-                        Generating Content...
+                        <Text fontWeight="600">Generating Content...</Text>
                       </Button>
                     ) : (
                       <Button
@@ -239,21 +386,34 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
                         size="md"
                         colorPalette="teal"
                         variant="outline"
+                        borderRadius="xl"
+                        borderWidth="1.5px"
+                        px={5}
+                        _hover={{
+                          transform: "translateY(-2px)",
+                          boxShadow: "md",
+                        }}
+                        transition="all 0.2s"
                       >
-                        <Sparkles className="w-4 h-4 mr-2" />
-                        {lesson.content ? "Regenerate Content" : "Generate Content"}
+                        <Sparkles size={16} style={{ marginRight: "8px" }} />
+                        <Text fontWeight="600">
+                          {lesson.content ? "Regenerate Content" : "Generate Content"}
+                        </Text>
                       </Button>
                     )}
 
-                    {loadingQuiz ? (
+                    {isLoadingCurrentQuiz ? (
                       <Button
                         disabled
                         size="md"
                         colorPalette="purple"
-                        variant="outline"
+                        variant="solid"
+                        borderRadius="xl"
+                        px={5}
+                        opacity={0.7}
                       >
                         <Spinner size="sm" mr={2} />
-                        Generating Quiz...
+                        <Text fontWeight="600">Generating Quiz...</Text>
                       </Button>
                     ) : (
                       <Button
@@ -261,9 +421,19 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
                         size="md"
                         colorPalette="purple"
                         variant="outline"
+                        borderRadius="xl"
+                        borderWidth="1.5px"
+                        px={5}
+                        _hover={{
+                          transform: "translateY(-2px)",
+                          boxShadow: "md",
+                        }}
+                        transition="all 0.2s"
                       >
-                        <Brain className="w-4 h-4 mr-2" />
-                        Generate Quiz
+                        <Brain size={16} style={{ marginRight: "8px" }} />
+                        <Text fontWeight="600">
+                          {currentLessonQuiz ? "Regenerate Quiz" : "Generate Quiz"}
+                        </Text>
                       </Button>
                     )}
 
@@ -275,16 +445,33 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
                       size="md"
                       colorPalette="blue"
                       variant="outline"
+                      borderRadius="xl"
+                      borderWidth="1.5px"
+                      px={5}
+                      _hover={{
+                        transform: "translateY(-2px)",
+                        boxShadow: "md",
+                      }}
+                      transition="all 0.2s"
                     >
-                      <MessageCircle className="w-4 h-4 mr-2" />
-                      Ask AI Buddy
+                      <MessageCircle size={16} style={{ marginRight: "8px" }} />
+                      <Text fontWeight="600">Ask AI Buddy</Text>
                     </Button>
                   </HStack>
 
                   {lesson.status === "COMPLETED" && (
-                    <Badge colorPalette="green" size="lg" px={3}>
-                      <HStack gap={1}>
-                        <CheckCircle2 className="w-4 h-4" />
+                    <Badge
+                      colorPalette="green"
+                      fontSize="xs"
+                      px={3}
+                      py={1.5}
+                      borderRadius="lg"
+                      textTransform="uppercase"
+                      letterSpacing="wide"
+                      fontWeight="700"
+                    >
+                      <HStack gap={1.5}>
+                        <CheckCircle2 size={14} />
                         <Text>Lesson Complete</Text>
                       </HStack>
                     </Badge>
@@ -296,15 +483,21 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
 
           {/* Credit Info Alert */}
           {creditInfo && (
-            <Alert.Root status="info">
+            <Alert.Root
+              status="warning"
+              borderRadius="xl"
+              borderWidth="1px"
+              borderColor={useColorModeValue("orange.200", "orange.800")}
+            >
               <Alert.Indicator />
               <Box flex="1">
-                <Alert.Title>{creditInfo}</Alert.Title>
+                <Alert.Title fontWeight="700">{creditInfo}</Alert.Title>
               </Box>
               <Link
                 href="/upgrade"
-                fontWeight="semibold"
+                fontWeight="700"
                 color={tealTextColor}
+                _hover={{ textDecoration: "underline" }}
               >
                 Upgrade Now →
               </Link>
@@ -314,99 +507,152 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
           {/* Chat Box */}
           {openChatBox && (
             <ChatBox
+              ref={chatBoxRef}
               open={openChatBox}
               setOpenChatBox={setOpenChatBox}
               chatMessages={chatMessages}
               setChatMessages={setChatMessages}
+              sessionId={chatSessionId}
             />
           )}
 
           {/* Main Content */}
-          {!showQuiz && (
+          {!showCurrentQuiz && (
             <LessonCard
               courseState={courseState}
               setCourseState={setCourseState}
               lessonIndex={currentLessonIndex}
               moduleIndex={currentModuleIndex}
-              isGeneratingLesson={isGeneratingLesson}
-              setIsGeneratingLesson={setIsGeneratingLesson}
-              lessonGenerationTriggered={lessonGenerationTriggered}
-              setLessonGenerationTriggered={setLessonGenerationTriggered}
+              isGeneratingLesson={isCurrentLessonGenerating}
+              setIsGeneratingLesson={(isGenerating) => {
+                if (isGenerating) {
+                  setGeneratingLessonKey(currentLessonKey);
+                } else {
+                  setGeneratingLessonKey(null);
+                }
+              }}
+              lessonGenerationTriggered={shouldTriggerGeneration}
+              setLessonGenerationTriggered={(triggered) => {
+                if (!triggered) {
+                  setTriggerGenerationKey(null);
+                }
+              }}
+              onAskAI={handleAskAI}
             />
           )}
 
-          {showQuiz && quiz && (
-            <ModuleQuiz quiz={quiz} setShowQuiz={setShowQuiz} />
+          {showCurrentQuiz && currentLessonQuiz && (
+            <ModuleQuiz
+              quiz={currentLessonQuiz}
+              setShowQuiz={(show) => {
+                if (!show) {
+                  // When closing quiz, remove it from memory
+                  delete quizzesRef.current[lesson.id];
+                  triggerRerender();
+                }
+                setShowQuiz(show);
+              }}
+            />
           )}
 
-          {/* Unified Navigation Card (Previous & Next) */}
-          {!showQuiz && (currentLessonIndex > 0 || showNextLesson || showNextModule) && (
-            <Card.Root>
-              <Card.Body>
-                <HStack justify="space-between" gap={4} flexWrap="wrap">
-                  {/* Previous Lesson Button */}
-                  {currentLessonIndex > 0 && (
-                    <Button
-                      onClick={handlePrevLesson}
-                      variant="outline"
-                      size="lg"
-                    >
-                      <ChevronLeft className="w-4 h-4 mr-2" />
-                      Previous Lesson
-                    </Button>
-                  )}
+          {/* Navigation Card */}
+          {!showCurrentQuiz &&
+            (currentLessonIndex > 0 || showNextLesson || showNextModule) && (
+              <Card.Root
+                bg={cardBg}
+                borderRadius="2xl"
+                borderWidth="1px"
+                borderColor={cardBorderColor}
+                boxShadow="sm"
+              >
+                <Card.Body p={5}>
+                  <HStack justify="space-between" gap={4} flexWrap="wrap">
+                    {/* Previous Lesson Button */}
+                    {currentLessonIndex > 0 && (
+                      <Button
+                        onClick={handlePrevLesson}
+                        variant="outline"
+                        size="lg"
+                        borderRadius="xl"
+                        borderWidth="1.5px"
+                        px={5}
+                        _hover={{
+                          transform: "translateY(-2px)",
+                          boxShadow: "md",
+                        }}
+                        transition="all 0.2s"
+                      >
+                        <ChevronLeft size={18} style={{ marginRight: "8px" }} />
+                        <Text fontWeight="600">Previous Lesson</Text>
+                      </Button>
+                    )}
 
-                  {/* Next Content (Lesson or Module) */}
-                  {(showNextLesson || showNextModule) && (
-                    <Box
-                      as="button"
-                      onClick={() => {
-                        if (showNextLesson) {
-                          onLessonChange(currentLessonIndex + 1, currentModuleIndex);
-                        } else if (showNextModule) {
-                          onLessonChange(0, currentModuleIndex + 1);
-                        }
-                      }}
-                      flex="1"
-                      minW="250px"
-                      p={4}
-                      bg="teal.50"
-                      _dark={{ bg: "teal.900/20" }}
-                      borderRadius="md"
-                      borderLeftWidth="3px"
-                      borderLeftColor="teal.500"
-                      _hover={{
-                        bg: "teal.100",
-                        _dark: { bg: "teal.900/30" },
-                        transform: "translateX(4px)"
-                      }}
-                      transition="all 0.2s"
-                      textAlign="left"
-                    >
-                      <VStack align="start" gap={1}>
-                        <HStack>
-                          {showNextModule ? (
-                            <Sparkles className="w-4 h-4 text-teal-500" />
-                          ) : (
-                            <ArrowRight className="w-4 h-4 text-teal-500" />
-                          )}
-                          <Text fontSize="xs" color="gray.600" _dark={{ color: "gray.400" }}>
-                            {showNextModule ? "Upcoming Module" : "Next Lesson"}
-                          </Text>
-                        </HStack>
-                        <HStack justify="space-between" w="full">
-                          <Text fontWeight="semibold" color="gray.800" _dark={{ color: "white" }}>
-                            {showNextModule ? nextModule.title : nextLesson.title}
-                          </Text>
-                          <ChevronRight className="w-5 h-5 text-teal-500 flex-shrink-0" />
-                        </HStack>
-                      </VStack>
-                    </Box>
-                  )}
-                </HStack>
-              </Card.Body>
-            </Card.Root>
-          )}
+                    {/* Next Content (Lesson or Module) */}
+                    {(showNextLesson || showNextModule) && (
+                      <Box
+                        as="button"
+                        onClick={() => {
+                          if (showNextLesson) {
+                            onLessonChange(
+                              currentLessonIndex + 1,
+                              currentModuleIndex,
+                            );
+                          } else if (showNextModule) {
+                            onLessonChange(0, currentModuleIndex + 1);
+                          }
+                        }}
+                        flex="1"
+                        minW="280px"
+                        p={5}
+                        bg={highlightBg}
+                        borderRadius="xl"
+                        borderWidth="2px"
+                        borderColor="transparent"
+                        borderLeftColor="teal.500"
+                        _hover={{
+                          bg: useColorModeValue("teal.100", "teal.900/30"),
+                          transform: "translateX(4px)",
+                          boxShadow: "md",
+                        }}
+                        transition="all 0.2s"
+                        textAlign="left"
+                      >
+                        <VStack align="start" gap={2}>
+                          <HStack gap={2}>
+                            {showNextModule ? (
+                              <Sparkles size={16} color="#14b8a6" />
+                            ) : (
+                              <ArrowRight size={16} color="#14b8a6" />
+                            )}
+                            <Text
+                              fontSize="xs"
+                              color={mutedText}
+                              fontWeight="700"
+                              textTransform="uppercase"
+                              letterSpacing="wide"
+                            >
+                              {showNextModule ? "Upcoming Module" : "Next Lesson"}
+                            </Text>
+                          </HStack>
+                          <HStack justify="space-between" w="full">
+                            <Text
+                              fontWeight="700"
+                              fontSize="md"
+                              color={headingColor}
+                            >
+                              {showNextModule
+                                ? nextModule.title
+                                : nextLesson.title}
+                            </Text>
+                            <ChevronRight size={20} color="#14b8a6" style={{ flexShrink: 0 }} />
+                          </HStack>
+                        </VStack>
+                      </Box>
+                    )}
+                  </HStack>
+                </Card.Body>
+              </Card.Root>
+            )}
         </VStack>
       </Box>
     </Box>

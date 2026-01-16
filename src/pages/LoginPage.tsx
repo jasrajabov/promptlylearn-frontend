@@ -43,8 +43,8 @@ export default function AuthPage() {
   // Handle OAuth callback
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const token = params.get('token');
-    const errorParam = params.get('error');
+    const token = params.get("token");
+    const errorParam = params.get("error");
 
     if (token) {
       handleOAuthSuccess(token);
@@ -64,9 +64,9 @@ export default function AuthPage() {
       // The refresh token is already set as a cookie by the backend
       const response = await fetch(`${BACKEND_URL}/authentication/me`, {
         headers: {
-          'Authorization': `Bearer ${accessToken}`
+          Authorization: `Bearer ${accessToken}`,
         },
-        credentials: 'include'
+        credentials: "include",
       });
 
       if (!response.ok) {
@@ -114,16 +114,15 @@ export default function AuthPage() {
       localStorage.setItem("user", JSON.stringify(userObj));
 
       // Clean up URL
-      window.history.replaceState({}, '', '/login');
+      window.history.replaceState({}, "", "/login");
 
       setMessage("Login successful!");
 
       // Reload to trigger UserContext to pick up the user from localStorage
       // This matches how your UserContext loads user on mount
-      window.location.href = '/';
-
+      window.location.href = "/";
     } catch (err) {
-      console.error('OAuth error:', err);
+      console.error("OAuth error:", err);
       setError("Authentication failed. Please try again.");
       setLoading(false);
     }
@@ -170,7 +169,7 @@ export default function AuthPage() {
     }
   };
 
-  const handleOAuthLogin = (provider: 'google' | 'github') => {
+  const handleOAuthLogin = (provider: "google" | "github") => {
     // Redirect to backend OAuth endpoint
     window.location.href = `${BACKEND_URL}/authentication/${provider}`;
   };
@@ -212,7 +211,7 @@ export default function AuthPage() {
         <Button
           w="full"
           variant="outline"
-          onClick={() => handleOAuthLogin('google')}
+          onClick={() => handleOAuthLogin("google")}
           colorScheme="red"
           size="lg"
           disabled={loading}
@@ -223,7 +222,7 @@ export default function AuthPage() {
         <Button
           w="full"
           variant="outline"
-          onClick={() => handleOAuthLogin('github')}
+          onClick={() => handleOAuthLogin("github")}
           colorScheme="gray"
           size="lg"
           disabled={loading}

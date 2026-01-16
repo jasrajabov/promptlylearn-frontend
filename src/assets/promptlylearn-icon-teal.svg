@@ -1,0 +1,107 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#000000;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1F2937;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="tealGradIcon" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#14B8A6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#06B6D4;stop-opacity:1" />
+    </linearGradient>
+    
+    <radialGradient id="nodeGlowIcon">
+      <stop offset="0%" style="stop-color:#14B8A6;stop-opacity:0.6" />
+      <stop offset="100%" style="stop-color:#14B8A6;stop-opacity:0" />
+    </radialGradient>
+    
+    <filter id="glowIcon">
+      <feGaussianBlur stdDeviation="5" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="512" height="512" fill="url(#bgGrad)" rx="100"/>
+  
+  <!-- Network icon centered -->
+  <g transform="translate(256, 256)">
+    <!-- Outer glow -->
+    <circle cx="0" cy="0" r="140" fill="url(#nodeGlowIcon)"/>
+    
+    <!-- Outer nodes (6 nodes) -->
+    <g opacity="0.9">
+      <circle cx="0" cy="-110" r="14" fill="#14B8A6"/>
+      <line x1="0" y1="0" x2="0" y2="-110" stroke="url(#tealGradIcon)" stroke-width="4" opacity="0.6"/>
+      
+      <circle cx="95" cy="-55" r="14" fill="#06B6D4"/>
+      <line x1="0" y1="0" x2="95" y2="-55" stroke="url(#tealGradIcon)" stroke-width="4" opacity="0.6"/>
+      
+      <circle cx="95" cy="55" r="14" fill="#14B8A6"/>
+      <line x1="0" y1="0" x2="95" y2="55" stroke="url(#tealGradIcon)" stroke-width="4" opacity="0.6"/>
+      
+      <circle cx="0" cy="110" r="14" fill="#06B6D4"/>
+      <line x1="0" y1="0" x2="0" y2="110" stroke="url(#tealGradIcon)" stroke-width="4" opacity="0.6"/>
+      
+      <circle cx="-95" cy="55" r="14" fill="#14B8A6"/>
+      <line x1="0" y1="0" x2="-95" y2="55" stroke="url(#tealGradIcon)" stroke-width="4" opacity="0.6"/>
+      
+      <circle cx="-95" cy="-55" r="14" fill="#06B6D4"/>
+      <line x1="0" y1="0" x2="-95" y2="-55" stroke="url(#tealGradIcon)" stroke-width="4" opacity="0.6"/>
+    </g>
+    
+    <!-- Web connections -->
+    <g opacity="0.4" stroke="url(#tealGradIcon)" stroke-width="3">
+      <line x1="0" y1="-110" x2="95" y2="-55"/>
+      <line x1="95" y1="-55" x2="95" y2="55"/>
+      <line x1="95" y1="55" x2="0" y2="110"/>
+      <line x1="0" y1="110" x2="-95" y2="55"/>
+      <line x1="-95" y1="55" x2="-95" y2="-55"/>
+      <line x1="-95" y1="-55" x2="0" y2="-110"/>
+    </g>
+    
+    <!-- Inner nodes -->
+    <g opacity="0.95">
+      <circle cx="0" cy="-50" r="10" fill="#14B8A6"/>
+      <line x1="0" y1="0" x2="0" y2="-50" stroke="url(#tealGradIcon)" stroke-width="5" opacity="0.7"/>
+      
+      <circle cx="50" cy="0" r="10" fill="#06B6D4"/>
+      <line x1="0" y1="0" x2="50" y2="0" stroke="url(#tealGradIcon)" stroke-width="5" opacity="0.7"/>
+      
+      <circle cx="0" cy="50" r="10" fill="#14B8A6"/>
+      <line x1="0" y1="0" x2="0" y2="50" stroke="url(#tealGradIcon)" stroke-width="5" opacity="0.7"/>
+      
+      <circle cx="-50" cy="0" r="10" fill="#06B6D4"/>
+      <line x1="0" y1="0" x2="-50" y2="0" stroke="url(#tealGradIcon)" stroke-width="5" opacity="0.7"/>
+    </g>
+    
+    <!-- Center core -->
+    <circle cx="0" cy="0" r="20" fill="url(#tealGradIcon)" filter="url(#glowIcon)"/>
+    <circle cx="0" cy="0" r="12" fill="white" opacity="0.95"/>
+    
+    <!-- Orbital ring -->
+    <circle cx="0" cy="0" r="120" fill="none" stroke="url(#tealGradIcon)" stroke-width="4" opacity="0.3" stroke-dasharray="10,10">
+      <animateTransform
+        attributeName="transform"
+        type="rotate"
+        from="0 0 0"
+        to="360 0 0"
+        dur="20s"
+        repeatCount="indefinite"/>
+    </circle>
+    
+    <!-- Text "PL" monogram at bottom -->
+    <text x="0" y="180" 
+          font-family="'Inter', 'Poppins', sans-serif" 
+          font-size="48" 
+          font-weight="800" 
+          fill="white"
+          text-anchor="middle"
+          letter-spacing="2">
+      PL
+    </text>
+  </g>
+</svg>

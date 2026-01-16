@@ -17,12 +17,19 @@ import {
   Separator,
   IconButton,
 } from "@chakra-ui/react";
-import { FaSun, FaMoon, FaBars, FaTimes, FaUser, FaSignOutAlt } from "react-icons/fa";
+import {
+  FaSun,
+  FaMoon,
+  FaBars,
+  FaTimes,
+  FaUser,
+  FaSignOutAlt,
+} from "react-icons/fa";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useUser } from "../contexts/UserContext";
 import { useColorModeValue, useColorMode } from "../components/ui/color-mode";
-import promptlyLeanrnLogoDark from "../assets/pl-logo-dark.png";
-import promptlyLeanrnLogoLight from "../assets/pl-logo-light.png";
+import promptlyLeanrnLogoDark from "../assets/promptlylearn-teal-v1.svg";
+import promptlyLeanrnLogoLight from "../assets/promptlylearn-teal-light.svg";
 import { FaSignInAlt } from "react-icons/fa";
 import { type User } from "../types";
 import { Badge } from "@chakra-ui/react";
@@ -30,12 +37,12 @@ import { HiStar } from "react-icons/hi";
 import { BiSolidCoinStack } from "react-icons/bi";
 import { BookOpen, Map, Shield } from "lucide-react";
 
-const NavItem: React.FC<{ label: string; onClick: () => void; active?: boolean; icon?: React.ReactNode }> = ({
-  label,
-  onClick,
-  active = false,
-  icon,
-}) => {
+const NavItem: React.FC<{
+  label: string;
+  onClick: () => void;
+  active?: boolean;
+  icon?: React.ReactNode;
+}> = ({ label, onClick, active = false, icon }) => {
   const hoverBg = useColorModeValue("gray.100", "gray.900");
   const activeBg = useColorModeValue("teal.50", "teal.900/30");
   const activeColor = useColorModeValue("teal.600", "teal.300");
@@ -69,7 +76,10 @@ const Header: React.FC = () => {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const currentUser = user as User | undefined;
-  const logo = useColorModeValue(promptlyLeanrnLogoLight, promptlyLeanrnLogoDark);
+  const logo = useColorModeValue(
+    promptlyLeanrnLogoLight,
+    promptlyLeanrnLogoDark,
+  );
   const bg = useColorModeValue("white", "black");
   const border = useColorModeValue("gray.200", "gray.700");
   const mobileBg = useColorModeValue("gray.50", "gray.850");
@@ -79,7 +89,10 @@ const Header: React.FC = () => {
   const isMobile = useBreakpointValue({ base: true, md: false });
 
   // Check if user is admin (adjust property name based on your User type)
-  const isAdmin = (currentUser as any)?.isAdmin || (currentUser as any)?.role === "ADMIN" || (currentUser as any)?.role === "SUPER_ADMIN";
+  const isAdmin =
+    (currentUser as any)?.isAdmin ||
+    (currentUser as any)?.role === "ADMIN" ||
+    (currentUser as any)?.role === "SUPER_ADMIN";
   console.log("user", currentUser, "isAdmin", isAdmin);
 
   const handleNavClick = (path: string) => {
@@ -184,7 +197,13 @@ const Header: React.FC = () => {
 
                   {/* Membership Badge */}
                   <Badge
-                    colorPalette={isAdmin ? "red" : currentUser.membership_plan === "premium" ? "purple" : "teal"}
+                    colorPalette={
+                      isAdmin
+                        ? "red"
+                        : currentUser.membership_plan === "premium"
+                          ? "purple"
+                          : "teal"
+                    }
                     variant="subtle"
                     px={2.5}
                     py={1}
@@ -212,10 +231,23 @@ const Header: React.FC = () => {
                   {/* User Menu */}
                   <Menu.Root positioning={{ placement: "bottom-end" }}>
                     <Menu.Trigger asChild>
-                      <Box cursor="pointer" transition="all 0.2s" _hover={{ opacity: 0.8 }}>
-                        <Avatar.Root size="sm" borderWidth="2px" borderColor="transparent" _hover={{ borderColor: "teal.400" }}>
-                          <Avatar.Fallback fontSize="xs">{currentUser?.name?.[0] ?? "?"}</Avatar.Fallback>
-                          <Avatar.Image src={currentUser?.avatar_url || undefined} />
+                      <Box
+                        cursor="pointer"
+                        transition="all 0.2s"
+                        _hover={{ opacity: 0.8 }}
+                      >
+                        <Avatar.Root
+                          size="sm"
+                          borderWidth="2px"
+                          borderColor="transparent"
+                          _hover={{ borderColor: "teal.400" }}
+                        >
+                          <Avatar.Fallback fontSize="xs">
+                            {currentUser?.name?.[0] ?? "?"}
+                          </Avatar.Fallback>
+                          <Avatar.Image
+                            src={currentUser?.avatar_url || undefined}
+                          />
                           <Float placement="bottom-end" offsetX="0" offsetY="0">
                             <Circle
                               bg="green.400"
@@ -230,18 +262,33 @@ const Header: React.FC = () => {
                     <Portal>
                       <Menu.Positioner>
                         <Menu.Content minW="200px">
-                          <Box px={3} py={2} borderBottomWidth="1px" borderColor={border}>
-                            <Text fontSize="sm" fontWeight="semibold">{currentUser.name}</Text>
-                            <Text fontSize="xs" color={subTextColor}>{currentUser.email}</Text>
+                          <Box
+                            px={3}
+                            py={2}
+                            borderBottomWidth="1px"
+                            borderColor={border}
+                          >
+                            <Text fontSize="sm" fontWeight="semibold">
+                              {currentUser.name}
+                            </Text>
+                            <Text fontSize="xs" color={subTextColor}>
+                              {currentUser.email}
+                            </Text>
                           </Box>
-                          <Menu.Item value="profile" onClick={() => navigate("/user-info")}>
+                          <Menu.Item
+                            value="profile"
+                            onClick={() => navigate("/user-info")}
+                          >
                             <HStack gap={2}>
                               <FaUser size={14} />
                               <Text>My Profile</Text>
                             </HStack>
                           </Menu.Item>
                           {isAdmin && (
-                            <Menu.Item value="admin" onClick={() => navigate("/admin")}>
+                            <Menu.Item
+                              value="admin"
+                              onClick={() => navigate("/admin")}
+                            >
                               <HStack gap={2}>
                                 <Shield size={14} />
                                 <Text>Admin Panel</Text>
@@ -249,7 +296,11 @@ const Header: React.FC = () => {
                             </Menu.Item>
                           )}
                           <Menu.Separator />
-                          <Menu.Item value="logout" onClick={logout} color="red.500">
+                          <Menu.Item
+                            value="logout"
+                            onClick={logout}
+                            color="red.500"
+                          >
                             <HStack gap={2}>
                               <FaSignOutAlt size={14} />
                               <Text>Logout</Text>
@@ -281,7 +332,11 @@ const Header: React.FC = () => {
                 onClick={toggleColorMode}
                 aria-label="Toggle theme"
               >
-                {colorMode === "light" ? <FaMoon size={14} /> : <FaSun size={14} />}
+                {colorMode === "light" ? (
+                  <FaMoon size={14} />
+                ) : (
+                  <FaSun size={14} />
+                )}
               </IconButton>
             </>
           )}
@@ -327,8 +382,12 @@ const Header: React.FC = () => {
                   >
                     <HStack gap={3} mb={3}>
                       <Avatar.Root size="lg">
-                        <Avatar.Fallback fontSize="md">{currentUser?.name?.[0] ?? "?"}</Avatar.Fallback>
-                        <Avatar.Image src={currentUser?.avatar_url || undefined} />
+                        <Avatar.Fallback fontSize="md">
+                          {currentUser?.name?.[0] ?? "?"}
+                        </Avatar.Fallback>
+                        <Avatar.Image
+                          src={currentUser?.avatar_url || undefined}
+                        />
                       </Avatar.Root>
                       <VStack gap={0.5} align="start" flex={1}>
                         <Text fontSize="md" fontWeight="bold">
@@ -343,7 +402,13 @@ const Header: React.FC = () => {
                     <HStack gap={2} justify="space-between">
                       <Badge
                         size="sm"
-                        colorPalette={isAdmin ? "red" : currentUser.membership_plan === "premium" ? "purple" : "teal"}
+                        colorPalette={
+                          isAdmin
+                            ? "red"
+                            : currentUser.membership_plan === "premium"
+                              ? "purple"
+                              : "teal"
+                        }
                         variant="subtle"
                         px={3}
                         py={1}
@@ -375,7 +440,9 @@ const Header: React.FC = () => {
                         >
                           <HStack gap={1.5}>
                             <BiSolidCoinStack size={14} />
-                            <Text fontWeight="bold">{currentUser.credits ?? 0}</Text>
+                            <Text fontWeight="bold">
+                              {currentUser.credits ?? 0}
+                            </Text>
                           </HStack>
                         </Badge>
                       )}
@@ -476,7 +543,11 @@ const Header: React.FC = () => {
                 px={3}
               >
                 <HStack gap={2}>
-                  {colorMode === "light" ? <FaMoon size={14} /> : <FaSun size={14} />}
+                  {colorMode === "light" ? (
+                    <FaMoon size={14} />
+                  ) : (
+                    <FaSun size={14} />
+                  )}
                   <Text>{colorMode === "light" ? "Dark" : "Light"} Mode</Text>
                 </HStack>
               </Button>
