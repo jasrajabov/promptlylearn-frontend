@@ -253,6 +253,7 @@ const AboutPage: React.FC = () => {
                                 fontSize={{ base: "lg", md: "xl" }}
                                 lineHeight="1.6"
                                 maxW="700px"
+                                color={mutedText}
                             >
                                 Transform the way you learn with AI-powered courses designed for
                                 the modern learner.

@@ -640,6 +640,7 @@ const UserCourses: React.FC = () => {
                                                                 letterSpacing="wide"
                                                                 fontWeight="700"
                                                                 flexShrink={0}
+                                                                variant="solid"
                                                             >
                                                                 <HStack gap={1}>
                                                                     <CheckCircle size={10} />
@@ -655,8 +656,9 @@ const UserCourses: React.FC = () => {
                                                                 borderRadius="md"
                                                                 fontWeight="700"
                                                                 flexShrink={0}
+                                                                variant="solid"
                                                             >
-                                                                {progress}%
+                                                                In Progress
                                                             </Badge>
                                                         ) : (
                                                             <Badge
@@ -669,6 +671,7 @@ const UserCourses: React.FC = () => {
                                                                 letterSpacing="wide"
                                                                 fontWeight="700"
                                                                 flexShrink={0}
+                                                                variant="solid"
                                                             >
                                                                 New
                                                             </Badge>

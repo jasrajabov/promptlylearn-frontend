@@ -1,0 +1,74 @@
+/* ============================================
+   STRIPE ELEMENTS CSS FIXES
+   ============================================
+   
+   Add this CSS to your global stylesheet or 
+   create a new file: src/stripe-fixes.css
+   and import it in your main App.tsx
+*/
+
+/* FIX 1: Ensure Stripe iframe is clickable and on top */
+.__PrivateStripeElement,
+.__PrivateStripeElement iframe {
+  height: 100% !important;
+  width: 100% !important;
+  z-index: 1 !important;
+  pointer-events: auto !important;
+}
+
+/* FIX 2: Ensure parent containers don't block clicks */
+.StripeElement {
+  position: relative !important;
+  pointer-events: auto !important;
+  z-index: 1 !important;
+}
+
+/* FIX 3: Make sure the payment element wrapper is interactive */
+[data-testid="payment-element"],
+#payment-element,
+#payment-element-test {
+  pointer-events: auto !important;
+  user-select: auto !important;
+}
+
+/* FIX 4: Ensure no overlay is covering the form */
+.StripeElement--webkit-autofill {
+  background: transparent !important;
+}
+
+/* FIX 5: Fix for dark mode issues */
+.StripeElement {
+  background-color: white !important;
+}
+
+/* FIX 6: Ensure minimum height for inputs */
+.StripeElement input {
+  min-height: 40px !important;
+}
+
+/* FIX 7: Remove any conflicting styles */
+.StripeElement * {
+  box-sizing: border-box !important;
+}
+
+/* ============================================
+   DEBUGGING: Temporarily add these to see the iframe
+   Remove once working
+   ============================================ */
+
+/* Uncomment to see Stripe iframe boundaries */
+/*
+.__PrivateStripeElement iframe {
+  border: 3px solid red !important;
+  background: yellow !important;
+  opacity: 0.5 !important;
+}
+*/
+
+/* ============================================
+   ALTERNATIVE: Inline styles approach
+   ============================================
+   
+   If the above doesn't work, add this directly
+   to your PaymentElement wrapper in the component:
+*/

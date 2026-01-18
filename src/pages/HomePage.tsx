@@ -13,6 +13,7 @@ import {
   Card,
   SimpleGrid,
   Container,
+  Badge
 } from "@chakra-ui/react";
 import { Fade, SlideFade, ScaleFade } from "@chakra-ui/transition";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -190,7 +191,7 @@ const HomePage: React.FC<HomePageProps> = ({ _mode = "course" }) => {
                   fontWeight="900"
                   bgGradient={gradientText}
                   bgClip="text"
-                  lineHeight="2.05"   // 👈 FIX
+                  lineHeight="1.15"
                   letterSpacing="-0.04em"
                   maxW="1000px"
                 >
@@ -200,6 +201,7 @@ const HomePage: React.FC<HomePageProps> = ({ _mode = "course" }) => {
                   fontSize={{ base: "lg", md: "xl" }}
                   maxW="600px"
                   lineHeight="1.6"
+                  color={mutedText}
                 >
                   Generate personalized learning paths in seconds.
                 </Text>
@@ -222,19 +224,22 @@ const HomePage: React.FC<HomePageProps> = ({ _mode = "course" }) => {
             whileHover={{ boxShadow: "0 12px 48px rgba(0, 0, 0, 0.12)" }}
             transition={{ duration: 0.3 } as any}
           >
-            <Card.Body p={{ base: 8, md: 12 }}>
-              <VStack gap={10} w="100%">
-                {/* Topic Input - Enhanced */}
+            <Card.Body p={{ base: 6, md: 10 }}>
+              <VStack gap={6} w="100%">
+                {/* Topic Input - Enhanced & Compact */}
                 <Box w="100%">
-                  <HStack mb={3} justify="space-between" align="center">
+                  <HStack mb={2} justify="space-between" align="center">
                     <Text
-                      fontSize="sm"
+                      fontSize="2xs"
                       fontWeight="700"
                       color={accentColor}
                       textTransform="uppercase"
-                      letterSpacing="wide"
+                      letterSpacing="wider"
                     >
                       Topic
+                    </Text>
+                    <Text fontSize="2xs" color={mutedText}>
+                      What would you like to learn?
                     </Text>
                   </HStack>
                   <Box position="relative">
@@ -243,14 +248,14 @@ const HomePage: React.FC<HomePageProps> = ({ _mode = "course" }) => {
                       value={topic}
                       size="lg"
                       onChange={(e) => setTopic(e.target.value)}
-                      height="64px"
+                      height="56px"
                       borderRadius="xl"
                       borderWidth="2px"
                       borderColor={topic ? accentColor : borderColor}
                       bg={cardBg}
                       _focus={{
                         borderColor: accentColor,
-                        boxShadow: `0 0 0 4px ${useColorModeValue("rgba(20, 184, 166, 0.1)", "rgba(20, 184, 166, 0.2)")}`,
+                        boxShadow: `0 0 0 3px ${useColorModeValue("rgba(20, 184, 166, 0.1)", "rgba(20, 184, 166, 0.2)")}`,
                         outline: "none",
                       }}
                       _hover={{
@@ -264,63 +269,60 @@ const HomePage: React.FC<HomePageProps> = ({ _mode = "course" }) => {
                     {topic && (
                       <Box
                         position="absolute"
-                        right={4}
+                        right={3}
                         top="50%"
                         transform="translateY(-50%)"
-                        p={2}
+                        p={1.5}
                         bg={highlightBg}
                         borderRadius="lg"
                       >
-                        <Text fontSize="lg">✓</Text>
+                        <Text fontSize="sm">✓</Text>
                       </Box>
                     )}
                   </Box>
-                  <Text fontSize="xs" color={mutedText} mt={2}>
-                    What skill or subject would you like to master?
-                  </Text>
                 </Box>
 
                 {/* Divider */}
                 <Box w="100%" h="1px" bg={borderColor} />
 
-                {/* Mode Tabs - Enhanced */}
+                {/* Mode Tabs - Enhanced & Compact */}
                 <Box w="100%">
-                  <HStack mb={3} justify="space-between" align="center">
+                  <HStack mb={2} justify="space-between" align="center">
                     <Text
-                      fontSize="sm"
+                      fontSize="2xs"
                       fontWeight="700"
                       color={accentColor}
                       textTransform="uppercase"
-                      letterSpacing="wide"
+                      letterSpacing="wider"
                     >
                       Format
                     </Text>
                   </HStack>
                   <SimpleGrid
-                    columns={{ base: 1, sm: 2, md: 4 }}
-                    gap={3}
+                    columns={{ base: 2, md: 4 }}
+                    gap={2.5}
                     w="100%"
                   >
                     {/* Main tabs */}
                     <Box
                       onClick={() => setMode("course")}
-                      px={4}
-                      py={3}
-                      borderRadius="xl"
+                      px={3}
+                      py={2.5}
+                      borderRadius="lg"
                       borderWidth="1.5px"
                       borderColor={
                         mode === "course" ? accentColor : borderColor
                       }
                       bg={mode === "course" ? highlightBg : cardBg}
                       cursor="pointer"
-                      transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+                      transition="all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
                       position="relative"
                       transform={
-                        mode === "course" ? "translateY(-2px)" : "none"
+                        mode === "course" ? "translateY(-1px)" : "none"
                       }
                       boxShadow={
                         mode === "course"
-                          ? "0 4px 12px rgba(20, 184, 166, 0.15)"
+                          ? "0 3px 10px rgba(20, 184, 166, 0.15)"
                           : "none"
                       }
                       _hover={{
@@ -332,8 +334,8 @@ const HomePage: React.FC<HomePageProps> = ({ _mode = "course" }) => {
                       }}
                     >
                       <HStack gap={2} justify="center">
-                        <BookOpen size={18} color="#F59E0B" />
-                        <Text fontWeight="600" fontSize="sm">
+                        <BookOpen size={16} color="#F59E0B" />
+                        <Text fontWeight="600" fontSize="xs">
                           Course
                         </Text>
                       </HStack>
@@ -341,23 +343,23 @@ const HomePage: React.FC<HomePageProps> = ({ _mode = "course" }) => {
 
                     <Box
                       onClick={() => setMode("roadmap")}
-                      px={4}
-                      py={3}
-                      borderRadius="xl"
+                      px={3}
+                      py={2.5}
+                      borderRadius="lg"
                       borderWidth="1.5px"
                       borderColor={
                         mode === "roadmap" ? accentColor : borderColor
                       }
                       bg={mode === "roadmap" ? highlightBg : cardBg}
                       cursor="pointer"
-                      transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+                      transition="all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
                       position="relative"
                       transform={
-                        mode === "roadmap" ? "translateY(-2px)" : "none"
+                        mode === "roadmap" ? "translateY(-1px)" : "none"
                       }
                       boxShadow={
                         mode === "roadmap"
-                          ? "0 4px 12px rgba(20, 184, 166, 0.15)"
+                          ? "0 3px 10px rgba(20, 184, 166, 0.15)"
                           : "none"
                       }
                       _hover={{
@@ -369,18 +371,18 @@ const HomePage: React.FC<HomePageProps> = ({ _mode = "course" }) => {
                       }}
                     >
                       <HStack gap={2} justify="center">
-                        <Rocket size={18} color="#10B981" />
-                        <Text fontWeight="600" fontSize="sm">
-                          Learning Track
+                        <Rocket size={16} color="#10B981" />
+                        <Text fontWeight="600" fontSize="xs">
+                          Track
                         </Text>
                       </HStack>
                     </Box>
 
                     {/* Coming Soon buttons */}
                     <Box
-                      px={4}
-                      py={3}
-                      borderRadius="xl"
+                      px={3}
+                      py={2.5}
+                      borderRadius="lg"
                       borderWidth="1.5px"
                       borderColor={borderColor}
                       bg={useColorModeValue("gray.50", "gray.800")}
@@ -389,31 +391,28 @@ const HomePage: React.FC<HomePageProps> = ({ _mode = "course" }) => {
                       position="relative"
                     >
                       <HStack gap={2} justify="center">
-                        <Code size={18} color="#8B5CF6" />
-                        <Text fontWeight="600" fontSize="sm">
+                        <Code size={16} color="#8B5CF6" />
+                        <Text fontWeight="600" fontSize="xs">
                           Playground
                         </Text>
                       </HStack>
-                      <Box
+                      <Badge
                         position="absolute"
-                        top="-8px"
-                        right="-8px"
-                        px={2}
-                        py={0.5}
+                        top="-6px"
+                        right="-6px"
                         bg="purple.500"
-                        color="white"
                         borderRadius="full"
-                        fontSize="2xs"
                         fontWeight="700"
+                        lineHeight="1"
                       >
-                        SOON
-                      </Box>
+                        Soon
+                      </Badge>
                     </Box>
 
                     <Box
-                      px={4}
-                      py={3}
-                      borderRadius="xl"
+                      px={3}
+                      py={2.5}
+                      borderRadius="lg"
                       borderWidth="1.5px"
                       borderColor={borderColor}
                       bg={useColorModeValue("gray.50", "gray.800")}
@@ -422,52 +421,49 @@ const HomePage: React.FC<HomePageProps> = ({ _mode = "course" }) => {
                       position="relative"
                     >
                       <HStack gap={2} justify="center">
-                        <Computer size={18} />
-                        <Text fontWeight="600" fontSize="sm">
+                        <Computer size={16} />
+                        <Text fontWeight="600" fontSize="xs">
                           Interview
                         </Text>
                       </HStack>
-                      <Box
+                      <Badge
                         position="absolute"
-                        top="-8px"
-                        right="-8px"
-                        px={2}
-                        py={0.5}
+                        top="-6px"
+                        right="-6px"
                         bg="purple.500"
-                        color="white"
                         borderRadius="full"
-                        fontSize="2xs"
                         fontWeight="700"
+                        lineHeight="1"
                       >
-                        SOON
-                      </Box>
+                        Soon
+                      </Badge>
                     </Box>
                   </SimpleGrid>
                 </Box>
 
-                {/* Course/Roadmap Content */}
+                {/* Course/Roadmap Content - More Compact */}
                 {mode === "course" && (
                   <Box w="100%">
-                    <Box w="100%" h="1px" bg={borderColor} mb={8} />
-                    <HStack mb={3} justify="space-between" align="center">
+                    <Box w="100%" h="1px" bg={borderColor} mb={4} />
+                    <HStack mb={2} justify="space-between" align="center">
                       <Text
-                        fontSize="sm"
+                        fontSize="2xs"
                         fontWeight="700"
                         color={accentColor}
                         textTransform="uppercase"
-                        letterSpacing="wide"
+                        letterSpacing="wider"
                       >
                         Skill Level
                       </Text>
                     </HStack>
-                    <SlideFade in={mode === "course"} offsetY="20px">
+                    <SlideFade in={mode === "course"} offsetY="15px">
                       <Box>
-                        <SimpleGrid columns={{ base: 1, md: 3 }} gap={4}>
+                        <SimpleGrid columns={{ base: 1, md: 3 }} gap={3}>
                           {levelItems.map((item) => (
                             <Box
                               key={item.value}
-                              p={5}
-                              borderRadius="xl"
+                              p={4}
+                              borderRadius="lg"
                               bg={level === item.value ? highlightBg : cardBg}
                               borderWidth="2px"
                               borderColor={
@@ -475,25 +471,28 @@ const HomePage: React.FC<HomePageProps> = ({ _mode = "course" }) => {
                               }
                               cursor="pointer"
                               onClick={() => setLevel(item.value)}
-                              transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+                              transition="all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
                               position="relative"
                               _hover={{
                                 borderColor: accentColor,
-                                transform: "translateY(-4px)",
+                                transform: "translateY(-2px)",
                                 boxShadow:
                                   level === item.value
-                                    ? "0 12px 24px rgba(20, 184, 166, 0.25)"
-                                    : "0 8px 16px rgba(0, 0, 0, 0.08)",
+                                    ? "0 8px 20px rgba(20, 184, 166, 0.2)"
+                                    : "0 4px 12px rgba(0, 0, 0, 0.06)",
+                              }}
+                              _active={{
+                                transform: "scale(0.98)",
                               }}
                             >
                               <VStack gap={2} align="center">
-                                <item.icon size={32} color={item.color} />
+                                <item.icon size={28} color={item.color} />
 
-                                <Text fontWeight="700" fontSize="md">
+                                <Text fontWeight="700" fontSize="sm">
                                   {item.label}
                                 </Text>
                                 <Text
-                                  fontSize="xs"
+                                  fontSize="2xs"
                                   color={mutedText}
                                   textAlign="center"
                                 >
@@ -510,35 +509,36 @@ const HomePage: React.FC<HomePageProps> = ({ _mode = "course" }) => {
 
                 {mode === "roadmap" && (
                   <Box w="100%">
-                    <Box w="100%" h="1px" bg={borderColor} mb={8} />
+                    <Box w="100%" h="1px" bg={borderColor} mb={4} />
                     <Fade in={mode === "roadmap"}>
                       <Box
-                        p={8}
+                        p={5}
                         bg={highlightBg}
-                        borderRadius="xl"
+                        borderRadius="lg"
                         borderWidth="2px"
                         borderColor={accentColor}
-                        boxShadow="0 4px 12px rgba(20, 184, 166, 0.1)"
+                        boxShadow="0 3px 10px rgba(20, 184, 166, 0.08)"
                       >
-                        <VStack gap={3}>
+                        <VStack gap={2.5}>
                           <Box
-                            p={3}
+                            p={2.5}
                             bg={useColorModeValue(
                               "teal.100",
                               "rgba(20, 184, 166, 0.2)",
                             )}
                             borderRadius="lg"
                           >
-                            <Rocket size={28} color="#14B8A6" />
+                            <Rocket size={24} color="#14B8A6" />
                           </Box>
-                          <Text fontWeight="700" color={accentColor}>
+                          <Text fontWeight="700" color={accentColor} fontSize="sm">
                             Complete Learning Path
                           </Text>
                           <Text
                             textAlign="center"
                             color={mutedText}
-                            fontSize="sm"
+                            fontSize="xs"
                             maxW="400px"
+                            lineHeight="1.5"
                           >
                             Get a comprehensive roadmap from fundamentals to
                             mastery with structured milestones
@@ -549,17 +549,17 @@ const HomePage: React.FC<HomePageProps> = ({ _mode = "course" }) => {
                   </Box>
                 )}
 
-                {/* Custom Prompt */}
+                {/* Custom Prompt - More Compact */}
                 <Box w="100%">
-                  <Box w="100%" h="1px" bg={borderColor} mb={6} />
+                  <Box w="100%" h="1px" bg={borderColor} mb={4} />
                   {!showAdvanced ? (
                     <Button
                       onClick={() => setShowAdvanced(true)}
                       variant="ghost"
-                      size="md"
-                      borderRadius="xl"
+                      size="sm"
+                      borderRadius="lg"
                       w="100%"
-                      py={6}
+                      py={4}
                       color={mutedText}
                       borderWidth="1.5px"
                       borderColor="transparent"
@@ -571,26 +571,26 @@ const HomePage: React.FC<HomePageProps> = ({ _mode = "course" }) => {
                       transition="all 0.2s"
                     >
                       <HStack gap={2}>
-                        <Text fontSize="sm" fontWeight="600">
-                          + Add custom instructions (optional)
+                        <Text fontSize="xs" fontWeight="600">
+                          + Custom instructions (optional)
                         </Text>
                       </HStack>
                     </Button>
                   ) : (
                     <ScaleFade in={showAdvanced}>
                       <Box>
-                        <HStack justify="space-between" mb={3}>
+                        <HStack justify="space-between" mb={2}>
                           <Text
-                            fontSize="sm"
+                            fontSize="2xs"
                             fontWeight="700"
                             color={accentColor}
                             textTransform="uppercase"
-                            letterSpacing="wide"
+                            letterSpacing="wider"
                           >
                             Custom Instructions
                           </Text>
                           <Button
-                            size="sm"
+                            size="xs"
                             variant="ghost"
                             onClick={() => {
                               setShowAdvanced(false);
@@ -598,10 +598,10 @@ const HomePage: React.FC<HomePageProps> = ({ _mode = "course" }) => {
                             }}
                             color={mutedText}
                             _hover={{ color: "red.500" }}
-                            px={3}
+                            px={2}
                             py={1}
                           >
-                            <Text fontSize="xs" fontWeight="600">
+                            <Text fontSize="2xs" fontWeight="600">
                               Remove
                             </Text>
                           </Button>
@@ -610,16 +610,16 @@ const HomePage: React.FC<HomePageProps> = ({ _mode = "course" }) => {
                           placeholder="Add specific requirements...&#10;• Focus on practical projects&#10;• Include video tutorials&#10;• Emphasize real-world applications"
                           value={customPrompt}
                           onChange={(e) => setCustomPrompt(e.target.value)}
-                          size="md"
-                          rows={5}
-                          borderRadius="xl"
+                          size="sm"
+                          rows={4}
+                          borderRadius="lg"
                           borderWidth="2px"
                           borderColor={borderColor}
                           bg={cardBg}
-                          fontSize="sm"
+                          fontSize="xs"
                           _focus={{
                             borderColor: accentColor,
-                            boxShadow: `0 0 0 4px ${useColorModeValue("rgba(20, 184, 166, 0.1)", "rgba(20, 184, 166, 0.2)")}`,
+                            boxShadow: `0 0 0 3px ${useColorModeValue("rgba(20, 184, 166, 0.1)", "rgba(20, 184, 166, 0.2)")}`,
                           }}
                           _hover={{
                             borderColor: useColorModeValue(
@@ -629,27 +629,27 @@ const HomePage: React.FC<HomePageProps> = ({ _mode = "course" }) => {
                           }}
                           transition="all 0.2s"
                           resize="none"
+                          lineHeight="1.5"
                         />
-                        <Text fontSize="xs" color={mutedText} mt={2}>
-                          Help AI understand your specific learning goals and
-                          preferences
+                        <Text fontSize="2xs" color={mutedText} mt={1.5}>
+                          Customize your learning path with specific goals
                         </Text>
                       </Box>
                     </ScaleFade>
                   )}
                 </Box>
 
-                {/* Generate Button */}
+                {/* Generate Button - Slightly Smaller */}
                 <Box w="100%" pt={2}>
                   <Button
                     colorPalette="teal"
                     size="lg"
                     width="100%"
-                    height="64px"
+                    height="56px"
                     borderRadius="xl"
                     onClick={handleGenerate}
                     disabled={!topic || loading}
-                    fontSize="md"
+                    fontSize="sm"
                     fontWeight="700"
                     bgGradient="linear(to-r, teal.500, cyan.500)"
                     boxShadow="0 4px 14px rgba(20, 184, 166, 0.2)"
@@ -668,10 +668,10 @@ const HomePage: React.FC<HomePageProps> = ({ _mode = "course" }) => {
                       transform: "none",
                       boxShadow: "none",
                     }}
-                    transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+                    transition="all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
                   >
                     {loading ? (
-                      <HStack gap={3}>
+                      <HStack gap={2}>
                         <Spinner size="sm" />
                         <Text>
                           Generating your{" "}
@@ -679,12 +679,12 @@ const HomePage: React.FC<HomePageProps> = ({ _mode = "course" }) => {
                         </Text>
                       </HStack>
                     ) : (
-                      <HStack gap={3}>
+                      <HStack gap={2}>
                         <Text>
                           Generate{" "}
                           {mode === "course" ? "Course" : "Learning Track"}
                         </Text>
-                        <ArrowRight size={20} />
+                        <ArrowRight size={18} />
                       </HStack>
                     )}
                   </Button>
@@ -703,8 +703,8 @@ const HomePage: React.FC<HomePageProps> = ({ _mode = "course" }) => {
             </Card.Body>
           </MotionCard>
         </MotionBox>
-      </Container>
-    </Box>
+      </Container >
+    </Box >
   );
 };
 

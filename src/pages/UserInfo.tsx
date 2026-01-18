@@ -16,7 +16,6 @@ import {
   Grid,
   Icon,
   Stack,
-  Tabs,
 } from "@chakra-ui/react";
 import { toaster as toast } from "../components/ui/toaster";
 import { motion } from "framer-motion";
@@ -95,19 +94,22 @@ export default function UserInfoPage() {
 
   const cardBg = useColorModeValue("white", "gray.950");
   const borderColor = useColorModeValue("gray.200", "gray.700");
-  const accentColor = useColorModeValue("teal.500", "teal.400");
-  const adminAccentColor = useColorModeValue("red.500", "red.400");
+  const accentColor = useColorModeValue("teal.600", "teal.400");
+  const adminAccentColor = useColorModeValue("red.600", "red.400");
   const mutedText = useColorModeValue("gray.600", "gray.400");
-  const hoverBg = useColorModeValue("gray.50", "gray.750");
+  const hoverBg = useColorModeValue("gray.50", "gray.900");
+  const highlightBg = useColorModeValue("teal.50", "rgba(20, 184, 166, 0.1)");
+  const adminHighlightBg = useColorModeValue("red.50", "rgba(239, 68, 68, 0.1)");
+
+  const gradientText = useColorModeValue(
+    "linear-gradient(135deg, #0D9488 0%, #14B8A6 50%, #06B6D4 100%)",
+    "linear-gradient(135deg, #14B8A6 0%, #2DD4BF 50%, #5EEAD4 100%)",
+  );
 
   const isAdmin =
     (userData as any)?.isAdmin ||
     (userData as any)?.role === "ADMIN" ||
     (userData as any)?.role === "SUPER_ADMIN";
-
-  useEffect(() => {
-    console.log("showDeleteDialog state:", showDeleteDialog);
-  }, [showDeleteDialog]);
 
   useEffect(() => {
     if (!user) {
@@ -125,14 +127,6 @@ export default function UserInfoPage() {
       const refreshData = async () => {
         await refreshUser();
         await fetchUserData();
-
-        toast.create({
-          title: "Membership cancelled",
-          description:
-            "Your premium membership has been cancelled successfully",
-          type: "success",
-          duration: 3000,
-        });
 
         setCancellationSuccess(false);
       };
@@ -170,7 +164,6 @@ export default function UserInfoPage() {
 
   const fetchAdminStats = async () => {
     try {
-      // Mock admin stats - replace with actual API call
       setAdminStats({
         totalCourses: 156,
         totalUsers: 2847,
@@ -183,7 +176,6 @@ export default function UserInfoPage() {
   };
 
   const handleDeleteSuccess = () => {
-    // Clear user data and redirect to home
     localStorage.removeItem("user");
     window.location.href = "/";
   };
@@ -272,7 +264,7 @@ export default function UserInfoPage() {
 
   if (loading) {
     return (
-      <Container maxW="7xl" py={8}>
+      <Container maxW="7xl" py={12}>
         <VStack gap={3}>
           <Spinner size="lg" color="teal.500" />
           <Text fontSize="sm" color={mutedText}>
@@ -285,20 +277,20 @@ export default function UserInfoPage() {
 
   if (!userData) {
     return (
-      <Container maxW="7xl" py={8}>
+      <Container maxW="7xl" py={12}>
         <Text>Unable to load user data</Text>
       </Container>
     );
   }
 
   return (
-    <Container maxW="7xl" py={6}>
+    <Container maxW="7xl" py={8}>
       <MotionBox
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: 0.5 } as any}
       >
-        <VStack gap={4} align="stretch">
+        <VStack gap={5} align="stretch">
           {/* Header with Admin Badge */}
           <Stack
             direction={{ base: "column", md: "row" }}
@@ -306,8 +298,18 @@ export default function UserInfoPage() {
             align={{ base: "stretch", md: "center" }}
             gap={3}
           >
-            <HStack gap={2}>
-              <Heading size="xl">My Profile</Heading>
+            <HStack gap={2.5}>
+              <Heading
+                fontSize={{ base: "2xl", md: "4xl" }}
+                fontWeight="900"
+                bgGradient={gradientText}
+                bgClip="text"
+                lineHeight="2.05"
+                letterSpacing="-0.04em"
+                maxW="1000px"
+              >
+                My Profile
+              </Heading>
               {isAdmin && (
                 <Badge
                   colorPalette="red"
@@ -315,7 +317,7 @@ export default function UserInfoPage() {
                   px={2.5}
                   py={1}
                   borderRadius="full"
-                  fontSize="xs"
+                  fontSize="2xs"
                   fontWeight="bold"
                 >
                   <HStack gap={1}>
@@ -330,13 +332,19 @@ export default function UserInfoPage() {
                 colorPalette={isAdmin ? "red" : "teal"}
                 onClick={() => setIsEditing(true)}
                 size="sm"
+                borderRadius="lg"
               >
                 <Settings size={16} />
                 Edit Profile
               </Button>
             ) : (
-              <HStack>
-                <Button variant="outline" onClick={handleCancel} size="sm">
+              <HStack gap={2}>
+                <Button
+                  variant="outline"
+                  onClick={handleCancel}
+                  size="sm"
+                  borderRadius="lg"
+                >
                   Cancel
                 </Button>
                 <Button
@@ -344,6 +352,7 @@ export default function UserInfoPage() {
                   onClick={handleSave}
                   loading={saving}
                   size="sm"
+                  borderRadius="lg"
                 >
                   <CheckCircle size={16} />
                   Save Changes
@@ -357,19 +366,20 @@ export default function UserInfoPage() {
             <MotionBox
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.2 }}
+              transition={{ delay: 0.2 } as any}
             >
               <Card.Root
                 bg={cardBg}
                 borderWidth="2px"
                 borderColor={adminAccentColor}
-                boxShadow="md"
+                borderRadius="xl"
+                boxShadow="0 4px 12px rgba(239, 68, 68, 0.1)"
               >
-                <Card.Body p={4}>
-                  <VStack align="stretch" gap={3}>
+                <Card.Body p={5}>
+                  <VStack align="stretch" gap={4}>
                     <HStack justify="space-between">
                       <HStack gap={2}>
-                        <Icon fontSize="lg" color={adminAccentColor}>
+                        <Icon fontSize="xl" color={adminAccentColor}>
                           <Activity />
                         </Icon>
                         <Heading size="md">Admin Dashboard</Heading>
@@ -379,6 +389,7 @@ export default function UserInfoPage() {
                         variant="outline"
                         colorPalette="red"
                         onClick={() => navigate("/admin")}
+                        borderRadius="lg"
                       >
                         Full Dashboard →
                       </Button>
@@ -393,24 +404,24 @@ export default function UserInfoPage() {
                       gap={3}
                     >
                       <Box
-                        p={3}
-                        borderRadius="md"
-                        bg={hoverBg}
-                        borderWidth="1px"
+                        p={4}
+                        borderRadius="lg"
+                        bg={adminHighlightBg}
+                        borderWidth="2px"
                         borderColor={borderColor}
                         transition="all 0.2s"
-                        _hover={{ transform: "translateY(-2px)", shadow: "sm" }}
+                        _hover={{
+                          transform: "translateY(-2px)",
+                          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.06)",
+                          borderColor: adminAccentColor,
+                        }}
                       >
-                        <HStack gap={2} mb={1}>
-                          <Icon color="blue.500" fontSize="md">
+                        <HStack gap={2} mb={2}>
+                          <Icon color="blue.500" fontSize="lg">
                             <Database />
                           </Icon>
-                          <Text
-                            fontSize="xs"
-                            fontWeight="medium"
-                            color={mutedText}
-                          >
-                            Total Courses
+                          <Text fontSize="2xs" fontWeight="bold" color={mutedText}>
+                            TOTAL COURSES
                           </Text>
                         </HStack>
                         <Text fontSize="2xl" fontWeight="bold">
@@ -419,24 +430,24 @@ export default function UserInfoPage() {
                       </Box>
 
                       <Box
-                        p={3}
-                        borderRadius="md"
-                        bg={hoverBg}
-                        borderWidth="1px"
+                        p={4}
+                        borderRadius="lg"
+                        bg={adminHighlightBg}
+                        borderWidth="2px"
                         borderColor={borderColor}
                         transition="all 0.2s"
-                        _hover={{ transform: "translateY(-2px)", shadow: "sm" }}
+                        _hover={{
+                          transform: "translateY(-2px)",
+                          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.06)",
+                          borderColor: adminAccentColor,
+                        }}
                       >
-                        <HStack gap={2} mb={1}>
-                          <Icon color="purple.500" fontSize="md">
+                        <HStack gap={2} mb={2}>
+                          <Icon color="purple.500" fontSize="lg">
                             <User />
                           </Icon>
-                          <Text
-                            fontSize="xs"
-                            fontWeight="medium"
-                            color={mutedText}
-                          >
-                            Total Users
+                          <Text fontSize="2xs" fontWeight="bold" color={mutedText}>
+                            TOTAL USERS
                           </Text>
                         </HStack>
                         <Text fontSize="2xl" fontWeight="bold">
@@ -445,24 +456,24 @@ export default function UserInfoPage() {
                       </Box>
 
                       <Box
-                        p={3}
-                        borderRadius="md"
-                        bg={hoverBg}
-                        borderWidth="1px"
+                        p={4}
+                        borderRadius="lg"
+                        bg={adminHighlightBg}
+                        borderWidth="2px"
                         borderColor={borderColor}
                         transition="all 0.2s"
-                        _hover={{ transform: "translateY(-2px)", shadow: "sm" }}
+                        _hover={{
+                          transform: "translateY(-2px)",
+                          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.06)",
+                          borderColor: adminAccentColor,
+                        }}
                       >
-                        <HStack gap={2} mb={1}>
-                          <Icon color="green.500" fontSize="md">
+                        <HStack gap={2} mb={2}>
+                          <Icon color="green.500" fontSize="lg">
                             <TrendingUp />
                           </Icon>
-                          <Text
-                            fontSize="xs"
-                            fontWeight="medium"
-                            color={mutedText}
-                          >
-                            Active Subs
+                          <Text fontSize="2xs" fontWeight="bold" color={mutedText}>
+                            ACTIVE SUBS
                           </Text>
                         </HStack>
                         <Text fontSize="2xl" fontWeight="bold">
@@ -471,28 +482,28 @@ export default function UserInfoPage() {
                       </Box>
 
                       <Box
-                        p={3}
-                        borderRadius="md"
-                        bg={hoverBg}
-                        borderWidth="1px"
+                        p={4}
+                        borderRadius="lg"
+                        bg={adminHighlightBg}
+                        borderWidth="2px"
                         borderColor={borderColor}
                         transition="all 0.2s"
-                        _hover={{ transform: "translateY(-2px)", shadow: "sm" }}
+                        _hover={{
+                          transform: "translateY(-2px)",
+                          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.06)",
+                          borderColor: adminAccentColor,
+                        }}
                       >
-                        <HStack gap={2} mb={1}>
-                          <Icon color="teal.500" fontSize="md">
+                        <HStack gap={2} mb={2}>
+                          <Icon color="teal.500" fontSize="lg">
                             <Activity />
                           </Icon>
-                          <Text
-                            fontSize="xs"
-                            fontWeight="medium"
-                            color={mutedText}
-                          >
-                            System Health
+                          <Text fontSize="2xs" fontWeight="bold" color={mutedText}>
+                            SYSTEM HEALTH
                           </Text>
                         </HStack>
                         <HStack>
-                          <Text fontSize="xl" fontWeight="bold">
+                          <Text fontSize="lg" fontWeight="bold">
                             {adminStats.systemHealth}
                           </Text>
                           <CheckCircle size={16} color="green" />
@@ -505,14 +516,20 @@ export default function UserInfoPage() {
             </MotionBox>
           )}
 
-          <Grid templateColumns={{ base: "1fr", lg: "2fr 1fr" }} gap={4}>
+          <Grid templateColumns={{ base: "1fr", lg: "2fr 1fr" }} gap={5}>
             {/* Personal Information */}
-            <Card.Root bg={cardBg} borderWidth="1px" borderColor={borderColor}>
-              <Card.Body p={4}>
-                <VStack align="stretch" gap={3}>
+            <Card.Root
+              bg={cardBg}
+              borderWidth="1px"
+              borderColor={borderColor}
+              borderRadius="xl"
+              boxShadow="0 2px 8px rgba(0, 0, 0, 0.04)"
+            >
+              <Card.Body p={5}>
+                <VStack align="stretch" gap={4}>
                   <HStack gap={2}>
                     <Icon
-                      fontSize="lg"
+                      fontSize="xl"
                       color={isAdmin ? adminAccentColor : accentColor}
                     >
                       <User />
@@ -522,15 +539,26 @@ export default function UserInfoPage() {
 
                   {/* Name */}
                   <Box
-                    p={3}
-                    borderRadius="md"
+                    p={3.5}
+                    borderRadius="lg"
                     bg={hoverBg}
                     borderWidth="1px"
                     borderColor={borderColor}
+                    transition="all 0.2s"
+                    _hover={
+                      !isEditing
+                        ? {
+                          bg: isAdmin ? adminHighlightBg : highlightBg,
+                          borderColor: isAdmin
+                            ? adminAccentColor
+                            : accentColor,
+                        }
+                        : {}
+                    }
                   >
-                    <HStack align="start" gap={2}>
+                    <HStack align="start" gap={3}>
                       <Icon
-                        fontSize="md"
+                        fontSize="lg"
                         color={isAdmin ? adminAccentColor : accentColor}
                         mt={0.5}
                       >
@@ -538,10 +566,12 @@ export default function UserInfoPage() {
                       </Icon>
                       <Box flex={1}>
                         <Text
-                          fontWeight="semibold"
-                          mb={1}
-                          fontSize="xs"
+                          fontWeight="bold"
+                          mb={1.5}
+                          fontSize="2xs"
                           color={mutedText}
+                          textTransform="uppercase"
+                          letterSpacing="wider"
                         >
                           Full Name
                         </Text>
@@ -551,6 +581,13 @@ export default function UserInfoPage() {
                             onChange={(e) => setEditName(e.target.value)}
                             placeholder="Enter your name"
                             size="sm"
+                            borderRadius="lg"
+                            borderWidth="2px"
+                            _focus={{
+                              borderColor: isAdmin
+                                ? adminAccentColor
+                                : accentColor,
+                            }}
                           />
                         ) : (
                           <Text fontSize="sm" fontWeight="medium">
@@ -563,15 +600,20 @@ export default function UserInfoPage() {
 
                   {/* Email */}
                   <Box
-                    p={3}
-                    borderRadius="md"
+                    p={3.5}
+                    borderRadius="lg"
                     bg={hoverBg}
                     borderWidth="1px"
                     borderColor={borderColor}
+                    transition="all 0.2s"
+                    _hover={{
+                      bg: isAdmin ? adminHighlightBg : highlightBg,
+                      borderColor: isAdmin ? adminAccentColor : accentColor,
+                    }}
                   >
-                    <HStack align="start" gap={2}>
+                    <HStack align="start" gap={3}>
                       <Icon
-                        fontSize="md"
+                        fontSize="lg"
                         color={isAdmin ? adminAccentColor : accentColor}
                         mt={0.5}
                       >
@@ -579,10 +621,12 @@ export default function UserInfoPage() {
                       </Icon>
                       <Box flex={1}>
                         <Text
-                          fontWeight="semibold"
-                          mb={1}
-                          fontSize="xs"
+                          fontWeight="bold"
+                          mb={1.5}
+                          fontSize="2xs"
                           color={mutedText}
+                          textTransform="uppercase"
+                          letterSpacing="wider"
                         >
                           Email Address
                         </Text>
@@ -599,15 +643,26 @@ export default function UserInfoPage() {
 
                   {/* Phone */}
                   <Box
-                    p={3}
-                    borderRadius="md"
+                    p={3.5}
+                    borderRadius="lg"
                     bg={hoverBg}
                     borderWidth="1px"
                     borderColor={borderColor}
+                    transition="all 0.2s"
+                    _hover={
+                      !isEditing
+                        ? {
+                          bg: isAdmin ? adminHighlightBg : highlightBg,
+                          borderColor: isAdmin
+                            ? adminAccentColor
+                            : accentColor,
+                        }
+                        : {}
+                    }
                   >
-                    <HStack align="start" gap={2}>
+                    <HStack align="start" gap={3}>
                       <Icon
-                        fontSize="md"
+                        fontSize="lg"
                         color={isAdmin ? adminAccentColor : accentColor}
                         mt={0.5}
                       >
@@ -615,10 +670,12 @@ export default function UserInfoPage() {
                       </Icon>
                       <Box flex={1}>
                         <Text
-                          fontWeight="semibold"
-                          mb={1}
-                          fontSize="xs"
+                          fontWeight="bold"
+                          mb={1.5}
+                          fontSize="2xs"
                           color={mutedText}
+                          textTransform="uppercase"
+                          letterSpacing="wider"
                         >
                           Phone Number
                         </Text>
@@ -629,6 +686,13 @@ export default function UserInfoPage() {
                             placeholder="Enter your phone number"
                             type="tel"
                             size="sm"
+                            borderRadius="lg"
+                            borderWidth="2px"
+                            _focus={{
+                              borderColor: isAdmin
+                                ? adminAccentColor
+                                : accentColor,
+                            }}
                           />
                         ) : (
                           <Text fontSize="sm" fontWeight="medium">
@@ -641,15 +705,26 @@ export default function UserInfoPage() {
 
                   {/* Organization */}
                   <Box
-                    p={3}
-                    borderRadius="md"
+                    p={3.5}
+                    borderRadius="lg"
                     bg={hoverBg}
                     borderWidth="1px"
                     borderColor={borderColor}
+                    transition="all 0.2s"
+                    _hover={
+                      !isEditing
+                        ? {
+                          bg: isAdmin ? adminHighlightBg : highlightBg,
+                          borderColor: isAdmin
+                            ? adminAccentColor
+                            : accentColor,
+                        }
+                        : {}
+                    }
                   >
-                    <HStack align="start" gap={2}>
+                    <HStack align="start" gap={3}>
                       <Icon
-                        fontSize="md"
+                        fontSize="lg"
                         color={isAdmin ? adminAccentColor : accentColor}
                         mt={0.5}
                       >
@@ -657,10 +732,12 @@ export default function UserInfoPage() {
                       </Icon>
                       <Box flex={1}>
                         <Text
-                          fontWeight="semibold"
-                          mb={1}
-                          fontSize="xs"
+                          fontWeight="bold"
+                          mb={1.5}
+                          fontSize="2xs"
                           color={mutedText}
+                          textTransform="uppercase"
+                          letterSpacing="wider"
                         >
                           Company/School
                         </Text>
@@ -672,6 +749,13 @@ export default function UserInfoPage() {
                             }
                             placeholder="Enter your company or school"
                             size="sm"
+                            borderRadius="lg"
+                            borderWidth="2px"
+                            _focus={{
+                              borderColor: isAdmin
+                                ? adminAccentColor
+                                : accentColor,
+                            }}
                           />
                         ) : (
                           <Text fontSize="sm" fontWeight="medium">
@@ -685,15 +769,26 @@ export default function UserInfoPage() {
 
                   {/* Role */}
                   <Box
-                    p={3}
-                    borderRadius="md"
+                    p={3.5}
+                    borderRadius="lg"
                     bg={hoverBg}
                     borderWidth="1px"
                     borderColor={borderColor}
+                    transition="all 0.2s"
+                    _hover={
+                      !isEditing
+                        ? {
+                          bg: isAdmin ? adminHighlightBg : highlightBg,
+                          borderColor: isAdmin
+                            ? adminAccentColor
+                            : accentColor,
+                        }
+                        : {}
+                    }
                   >
-                    <HStack align="start" gap={2}>
+                    <HStack align="start" gap={3}>
                       <Icon
-                        fontSize="md"
+                        fontSize="lg"
                         color={isAdmin ? adminAccentColor : accentColor}
                         mt={0.5}
                       >
@@ -701,10 +796,12 @@ export default function UserInfoPage() {
                       </Icon>
                       <Box flex={1}>
                         <Text
-                          fontWeight="semibold"
-                          mb={1}
-                          fontSize="xs"
+                          fontWeight="bold"
+                          mb={1.5}
+                          fontSize="2xs"
                           color={mutedText}
+                          textTransform="uppercase"
+                          letterSpacing="wider"
                         >
                           Role/Position
                         </Text>
@@ -714,6 +811,13 @@ export default function UserInfoPage() {
                             onChange={(e) => setEditRole(e.target.value)}
                             placeholder="Enter your role"
                             size="sm"
+                            borderRadius="lg"
+                            borderWidth="2px"
+                            _focus={{
+                              borderColor: isAdmin
+                                ? adminAccentColor
+                                : accentColor,
+                            }}
                           />
                         ) : (
                           <Text fontSize="sm" fontWeight="medium">
@@ -728,21 +832,25 @@ export default function UserInfoPage() {
             </Card.Root>
 
             {/* Sidebar */}
-            <VStack gap={4} align="stretch">
+            <VStack gap={5} align="stretch">
               {/* Membership Status */}
               <Card.Root
                 bg={cardBg}
-                borderWidth="1px"
-                borderColor={borderColor}
-                borderLeftWidth={isAdmin ? "4px" : "1px"}
-                borderLeftColor={isAdmin ? adminAccentColor : borderColor}
+                borderWidth="2px"
+                borderColor={isAdmin ? adminAccentColor : accentColor}
+                borderRadius="xl"
+                boxShadow={
+                  isAdmin
+                    ? "0 4px 12px rgba(239, 68, 68, 0.1)"
+                    : "0 4px 12px rgba(20, 184, 166, 0.1)"
+                }
               >
-                <Card.Body p={4}>
-                  <VStack align="stretch" gap={3}>
+                <Card.Body p={5}>
+                  <VStack align="stretch" gap={4}>
                     <HStack justify="space-between">
-                      <HStack gap={1.5}>
+                      <HStack gap={2}>
                         <Icon
-                          fontSize="md"
+                          fontSize="lg"
                           color={isAdmin ? adminAccentColor : "purple.500"}
                         >
                           {isAdmin ? <Shield /> : <Award />}
@@ -753,7 +861,7 @@ export default function UserInfoPage() {
                         colorPalette={getMembershipStatusColor(
                           userData.membership_status,
                         )}
-                        fontSize="xs"
+                        fontSize="2xs"
                         px={2}
                         py={0.5}
                         borderRadius="full"
@@ -765,23 +873,25 @@ export default function UserInfoPage() {
                     </HStack>
 
                     <Box
-                      p={2.5}
-                      borderRadius="md"
-                      bg={hoverBg}
+                      p={3}
+                      borderRadius="lg"
+                      bg={isAdmin ? adminHighlightBg : highlightBg}
                       borderWidth="1px"
                       borderColor={borderColor}
                     >
-                      <HStack gap={2} mb={0.5}>
+                      <HStack gap={2} mb={1}>
                         <Icon
-                          fontSize="sm"
+                          fontSize="md"
                           color={isAdmin ? adminAccentColor : "purple.500"}
                         >
                           {isAdmin ? <Shield /> : <Award />}
                         </Icon>
                         <Text
-                          fontWeight="semibold"
-                          fontSize="xs"
+                          fontWeight="bold"
+                          fontSize="2xs"
                           color={mutedText}
+                          textTransform="uppercase"
+                          letterSpacing="wider"
                         >
                           Plan Type
                         </Text>
@@ -798,20 +908,22 @@ export default function UserInfoPage() {
 
                     {!isAdmin && (
                       <Box
-                        p={2.5}
-                        borderRadius="md"
-                        bg={hoverBg}
+                        p={3}
+                        borderRadius="lg"
+                        bg={highlightBg}
                         borderWidth="1px"
                         borderColor={borderColor}
                       >
-                        <HStack gap={2} mb={0.5}>
-                          <Icon fontSize="sm" color="purple.500">
+                        <HStack gap={2} mb={1}>
+                          <Icon fontSize="md" color="purple.500">
                             <Calendar />
                           </Icon>
                           <Text
-                            fontWeight="semibold"
-                            fontSize="xs"
+                            fontWeight="bold"
+                            fontSize="2xs"
                             color={mutedText}
+                            textTransform="uppercase"
+                            letterSpacing="wider"
                           >
                             Active Until
                           </Text>
@@ -822,37 +934,37 @@ export default function UserInfoPage() {
                       </Box>
                     )}
 
-                    <HStack>
-                      {!isAdmin &&
+                    {!isAdmin &&
                       userData.membership_plan === "premium" &&
                       userData.membership_status === "ACTIVE" ? (
+                      <Button
+                        onClick={() => setShowCancellationHandler(true)}
+                        size="sm"
+                        variant="outline"
+                        colorPalette="red"
+                        width="full"
+                        borderRadius="lg"
+                      >
+                        <AlertCircle size={14} />
+                        Cancel Membership
+                      </Button>
+                    ) : (
+                      !isAdmin &&
+                      (userData.membership_status !== "ACTIVE" ||
+                        userData.membership_plan === "free") && (
                         <Button
-                          onClick={() => setShowCancellationHandler(true)}
-                          size="xs"
-                          variant="outline"
-                          colorPalette="red"
+                          onClick={() => navigate("/upgrade")}
+                          size="sm"
+                          colorPalette="teal"
+                          variant="solid"
                           width="full"
+                          borderRadius="lg"
                         >
-                          <AlertCircle size={14} />
-                          Cancel Membership
+                          <TrendingUp size={14} />
+                          Upgrade to Premium
                         </Button>
-                      ) : (
-                        !isAdmin &&
-                        (userData.membership_status !== "ACTIVE" ||
-                          userData.membership_plan === "free") && (
-                          <Button
-                            onClick={() => navigate("/upgrade")}
-                            size="xs"
-                            colorPalette="teal"
-                            variant="solid"
-                            width="full"
-                          >
-                            <TrendingUp size={14} />
-                            Upgrade to Premium
-                          </Button>
-                        )
-                      )}
-                    </HStack>
+                      )
+                    )}
                   </VStack>
                 </Card.Body>
               </Card.Root>
@@ -863,11 +975,13 @@ export default function UserInfoPage() {
                   bg={cardBg}
                   borderWidth="1px"
                   borderColor={borderColor}
+                  borderRadius="xl"
+                  boxShadow="0 2px 8px rgba(0, 0, 0, 0.04)"
                 >
-                  <Card.Body p={4}>
-                    <VStack align="stretch" gap={3}>
-                      <HStack gap={1.5}>
-                        <Icon fontSize="md" color={accentColor}>
+                  <Card.Body p={5}>
+                    <VStack align="stretch" gap={4}>
+                      <HStack gap={2}>
+                        <Icon fontSize="lg" color={accentColor}>
                           <CreditCard />
                         </Icon>
                         <Heading size="sm">Credits</Heading>
@@ -876,11 +990,11 @@ export default function UserInfoPage() {
                       {userData.membership_plan === "free" ? (
                         <>
                           <Box
-                            p={3}
-                            borderRadius="md"
-                            bg={hoverBg}
-                            borderWidth="1px"
-                            borderColor={borderColor}
+                            p={4}
+                            borderRadius="lg"
+                            bg={highlightBg}
+                            borderWidth="2px"
+                            borderColor={accentColor}
                             textAlign="center"
                           >
                             <Text
@@ -892,30 +1006,34 @@ export default function UserInfoPage() {
                               {userData.credits}
                             </Text>
                             <Text
-                              fontSize="xs"
+                              fontSize="2xs"
                               color={mutedText}
-                              mt={1}
-                              fontWeight="medium"
+                              mt={2}
+                              fontWeight="bold"
+                              textTransform="uppercase"
+                              letterSpacing="wider"
                             >
                               Available Credits
                             </Text>
                           </Box>
 
                           <Box
-                            p={2.5}
-                            borderRadius="md"
+                            p={3}
+                            borderRadius="lg"
                             bg={hoverBg}
                             borderWidth="1px"
                             borderColor={borderColor}
                           >
-                            <HStack gap={2} mb={0.5}>
-                              <Icon fontSize="sm" color={accentColor}>
+                            <HStack gap={2} mb={1}>
+                              <Icon fontSize="md" color={accentColor}>
                                 <Clock />
                               </Icon>
                               <Text
-                                fontWeight="semibold"
-                                fontSize="xs"
+                                fontWeight="bold"
+                                fontSize="2xs"
                                 color={mutedText}
+                                textTransform="uppercase"
+                                letterSpacing="wider"
                               >
                                 Resets On
                               </Text>
@@ -927,22 +1045,26 @@ export default function UserInfoPage() {
                         </>
                       ) : (
                         <Box
-                          p={3}
-                          borderRadius="md"
-                          bg={hoverBg}
-                          borderWidth="1px"
-                          borderColor={borderColor}
+                          p={4}
+                          borderRadius="lg"
+                          bg={highlightBg}
+                          borderWidth="2px"
+                          borderColor={accentColor}
                           textAlign="center"
                         >
                           <CheckCircle
-                            size={36}
-                            style={{ margin: "0 auto", marginBottom: "8px" }}
-                            color="green"
+                            size={40}
+                            style={{ margin: "0 auto", marginBottom: "12px" }}
+                            color="#14B8A6"
                           />
                           <Text fontWeight="bold" fontSize="md" mb={1}>
                             Unlimited Credits
                           </Text>
-                          <Text color={mutedText} fontSize="xs">
+                          <Text
+                            color={mutedText}
+                            fontSize="xs"
+                            fontWeight="medium"
+                          >
                             Premium benefits active
                           </Text>
                         </Box>
@@ -958,24 +1080,26 @@ export default function UserInfoPage() {
                   bg={cardBg}
                   borderWidth="2px"
                   borderColor={adminAccentColor}
+                  borderRadius="xl"
+                  boxShadow="0 4px 12px rgba(239, 68, 68, 0.1)"
                 >
-                  <Card.Body p={4}>
-                    <VStack align="stretch" gap={3}>
-                      <HStack gap={1.5}>
-                        <Icon fontSize="md" color={adminAccentColor}>
+                  <Card.Body p={5}>
+                    <VStack align="stretch" gap={4}>
+                      <HStack gap={2}>
+                        <Icon fontSize="lg" color={adminAccentColor}>
                           <Shield />
                         </Icon>
                         <Heading size="sm">Admin Privileges</Heading>
                       </HStack>
 
                       <Box
-                        p={2.5}
-                        borderRadius="md"
-                        bg={hoverBg}
+                        p={3}
+                        borderRadius="lg"
+                        bg={adminHighlightBg}
                         borderWidth="1px"
                         borderColor={borderColor}
                       >
-                        <VStack align="start" gap={1.5}>
+                        <VStack align="start" gap={2}>
                           <HStack>
                             <CheckCircle size={14} color="green" />
                             <Text fontSize="xs" fontWeight="medium">
@@ -1009,6 +1133,7 @@ export default function UserInfoPage() {
                         onClick={() => navigate("/admin")}
                         width="full"
                         size="sm"
+                        borderRadius="lg"
                       >
                         <Settings size={14} />
                         Open Admin Panel
@@ -1021,26 +1146,39 @@ export default function UserInfoPage() {
           </Grid>
 
           {/* Account Details */}
-          <Card.Root bg={cardBg} borderWidth="1px" borderColor={borderColor}>
-            <Card.Body p={4}>
-              <VStack align="stretch" gap={3}>
+          <Card.Root
+            bg={cardBg}
+            borderWidth="1px"
+            borderColor={borderColor}
+            borderRadius="xl"
+            boxShadow="0 2px 8px rgba(0, 0, 0, 0.04)"
+          >
+            <Card.Body p={5}>
+              <VStack align="stretch" gap={4}>
                 <Heading size="sm">Account Details</Heading>
                 <Grid
                   templateColumns={{ base: "1fr", md: "repeat(3, 1fr)" }}
                   gap={3}
                 >
                   <Box
-                    p={2.5}
-                    borderRadius="md"
+                    p={3}
+                    borderRadius="lg"
                     bg={hoverBg}
                     borderWidth="1px"
                     borderColor={borderColor}
+                    transition="all 0.2s"
+                    _hover={{
+                      bg: isAdmin ? adminHighlightBg : highlightBg,
+                      borderColor: isAdmin ? adminAccentColor : accentColor,
+                    }}
                   >
                     <Text
-                      fontWeight="semibold"
-                      fontSize="xs"
+                      fontWeight="bold"
+                      fontSize="2xs"
                       color={mutedText}
-                      mb={1}
+                      mb={1.5}
+                      textTransform="uppercase"
+                      letterSpacing="wider"
                     >
                       Account ID
                     </Text>
@@ -1050,17 +1188,24 @@ export default function UserInfoPage() {
                   </Box>
                   {userData.created_at && (
                     <Box
-                      p={2.5}
-                      borderRadius="md"
+                      p={3}
+                      borderRadius="lg"
                       bg={hoverBg}
                       borderWidth="1px"
                       borderColor={borderColor}
+                      transition="all 0.2s"
+                      _hover={{
+                        bg: isAdmin ? adminHighlightBg : highlightBg,
+                        borderColor: isAdmin ? adminAccentColor : accentColor,
+                      }}
                     >
                       <Text
-                        fontWeight="semibold"
-                        fontSize="xs"
+                        fontWeight="bold"
+                        fontSize="2xs"
                         color={mutedText}
-                        mb={1}
+                        mb={1.5}
+                        textTransform="uppercase"
+                        letterSpacing="wider"
                       >
                         Member Since
                       </Text>
@@ -1071,17 +1216,24 @@ export default function UserInfoPage() {
                   )}
                   {userData.last_login && (
                     <Box
-                      p={2.5}
-                      borderRadius="md"
+                      p={3}
+                      borderRadius="lg"
                       bg={hoverBg}
                       borderWidth="1px"
                       borderColor={borderColor}
+                      transition="all 0.2s"
+                      _hover={{
+                        bg: isAdmin ? adminHighlightBg : highlightBg,
+                        borderColor: isAdmin ? adminAccentColor : accentColor,
+                      }}
                     >
                       <Text
-                        fontWeight="semibold"
-                        fontSize="xs"
+                        fontWeight="bold"
+                        fontSize="2xs"
                         color={mutedText}
-                        mb={1}
+                        mb={1.5}
+                        textTransform="uppercase"
+                        letterSpacing="wider"
                       >
                         Last Login
                       </Text>
@@ -1094,41 +1246,48 @@ export default function UserInfoPage() {
               </VStack>
             </Card.Body>
           </Card.Root>
+
+          {/* Danger Zone */}
+          {!isAdmin && (
+            <Card.Root
+              bg={cardBg}
+              borderWidth="2px"
+              borderColor="red.500"
+              borderRadius="xl"
+              boxShadow="0 4px 12px rgba(239, 68, 68, 0.1)"
+            >
+              <Card.Body p={5}>
+                <VStack align="stretch" gap={3}>
+                  <HStack gap={2}>
+                    <Icon fontSize="lg" color="red.500">
+                      <AlertCircle />
+                    </Icon>
+                    <Heading size="sm" color="red.500">
+                      Danger Zone
+                    </Heading>
+                  </HStack>
+
+                  <Text fontSize="sm" color={mutedText}>
+                    Once you delete your account, there is no going back. Please
+                    be certain.
+                  </Text>
+
+                  <Button
+                    colorPalette="red"
+                    variant="outline"
+                    onClick={() => setShowDeleteDialog(true)}
+                    size="sm"
+                    borderRadius="lg"
+                  >
+                    <Trash2 size={16} />
+                    Delete Account
+                  </Button>
+                </VStack>
+              </Card.Body>
+            </Card.Root>
+          )}
         </VStack>
       </MotionBox>
-
-      {/* Danger Zone */}
-      {!isAdmin && (
-        <Card.Root bg={cardBg} borderWidth="2px" borderColor="red.500">
-          <Card.Body p={4}>
-            <VStack align="stretch" gap={3}>
-              <HStack gap={2}>
-                <Icon fontSize="lg" color="red.500">
-                  <AlertCircle />
-                </Icon>
-                <Heading size="sm" color="red.500">
-                  Danger Zone
-                </Heading>
-              </HStack>
-
-              <Text fontSize="sm" color={mutedText}>
-                Once you delete your account, there is no going back. Please be
-                certain.
-              </Text>
-
-              <Button
-                colorPalette="red"
-                variant="outline"
-                onClick={() => setShowDeleteDialog(true)}
-                size="sm"
-              >
-                <Trash2 size={16} />
-                Delete Account
-              </Button>
-            </VStack>
-          </Card.Body>
-        </Card.Root>
-      )}
 
       {/* Delete Account Dialog */}
       <DeleteAccountDialog

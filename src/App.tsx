@@ -10,11 +10,12 @@ import { Provider } from "./components/ui/provider";
 import UserCourses from "./pages/UserCourses";
 import UserRoadmaps from "./pages/UserRoadmaps";
 import TrackRoadmap from "./pages/RoadmapPage";
-import PaymentStepper from "./pages/PaymentsPage";
+import UpgradePage from "./pages/UpgradePage";
 import AboutPage from "./pages/About";
 import RequireAuth from "./pages/RequireAuth";
 import UserInfoPage from "./pages/UserInfo";
 import AdminDashboard from "./pages/AdminPage";
+import LogoShowcase from "./pages/ShowCase"
 
 const App: React.FC = () => {
   return (
@@ -34,11 +35,12 @@ const App: React.FC = () => {
               <Route path="/my-courses" element={<UserCourses />} />
               <Route path="/my-roadmaps" element={<UserRoadmaps />} />
               <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/showcase" element={<LogoShowcase />} />
               {/* Premium routes */}
               <Route element={<PremiumRoute />}></Route>
 
               {/* Non-premium authenticated routes */}
-              <Route path="/upgrade" element={<PaymentStepper />} />
+              <Route path="/upgrade" element={<UpgradePage />} />
             </Route>
             <Route path="*" element={<div>404 Not Found</div>} />
           </Routes>
