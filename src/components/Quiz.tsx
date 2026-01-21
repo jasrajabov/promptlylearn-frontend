@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   Box,
   Button,
@@ -6,15 +6,12 @@ import {
   Text,
   VStack,
   HStack,
-  Icon,
   Card,
   Progress,
   Badge,
   Separator,
 } from "@chakra-ui/react";
 import {
-  FaCheck,
-  FaTimes,
   FaLightbulb,
   FaArrowLeft,
   FaArrowRight,
@@ -24,7 +21,6 @@ import { CheckCircle, XCircle, Award, Clock } from "lucide-react";
 import type { Quiz } from "../types";
 import { useColorModeValue } from "./ui/color-mode";
 import { motion, AnimatePresence } from "framer-motion";
-import { useUser } from "../contexts/UserContext.tsx";
 
 const MotionBox = motion(Box);
 const MotionCard = motion(Card.Root);
@@ -58,7 +54,6 @@ const ModuleQuiz: React.FC<ModuleQuizProps> = ({ quiz, setShowQuiz }) => {
   const incorrectBorder = useColorModeValue("red.500", "red.400");
   const hoverBg = useColorModeValue("gray.50", "gray.750");
 
-  const { refreshUser } = useUser();
 
   if (!quiz?.questions?.length) return null;
 

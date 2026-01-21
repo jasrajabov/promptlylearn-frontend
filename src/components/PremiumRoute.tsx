@@ -10,12 +10,8 @@ const PremiumRoute: React.FC<{ children?: React.ReactNode }> = ({
   if (loading) {
     return <div>Loading...</div>;
   }
-  console.log("Checking premium access for user:", user);
 
-  if (!user?.membership_active) {
-    console.log(
-      "User does not have an active membership. Redirecting to upgrade page.",
-    );
+  if (user?.membership_status !== "ACTIVE") {
     return <Navigate to="/upgrade" replace />;
   }
 

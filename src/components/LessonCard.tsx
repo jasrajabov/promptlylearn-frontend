@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Box, Spinner, VStack, Text } from "@chakra-ui/react";
+import { Box, Spinner } from "@chakra-ui/react";
 import { useUser } from "../contexts/UserContext";
 import OpenAIStreamingMarkdown from "./OpenAiMarkdownStream";
 import type { Course } from "../types";

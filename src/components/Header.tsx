@@ -28,8 +28,8 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 import { useUser } from "../contexts/UserContext";
 import { useColorModeValue, useColorMode } from "../components/ui/color-mode";
-import promptlyLeanrnLogoDark from "../assets/promptlylearn-teal-v1.svg";
-import promptlyLeanrnLogoLight from "../assets/promptlylearn-teal-light.svg";
+import promptlyLeanrnLogoDark from "../assets/promptlylearn_logo_dark.svg";
+import promptlyLeanrnLogoLight from "../assets/promptlylearn_logo_light.svg";
 import { FaSignInAlt } from "react-icons/fa";
 import { type User } from "../types";
 import { Badge } from "@chakra-ui/react";
@@ -44,7 +44,6 @@ const NavItem: React.FC<{
   icon?: React.ReactNode;
 }> = ({ label, onClick, active = false, icon }) => {
   const hoverBg = useColorModeValue("gray.100", "gray.900");
-  const activeBg = useColorModeValue("teal.50", "teal.900/30");
   const activeColor = useColorModeValue("teal.600", "teal.300");
   const textColor = useColorModeValue("gray.700", "gray.200");
 
@@ -93,7 +92,6 @@ const Header: React.FC = () => {
     (currentUser as any)?.isAdmin ||
     (currentUser as any)?.role === "ADMIN" ||
     (currentUser as any)?.role === "SUPER_ADMIN";
-  console.log("user", currentUser, "isAdmin", isAdmin);
 
   const handleNavClick = (path: string) => {
     navigate(path);
@@ -126,7 +124,7 @@ const Header: React.FC = () => {
           <Image
             src={logo}
             alt="AI Course Builder"
-            height={{ base: "34px", md: "38px" }}
+            height={{ base: "44px", md: "48px" }}
             onClick={() => handleNavClick("/")}
             cursor="pointer"
             transition="all 0.2s"

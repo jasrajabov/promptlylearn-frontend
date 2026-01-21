@@ -9,7 +9,6 @@ export const fetchWithTimeout = (
   new Promise<Response>((resolve, reject) => {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeout);
-    console.log("url:", url, "options:", options);
     fetch(url, { ...options, signal: controller.signal })
       .then((res) => {
         clearTimeout(id);
@@ -29,7 +28,6 @@ const updateLessonStatusDb = async (
   status: Status,
 ) => {
   if (!user) {
-    console.log("User not logged in");
     return;
   }
 
@@ -52,7 +50,6 @@ const updateLessonStatusDb = async (
     }
 
     const data = await response.json();
-    console.log("Lesson status updated:", data);
     return data;
   } catch (error) {
     console.error("Error updating lesson status:", error);
@@ -65,7 +62,6 @@ const updateModulStatusDb = async (
   status: Status,
 ) => {
   if (!user) {
-    console.log("User not logged in");
     return;
   }
 
@@ -88,7 +84,6 @@ const updateModulStatusDb = async (
     }
 
     const data = await response.json();
-    console.log("Module status updated:", data);
     return data;
   } catch (error) {
     console.error("Error updating module status:", error);
@@ -103,7 +98,6 @@ export const updateCourseStatusDb = async (
   status: Status,
 ) => {
   if (!user) {
-    console.log("User not logged in");
     return;
   }
 
@@ -126,7 +120,6 @@ export const updateCourseStatusDb = async (
     }
 
     const data = await response.json();
-    console.log("Course status updated:", data);
     return data;
   } catch (error) {
     console.error("Error updating course status:", error);

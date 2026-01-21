@@ -2,13 +2,36 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link
-      rel="icon"
-      type="image/png"
-      href="src/assets/promptlylearn-icon-teal.svg"
-    />
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/src/assets/promptlylearn_icon.svg" />
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json" crossorigin="use-credentials" />
+    
+    <!-- Viewport -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PromptlyLearn</title>
+    
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#14b8a6" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#14b8a6" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d9488" />
+    
+    <!-- App Description -->
+    <meta name="description" content="AI-powered course and roadmap generator. Learn everything, faster." />
+    
+    <!-- iOS Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="PromptlyLearn" />
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+    
+    <!-- MS Tile -->
+    <meta name="msapplication-TileColor" content="#14b8a6" />
+    <meta name="msapplication-TileImage" content="/icons/icon-144x144.png" />
+    
+    <!-- Title -->
+    <title>PromptlyLearn - AI Course Generator</title>
 
     <script>
       (function () {

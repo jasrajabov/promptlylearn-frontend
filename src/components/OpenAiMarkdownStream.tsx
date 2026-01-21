@@ -16,7 +16,7 @@ import {
     Checkbox,
     Button,
 } from "@chakra-ui/react";
-import { Toaster, toaster } from "../components/ui/toaster";
+import { Toaster } from "../components/ui/toaster";
 import CodeBlock from "./CodeBlock.tsx";
 import { useColorModeValue } from "../components/ui/color-mode";
 import {
@@ -150,7 +150,6 @@ const OpenAIStreamingMarkdown: React.FC<StreamingProps> = ({
     const startStreaming = useCallback(async () => {
         // Prevent duplicate streaming attempts
         if (isStreamingRef.current) {
-            console.log("Streaming already in progress, skipping...");
             return;
         }
 
@@ -163,7 +162,6 @@ const OpenAIStreamingMarkdown: React.FC<StreamingProps> = ({
         contentRef.current = "";
 
         try {
-            console.log("Starting streaming request to:", apiUrl, "with body:", body);
             const response = await fetch(apiUrl, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -174,8 +172,6 @@ const OpenAIStreamingMarkdown: React.FC<StreamingProps> = ({
 
             if (!response.ok) {
                 const respJson = await response.json();
-                console.log("Error response:", respJson);
-
                 if (response.status === 402) {
                     console.error("Not enough credits to generate content.");
                     setCreditInfo(respJson.detail || "Not enough credits");
@@ -237,14 +233,13 @@ const OpenAIStreamingMarkdown: React.FC<StreamingProps> = ({
     useEffect(() => {
         // Start generation if triggered and not already streaming
         if (shouldStartGeneration && !isStreamingRef.current) {
-            console.log("Initiating streaming generation...");
             startStreaming();
         }
     }, [shouldStartGeneration, startStreaming]);
 
     const components: Components = useMemo(
         () => ({
-            code: ({ node, inline, className, children, ...props }: any) => {
+            code: ({ inline, className, children }: any) => {
                 const match = /language-(\w+)/.exec(className || "");
                 const lang = match ? match[1] : "";
                 const codeText = String(children).replace(/\n$/, "");

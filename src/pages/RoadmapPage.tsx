@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import ReactFlow, {
   Background,
   Controls,
@@ -21,8 +21,6 @@ import {
   VStack,
   Card,
   Button,
-  IconButton,
-  Container,
 } from "@chakra-ui/react";
 import { Stats } from "../components/Stats";
 import dagre from "dagre";
@@ -31,14 +29,10 @@ import { RoadmapNode } from "../components/RoadmapNode";
 import { getTypeColor } from "../components/constants";
 import { useColorModeValue } from "../components/ui/color-mode";
 import {
-  ArrowLeft,
   Filter,
   CheckCircle,
-  MapPin,
-  Target,
   X,
   Map as MapIcon,
-  TrendingUp,
   ChevronRight,
 } from "lucide-react";
 
@@ -127,14 +121,11 @@ export default function TrackRoadmap(): React.ReactElement {
   );
   const [allNodes, setAllNodes] = useState<FlowNode[]>([]);
   const [allEdges, setAllEdges] = useState<Edge[]>([]);
-  const [nodes, setNodes] = useState<FlowNode[]>([]);
-  const [edges, setEdges] = useState<Edge[]>([]);
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
   const { id } = useParams<{ id: string }>();
   const { user } = useUser();
-  const navigate = useNavigate();
 
   // Theme colors
   const pageBg = useColorModeValue("#fafbfc", "#0a0b0d");
@@ -143,7 +134,6 @@ export default function TrackRoadmap(): React.ReactElement {
   const mutedText = useColorModeValue("#6b7280", "#9ca3af");
   const headingColor = useColorModeValue("#111827", "#f9fafb");
   const accentColor = useColorModeValue("#0f766e", "#14b8a6");
-  const statsCardBg = useColorModeValue("#f9fafb", "#18181b");
   const hoverBg = useColorModeValue("#f3f4f6", "#27272a");
 
   const gradientText = useColorModeValue(
@@ -160,13 +150,6 @@ export default function TrackRoadmap(): React.ReactElement {
   }, [allNodes]);
 
   const totalNodes = allNodes.length;
-  const completedNodes = allNodes.filter(
-    (n) => n.data?.status === "COMPLETED",
-  ).length;
-  const remainingNodes = totalNodes - completedNodes;
-  const inProgressNodes = allNodes.filter(
-    (n) => n.data?.status === "IN_PROGRESS",
-  ).length;
 
   const updateNodeStatus = useCallback((nodeId: string, status: string) => {
     setAllNodes((prev) =>
@@ -196,15 +179,6 @@ export default function TrackRoadmap(): React.ReactElement {
     () => new Set(visibleNodes.map((n) => n.id)),
     [visibleNodes],
   );
-
-  const layoutNodes = useCallback((n: FlowNode[], e: Edge[]) => {
-    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
-      n,
-      e,
-    );
-    setNodes(layoutedNodes);
-    setEdges(layoutedEdges);
-  }, []);
 
   const getEdgeColor = useCallback((edge: Edge, nodesMap: Map<string, FlowNode>) => {
     const sourceNode = nodesMap.get(edge.source);
@@ -286,8 +260,6 @@ export default function TrackRoadmap(): React.ReactElement {
 
         const { nodes: layoutedNodes, edges: layoutedEdges } =
           getLayoutedElements(mappedNodes, mappedEdges);
-        setNodes(layoutedNodes);
-        setEdges(layoutedEdges);
         setAllNodes(layoutedNodes);
         setAllEdges(layoutedEdges);
       } catch (err) {
@@ -298,7 +270,7 @@ export default function TrackRoadmap(): React.ReactElement {
     };
 
     fetchRoadmap();
-  }, [id, user, layoutNodes]);
+  }, [id, user]);
 
   if (loading)
     return (
@@ -326,7 +298,6 @@ export default function TrackRoadmap(): React.ReactElement {
   };
 
   const hasActiveFilters = selectedTypes.size > 0;
-  console.log("label", label)
   return (
     <Box w="100%" h="100vh" display="flex" flexDirection="column" bg={pageBg}>
 

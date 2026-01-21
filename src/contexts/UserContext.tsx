@@ -99,7 +99,6 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const data = await res.json();
-    console.log("Login data:", data);
     const expiresAt = Date.now() + data.expires_in * 1000;
 
     const u: User = {
@@ -212,7 +211,6 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return null;
 
     try {
-      console.log("🔄 Fetching fresh user data...");
       const res = await fetch(`${BACKEND_URL}/authentication/me`, {
         credentials: "include",
         headers: {
@@ -228,7 +226,6 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       }
 
       const data = await res.json();
-      console.log("Fresh user data received:", data);
 
       // Create updated user object, preserving token and expiration
       const updated: User = {
@@ -236,11 +233,6 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         token: user.token,
         expires_at: user.expires_at,
       };
-
-      console.log("Membership status:", {
-        plan: updated.membership_plan,
-        status: updated.membership_status,
-      });
 
       // Update state and localStorage
       setUser(updated);

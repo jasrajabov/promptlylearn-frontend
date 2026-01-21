@@ -1,21 +1,41 @@
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
-import { Box } from "@chakra-ui/react";
+import { Box, Spinner, Center } from "@chakra-ui/react";
 import Header from "./components/Header";
 import PremiumRoute from "./components/PremiumRoute";
-import HomePage from "./pages/HomePage";
-import LoginPage from "./pages/LoginPage";
-import CourseTimeline from "./pages/CoursePage";
 import { Provider } from "./components/ui/provider";
-import UserCourses from "./pages/UserCourses";
-import UserRoadmaps from "./pages/UserRoadmaps";
-import TrackRoadmap from "./pages/RoadmapPage";
-import UpgradePage from "./pages/UpgradePage";
-import AboutPage from "./pages/About";
 import RequireAuth from "./pages/RequireAuth";
-import UserInfoPage from "./pages/UserInfo";
-import AdminDashboard from "./pages/AdminPage";
-import LogoShowcase from "./pages/ShowCase"
+import { PWAInstallBanner } from './components/PWAInstallBanner';
+
+
+// Lazy load all pages
+const HomePage = lazy(() => import("./pages/HomePage"));
+const LoginPage = lazy(() => import("./pages/LoginPage"));
+const CourseTimeline = lazy(() => import("./pages/CoursePage"));
+const UserCourses = lazy(() => import("./pages/UserCourses"));
+const UserRoadmaps = lazy(() => import("./pages/UserRoadmaps"));
+const TrackRoadmap = lazy(() => import("./pages/RoadmapPage"));
+const UpgradePage = lazy(() => import("./pages/UpgradePage"));
+const AboutPage = lazy(() => import("./pages/About"));
+const UserInfoPage = lazy(() => import("./pages/UserInfo"));
+const AdminDashboard = lazy(() => import("./pages/AdminPage"));
+
+// Loading component
+const PageLoader = () => (
+  <Center h="calc(100vh - 80px)">
+    <Spinner size="xl" color="teal.500" />
+  </Center>
+);
+
+// 404 component (small, no need to lazy load)
+const NotFound = () => (
+  <Center h="calc(100vh - 80px)">
+    <Box textAlign="center">
+      <Box fontSize="6xl" fontWeight="bold" color="gray.300">404</Box>
+      <Box fontSize="xl" color="gray.500">Page Not Found</Box>
+    </Box>
+  </Center>
+);
 
 const App: React.FC = () => {
   return (
@@ -23,27 +43,29 @@ const App: React.FC = () => {
       <Box minH="100vh" bg="bg.canvas">
         <Header />
         <Box as="main" mt={4} px={4}>
-          <Routes>
-            <Route path="/" element={<HomePage _mode="course" />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/about" element={<AboutPage />} />
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/" element={<HomePage _mode="course" />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/about" element={<AboutPage />} />
 
-            <Route element={<RequireAuth />}>
-              <Route path="/user-info" element={<UserInfoPage />} />
-              <Route path="/course/:id/" element={<CourseTimeline />} />
-              <Route path="/roadmap/:id/" element={<TrackRoadmap />} />
-              <Route path="/my-courses" element={<UserCourses />} />
-              <Route path="/my-roadmaps" element={<UserRoadmaps />} />
-              <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/showcase" element={<LogoShowcase />} />
-              {/* Premium routes */}
-              <Route element={<PremiumRoute />}></Route>
+              <Route element={<RequireAuth />}>
+                <Route path="/user-info" element={<UserInfoPage />} />
+                <Route path="/course/:id/" element={<CourseTimeline />} />
+                <Route path="/roadmap/:id/" element={<TrackRoadmap />} />
+                <Route path="/my-courses" element={<UserCourses />} />
+                <Route path="/my-roadmaps" element={<UserRoadmaps />} />
+                <Route path="/admin" element={<AdminDashboard />} />
+                {/* Premium routes */}
+                <Route element={<PremiumRoute />}></Route>
 
-              {/* Non-premium authenticated routes */}
-              <Route path="/upgrade" element={<UpgradePage />} />
-            </Route>
-            <Route path="*" element={<div>404 Not Found</div>} />
-          </Routes>
+                {/* Non-premium authenticated routes */}
+                <Route path="/upgrade" element={<UpgradePage />} />
+              </Route>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
+          <PWAInstallBanner />
         </Box>
       </Box>
     </Provider>

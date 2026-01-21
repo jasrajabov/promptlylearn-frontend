@@ -23,7 +23,6 @@ import { useUser } from "../contexts/UserContext";
 import { useColorModeValue } from "./ui/color-mode";
 import { getTypeColor } from "../components/constants";
 import {
-  CheckCircle,
   Circle,
   BookOpen,
   GraduationCap,
@@ -351,17 +350,6 @@ export const RoadmapNode: React.FC<
             >
               {roadmapNodeData.label}
             </Text>
-
-            {/* Description - Improved Hierarchy */}
-            {/* <Text
-              fontSize="sm"
-              color={subtleText}
-              lineClamp={2}
-              lineHeight="1.5"
-              mb={3}
-            >
-              {roadmapNodeData.description || "No description provided."}
-            </Text> */}
 
             {/* Action Indicator */}
             <HStack

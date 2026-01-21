@@ -15,11 +15,8 @@ import {
 } from "@chakra-ui/react";
 import {
     Mail,
-    CheckCircle2,
     Sparkles,
-    Target,
     TrendingUp,
-    Zap,
     Award,
     Brain,
     Database,
@@ -37,8 +34,8 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 
 import { useColorModeValue } from "../components/ui/color-mode";
-import promptlyLeanrnLogoDark from "../assets/promptlylearn-teal-v1.svg";
-import promptlyLeanrnLogoLight from "../assets/promptlylearn-teal-light.svg";
+import promptlyLeanrnLogoDark from "../assets/promptlylearn_logo_dark.svg";
+import promptlyLeanrnLogoLight from "../assets/promptlylearn_logo_light.svg";
 
 const MotionBox = motion(Box);
 const MotionCard = motion(Card.Root);
@@ -232,7 +229,7 @@ const AboutPage: React.FC = () => {
                         <Image
                             src={logo}
                             alt="PromptlyLearn Logo"
-                            height="96px"          // smaller, more premium
+                            height="200px"          // smaller, more premium
                             objectFit="contain"
                             mb={2}
                         />

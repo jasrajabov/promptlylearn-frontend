@@ -6,21 +6,16 @@ import {
   Heading,
   Text,
   Button,
-  Spinner,
-  Circle,
-  Badge,
   Progress,
   Checkbox,
+  useBreakpointValue,
 } from "@chakra-ui/react";
 import { Timeline } from "@chakra-ui/react";
 import {
   BiCheck,
   BiChevronLeft,
   BiChevronRight,
-  BiTime,
-  BiLockAlt,
 } from "react-icons/bi";
-import { MdInfo } from "react-icons/md";
 import { useLocation } from "react-router-dom";
 import type { Course, Status, Module } from "../types";
 import { useColorModeValue } from "../components/ui/color-mode";
@@ -53,6 +48,9 @@ export const TOC = ({
   const location = useLocation();
 
   const course = (location?.state as LocationState)?.course ?? null;
+
+  // Default to collapsed on mobile, expanded on desktop
+  const isMobile = useBreakpointValue({ base: true, lg: false });
   const [tocCollapsed, setTocCollapsed] = useState(false);
 
   const bgColor = useColorModeValue("gray.200", "gray.950");
@@ -65,6 +63,13 @@ export const TOC = ({
   const mutedTealTextColor = useColorModeValue("teal.600", "teal.400");
 
   const { user } = useUser();
+
+  // Set initial collapsed state based on screen size
+  useEffect(() => {
+    if (isMobile !== undefined) {
+      setTocCollapsed(isMobile);
+    }
+  }, [isMobile]);
 
   useEffect(() => {
     if (!course) return;
@@ -93,8 +98,6 @@ export const TOC = ({
         throw new Error("Failed to update course");
       }
 
-      const data = await response.json();
-      console.log("Course updated successfully:", data);
     } catch (error) {
       console.error("Error updating course:", error);
       // Optionally show an error toast/notification to the user
@@ -176,13 +179,12 @@ export const TOC = ({
 
   return (
     <Box
-      minW={tocCollapsed ? "70px" : "400px"}
-      maxW={tocCollapsed ? "70px" : "400px"}
+      minW={tocCollapsed ? { base: "60px", md: "70px" } : { base: "90%", sm: "350px", md: "400px" }}
+      maxW={tocCollapsed ? { base: "60px", md: "70px" } : { base: "90%", sm: "350px", md: "400px" }}
       h="100%"
       overflowY="auto"
-      borderRight="1px solid"
+      borderRight={{ base: "none", lg: "1px solid" }}
       borderColor={borderColor}
-      // bg={bgColor}
       position="relative"
       transition="all 0.3s ease"
       flexShrink={0}
@@ -196,11 +198,11 @@ export const TOC = ({
         zIndex={10}
         borderBottom="1px solid"
         borderColor={borderColor}
-        p={4}
+        p={{ base: 3, md: 4 }}
       >
         <HStack justify="space-between">
           {!tocCollapsed && (
-            <Heading size="md" fontWeight="semibold">
+            <Heading size={{ base: "sm", md: "md" }} fontWeight="semibold">
               Course Outline
             </Heading>
           )}
@@ -221,7 +223,7 @@ export const TOC = ({
 
       {/* Content */}
       {!tocCollapsed ? (
-        <VStack align="stretch" gap={0} p={4} pt={2}>
+        <VStack align="stretch" gap={0} p={{ base: 3, md: 4 }} pt={2}>
           <Timeline.Root>
             {courseState.modules.map((module, idx) => {
               const isActive = activeModuleIndex === idx;
@@ -251,7 +253,7 @@ export const TOC = ({
                   </Timeline.Connector>
                   <Timeline.Content pb={6}>
                     <Box
-                      p={3}
+                      p={{ base: 2.5, md: 3 }}
                       borderRadius="lg"
                       border="0.1px solid"
                       bg={isActive ? activeBg : "transparent"}
@@ -270,9 +272,8 @@ export const TOC = ({
                             >
                               Module {idx + 1}
                             </Text>
-                            {/* {getStatusBadge(module.status)} */}
                           </HStack>
-                          <Heading size="lg" color={textColor}>
+                          <Heading size={{ base: "md", md: "lg" }} color={textColor}>
                             {module.title}
                           </Heading>
                         </VStack>
@@ -298,7 +299,7 @@ export const TOC = ({
 
                       {/* Lessons */}
                       {module.lessons && isActive && (
-                        <VStack align="stretch" gap={1} mt={3} pl={2}>
+                        <VStack align="stretch" gap={1} mt={3} pl={{ base: 1, md: 2 }}>
                           {module.lessons.map((lesson, i) => {
                             const isActiveLesson = currentLessonIndex === i;
                             return (
@@ -339,7 +340,7 @@ export const TOC = ({
                                   <Checkbox.Control />
                                 </Checkbox.Root>
                                 <Text
-                                  fontSize="sm"
+                                  fontSize={{ base: "xs", md: "sm" }}
                                   fontWeight={
                                     isActiveLesson ? "medium" : "normal"
                                   }

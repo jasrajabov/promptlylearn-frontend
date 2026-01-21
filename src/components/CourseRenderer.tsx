@@ -21,7 +21,6 @@ import { useUser } from "../contexts/UserContext";
 import ChatBox, { type ChatBoxRef } from "./ChatBox";
 import { type ChatMessage } from "../types";
 import { useColorModeValue } from "./ui/color-mode";
-import { Stats } from "./Stats";
 import {
   ChevronLeft,
   ChevronRight,
@@ -70,7 +69,6 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
 
   const [openChatBox, setOpenChatBox] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [error, setError] = useState<string | null>(null);
   const [creditInfo, setCreditInfo] = useState<string | null>(null);
 
   // Track generation state per lesson using a unique key
@@ -105,13 +103,6 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
 
   // Debug logging
   useEffect(() => {
-    console.log('CourseRenderer Debug:', {
-      lessonId: lesson.id,
-      hasQuiz: !!currentLessonQuiz,
-      showCurrentQuiz: showCurrentQuiz,
-      quizzes: Object.keys(quizzesRef.current),
-      parentShowQuiz: showQuiz
-    });
   }, [lesson.id, currentLessonQuiz, showCurrentQuiz, showQuiz]);
 
   // Keep parent showQuiz in sync with our internal state
@@ -225,7 +216,6 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
         );
         if (!res.ok) return;
         const data = await res.json();
-        console.log("Polled task data:", data);
 
         if (
           data.status === "SUCCESS" ||

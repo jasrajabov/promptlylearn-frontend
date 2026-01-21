@@ -25,7 +25,6 @@ import {
   DollarSign,
   BookOpen,
   TrendingUp,
-  Edit,
   Ban,
   CheckCircle,
   Trash2,
@@ -323,7 +322,6 @@ const EditCreditsModal: React.FC<EditCreditsModalProps> = ({
   }, [user]);
 
   const handleSubmit = async () => {
-    console.log("Submitting credit update:", { credits, reason });
     if (!user) return;
     if (!reason.trim()) {
       toaster.create({ title: "Please provide a reason", type: "error" });
@@ -926,8 +924,8 @@ const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
                       <Text>
                         {user.membership_active_until
                           ? new Date(
-                              user.membership_active_until,
-                            ).toLocaleDateString()
+                            user.membership_active_until,
+                          ).toLocaleDateString()
                           : "N/A"}
                       </Text>
                     </Box>

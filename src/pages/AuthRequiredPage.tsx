@@ -5,7 +5,6 @@ import { useUser } from "../contexts/UserContext";
 
 const AuthRequiredPage: React.FC = () => {
   const { user } = useUser();
-  console.log("AuthRequiredPage rendered, user:", user);
   const navigate = useNavigate();
 
   useEffect(() => {

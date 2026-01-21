@@ -1,8 +1,6 @@
 import {
     Box,
-    Button,
     HStack,
-    Input,
     VStack,
     Text,
     Avatar,
@@ -28,9 +26,8 @@ import {
     Send,
     Minimize2,
     Maximize2,
-    MessageCircle,
     Sparkles,
-    Minus, // Add this import
+    Minus,
     Maximize,
 } from "lucide-react";
 
@@ -62,7 +59,6 @@ const ChatBox = forwardRef<ChatBoxRef, ChatBoxProps>((props, ref) => {
     const inputRef = useRef<HTMLTextAreaElement>(null);
 
     // Theme colors
-    const bgColor = useColorModeValue("white", "gray.900");
     const borderColor = useColorModeValue("gray.200", "gray.700");
     const headerBg = useColorModeValue("teal.700", "teal.00");
     const userMessageBg = useColorModeValue("teal.500", "teal.600");
@@ -119,11 +115,9 @@ const ChatBox = forwardRef<ChatBoxRef, ChatBoxProps>((props, ref) => {
     const sendMessage = async (messageText: string) => {
         const trimmedInput = messageText.trim();
         if (!trimmedInput || chatReplying) {
-            console.log("⚠️ Message not sent - empty or already replying");
             return;
         }
 
-        console.log("📤 Sending message:", trimmedInput);
 
         const newUserMessage: ChatMessage = {
             role: "user",
@@ -147,7 +141,6 @@ const ChatBox = forwardRef<ChatBoxRef, ChatBoxProps>((props, ref) => {
             });
 
             const { task_id } = await res.json();
-            console.log("✅ Received task ID:", task_id);
 
             if (task_id) {
                 pollTask(task_id);

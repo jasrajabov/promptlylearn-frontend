@@ -80,7 +80,6 @@ const UserCourses: React.FC = () => {
     // 1. Fetch Courses
     useEffect(() => {
         if (!user) return;
-        console.log("Fetching user courses for user:", user);
 
         const fetchCourses = async () => {
             setIsLoading(true);
@@ -94,9 +93,7 @@ const UserCourses: React.FC = () => {
                     },
                 },
             );
-            console.log("token", user?.token);
             const data = await response.json();
-            console.log("Fetched user courses:", data);
             setCourses(data);
             setIsLoading(false);
         };
@@ -143,7 +140,6 @@ const UserCourses: React.FC = () => {
                 );
                 if (!res.ok) return;
                 const data = await res.json();
-                console.log("Polled task", taskId, data);
 
                 if (data.status === "SUCCESS" || data.status === "COMPLETED") {
                     await refreshCourses();

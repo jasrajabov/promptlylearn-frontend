@@ -1,21 +1,11 @@
 import {
   HStack,
   VStack,
-  Collapsible,
-  Text,
-  Icon,
-  Progress,
-  Heading,
-  Button,
   Stat,
 } from "@chakra-ui/react";
-import { FaBook, FaLayerGroup } from "react-icons/fa";
-import React, { useState } from "react";
-import { motion } from "framer-motion";
-import type { Course } from "../types";
+import React from "react";
 import { ProgressCircleComponent } from "./ProgressCircle";
 
-import { useColorModeValue } from "../components/ui/color-mode";
 
 interface StatItem {
   label: string;

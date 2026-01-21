@@ -7,7 +7,7 @@ export function useRequirePremium() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && !user?.membership_active) {
+    if (!loading && user?.membership_status !== "ACTIVE") {
       navigate("/upgrade");
     }
   }, [user, loading, navigate]);

@@ -7,6 +7,8 @@ import { UserProvider } from "./contexts/UserContext";
 import { system } from "./theme";
 import { ColorModeProvider } from "./components/ui/color-mode";
 import { Toaster } from "./components/ui/toaster";
+import { registerServiceWorker, createOfflineIndicator } from './utils/registerServiceWorker';
+
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
@@ -22,3 +24,6 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
     </ChakraProvider>
   </React.StrictMode>,
 );
+
+registerServiceWorker();
+createOfflineIndicator();

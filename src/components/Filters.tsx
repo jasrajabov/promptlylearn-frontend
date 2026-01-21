@@ -14,7 +14,7 @@ import {
 } from "@chakra-ui/react";
 import { FaSortAmountDown, FaSortAmountUp } from "react-icons/fa";
 import { MdFilterList, MdSearch, MdClose } from "react-icons/md";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 
 type SortKey = "created" | "modules" | "progress";
 

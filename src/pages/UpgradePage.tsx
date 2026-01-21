@@ -1,7 +1,7 @@
 // /src/pages/UpgradePage.tsx
 // Route this to /upgrade
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Elements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import {
@@ -25,8 +25,6 @@ import {
   Shield,
   Check,
   Sparkles,
-  Infinity,
-  Award,
   AlertCircle,
   Calendar,
   CalendarRange,
@@ -37,8 +35,9 @@ import { CheckoutForm } from "../components/CheckoutForm";
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY!);
 
-const MotionBox = motion(Box);
 const MotionCard = motion(Card.Root);
+const monthtlyPriceId = import.meta.env.VITE_STRIPE_MONTHLY_PRICE_ID
+const yearlyPriceId = import.meta.env.VITE_STRIPE_YEARLY_PRICE_ID
 
 const PRODUCTS = [
   {
@@ -59,9 +58,9 @@ const PRODUCTS = [
   {
     id: "monthly",
     name: "Monthly",
-    price: 29,
+    price: 9,
     interval: "month",
-    priceId: "price_1Shl43LBs0XeqslSCEv5hxHW",
+    priceId: monthtlyPriceId,
     icon: Calendar,
     badge: null,
     isCurrent: false,
@@ -76,12 +75,12 @@ const PRODUCTS = [
   {
     id: "yearly",
     name: "Yearly",
-    price: 290,
+    price: 90,
     interval: "year",
-    priceId: "price_1Shl43LBs0XeqslSCEv5hxHW",
+    priceId: yearlyPriceId,
     icon: CalendarRange,
     badge: "SAVE 17%",
-    savings: "$58",
+    savings: "$18",
     isCurrent: false,
     features: [
       "Everything in Monthly",

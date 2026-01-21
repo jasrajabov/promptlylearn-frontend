@@ -64,7 +64,6 @@ export default function CourseTimeline() {
     const fetchCourse = async () => {
       setLoading(true);
       try {
-        console.log("Fetching course details for ID:", id);
         const response = await fetch(`${BACKEND_URL}/course/${id}`, {
           method: "GET",
           headers: {
@@ -73,7 +72,6 @@ export default function CourseTimeline() {
           },
         });
         const data = await response.json();
-        console.log("Fetched course data:", data);
         const modulesWithStatus = data.modules.map((module: any) => ({
           ...module,
           status: module.status || "not-generated",
