@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Flex,
   HStack,
@@ -35,7 +35,81 @@ import { type User } from "../types";
 import { Badge } from "@chakra-ui/react";
 import { HiStar } from "react-icons/hi";
 import { BiSolidCoinStack } from "react-icons/bi";
-import { BookOpen, Map, Shield } from "lucide-react";
+import { BookOpen, Map, Shield, Clock } from "lucide-react";
+
+// Professional Credits Reset Countdown Component
+const CreditsResetCountdown: React.FC<{
+  resetDate: string;
+}> = ({ resetDate }) => {
+  const [timeLeft, setTimeLeft] = useState("");
+  const [isUrgent, setIsUrgent] = useState(false);
+  const yellowColor = useColorModeValue("yellow.600", "yellow.400");
+  const yellowBg = useColorModeValue("yellow.50", "rgba(251, 191, 36, 0.1)");
+  const textColor = useColorModeValue("gray.700", "gray.300");
+
+  useEffect(() => {
+    const calculateTimeLeft = () => {
+      const now = new Date().getTime();
+      const reset = new Date(resetDate).getTime();
+      const diff = reset - now;
+
+      if (diff <= 0) {
+        setTimeLeft("0s");
+        setIsUrgent(true);
+        return;
+      }
+
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+      // Mark as urgent if less than 1 hour
+      setIsUrgent(diff < 3600000);
+
+      // Format based on time remaining
+      if (days > 0) {
+        setTimeLeft(`${days}d ${hours}h ${minutes}m ${seconds}s`);
+      } else if (hours > 0) {
+        setTimeLeft(`${hours}h ${minutes}m ${seconds}s`);
+      } else if (minutes > 0) {
+        setTimeLeft(`${minutes}m ${seconds}s`);
+      } else {
+        setTimeLeft(`${seconds}s`);
+      }
+    };
+
+    calculateTimeLeft();
+    const interval = setInterval(calculateTimeLeft, 1000);
+
+    return () => clearInterval(interval);
+  }, [resetDate]);
+
+  return (
+    <HStack
+      gap={1.5}
+      px={2.5}
+      py={1}
+      borderRadius="md"
+      bg={yellowBg}
+      borderWidth="1px"
+      borderColor={yellowColor}
+    >
+      <Clock size={12} />
+      <Text fontSize="2xs" color={textColor} fontWeight="600">
+        Credits Reset in
+      </Text>
+      <Text
+        fontSize="2xs"
+        color={yellowColor}
+        fontWeight="700"
+        fontFamily="mono"
+      >
+        {timeLeft}
+      </Text>
+    </HStack>
+  );
+};
 
 const NavItem: React.FC<{
   label: string;
@@ -87,7 +161,7 @@ const Header: React.FC = () => {
 
   const isMobile = useBreakpointValue({ base: true, md: false });
 
-  // Check if user is admin (adjust property name based on your User type)
+  // Check if user is admin
   const isAdmin =
     (currentUser as any)?.isAdmin ||
     (currentUser as any)?.role === "ADMIN" ||
@@ -99,6 +173,9 @@ const Header: React.FC = () => {
   };
 
   const isActive = (path: string) => location.pathname === path;
+
+  // Check if user has credits_reset_at
+  const hasCreditsReset = currentUser?.credits_reset_at;
 
   return (
     <Box
@@ -175,22 +252,29 @@ const Header: React.FC = () => {
             <>
               {currentUser ? (
                 <HStack gap={2}>
-                  {/* Credits Badge - only show for free (non-admin) users */}
+                  {/* Credits and Reset Countdown - Side by Side */}
                   {currentUser.membership_plan === "free" && !isAdmin && (
-                    <Badge
-                      colorPalette="gray"
-                      variant="outline"
-                      px={2.5}
-                      py={1}
-                      borderRadius="md"
-                      fontSize="xs"
-                      fontWeight="medium"
-                    >
-                      <HStack gap={1.5}>
-                        <BiSolidCoinStack size={13} />
-                        <Text>{currentUser.credits ?? 0}</Text>
-                      </HStack>
-                    </Badge>
+                    <HStack gap={2}>
+                      <Badge
+                        colorPalette="gray"
+                        variant="outline"
+                        px={3}
+                        py={1.5}
+                        borderRadius="lg"
+                        fontSize="xs"
+                        fontWeight="600"
+                        borderWidth="1px"
+                      >
+                        <HStack gap={2}>
+                          <BiSolidCoinStack size={14} />
+                          <Text fontWeight="700">{currentUser.credits ?? 0}</Text>
+                          {/* <Text color={mutedText}>credits</Text> */}
+                        </HStack>
+                      </Badge>
+                      {hasCreditsReset && (
+                        <CreditsResetCountdown resetDate={currentUser.credits_reset_at!} />
+                      )}
+                    </HStack>
                   )}
 
                   {/* Membership Badge */}
@@ -397,54 +481,64 @@ const Header: React.FC = () => {
                       </VStack>
                     </HStack>
 
-                    <HStack gap={2} justify="space-between">
-                      <Badge
-                        size="sm"
-                        colorPalette={
-                          isAdmin
-                            ? "red"
-                            : currentUser.membership_plan === "premium"
-                              ? "purple"
-                              : "teal"
-                        }
-                        variant="subtle"
-                        px={3}
-                        py={1}
-                      >
-                        <HStack gap={1.5}>
-                          {isAdmin ? (
-                            <>
-                              <Shield size={14} />
-                              <Text fontWeight="semibold">Admin</Text>
-                            </>
-                          ) : currentUser.membership_plan === "premium" ? (
-                            <>
-                              <HiStar size={14} />
-                              <Text fontWeight="semibold">Premium</Text>
-                            </>
-                          ) : (
-                            <Text fontWeight="semibold">Free Plan</Text>
-                          )}
-                        </HStack>
-                      </Badge>
-
-                      {currentUser.membership_plan === "free" && !isAdmin && (
+                    <VStack gap={3} align="stretch">
+                      <HStack gap={2} justify="space-between" flexWrap="wrap">
                         <Badge
                           size="sm"
-                          colorPalette="gray"
-                          variant="outline"
+                          colorPalette={
+                            isAdmin
+                              ? "red"
+                              : currentUser.membership_plan === "premium"
+                                ? "purple"
+                                : "teal"
+                          }
+                          variant="subtle"
                           px={3}
-                          py={1}
+                          py={1.5}
                         >
                           <HStack gap={1.5}>
-                            <BiSolidCoinStack size={14} />
-                            <Text fontWeight="bold">
-                              {currentUser.credits ?? 0}
-                            </Text>
+                            {isAdmin ? (
+                              <>
+                                <Shield size={14} />
+                                <Text fontWeight="semibold">Admin</Text>
+                              </>
+                            ) : currentUser.membership_plan === "premium" ? (
+                              <>
+                                <HiStar size={14} />
+                                <Text fontWeight="semibold">Premium</Text>
+                              </>
+                            ) : (
+                              <Text fontWeight="semibold">Free Plan</Text>
+                            )}
                           </HStack>
                         </Badge>
+
+                        {currentUser.membership_plan === "free" && !isAdmin && (
+                          <Badge
+                            size="sm"
+                            colorPalette="gray"
+                            variant="outline"
+                            px={3}
+                            py={1.5}
+                          >
+                            <HStack gap={1.5}>
+                              <BiSolidCoinStack size={14} />
+                              <Text fontWeight="700">
+                                {currentUser.credits ?? 0}
+                              </Text>
+                              <Text fontWeight="600" color={subTextColor}>
+                                credits
+                              </Text>
+                            </HStack>
+                          </Badge>
+                        )}
+                      </HStack>
+
+                      {/* Credits Reset Countdown - Mobile */}
+                      {currentUser.membership_plan === "free" && !isAdmin && hasCreditsReset && (
+                        <CreditsResetCountdown resetDate={currentUser.credits_reset_at!} />
                       )}
-                    </HStack>
+                    </VStack>
                   </Box>
 
                   <Separator />

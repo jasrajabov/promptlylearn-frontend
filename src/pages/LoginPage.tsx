@@ -94,6 +94,12 @@ export default function AuthPage() {
   const [showTerms, setShowTerms] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
 
+  // Forgot Password State
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
+  const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
+  const [forgotPasswordMessage, setForgotPasswordMessage] = useState("");
+  const [forgotPasswordError, setForgotPasswordError] = useState("");
+
   const logo = useColorModeValue(
     promptlyLeanrnLogoLight,
     promptlyLeanrnLogoDark,
@@ -103,38 +109,61 @@ export default function AuthPage() {
     if (user) navigate("/");
   }, [user, navigate]);
 
-  // Handle OAuth callback
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get("token");
-    const errorParam = params.get("error");
 
-    if (token) {
-      handleOAuthSuccess(token);
+  /**
+   * Fetch user data with exponential backoff retry logic
+   * Handles transient network failures that cause intermittent OAuth issues
+   */
+  const fetchUserDataWithRetry = async (
+    accessToken: string,
+    maxRetries = 3,
+    baseDelay = 1000
+  ): Promise<any> => {
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        const response = await fetch(`${BACKEND_URL}/authentication/me`, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+          credentials: "include",
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.detail || `Server error ${response.status}`);
+        }
+
+        return await response.json();
+
+      } catch (err) {
+        console.log(`Fetch attempt ${attempt + 1}/${maxRetries} failed:`, err);
+
+        // If this is the last attempt, throw the error
+        if (attempt === maxRetries - 1) {
+          throw new Error(
+            `Failed to fetch user data after ${maxRetries} attempts. Please try logging in again.`
+          );
+        }
+
+        // Exponential backoff: wait longer between each retry
+        const delay = baseDelay * Math.pow(2, attempt);
+        console.log(`Retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
     }
 
-    if (errorParam) {
-      setError(decodeURIComponent(errorParam));
-    }
-  }, []);
+    throw new Error("Failed to fetch user data");
+  };
 
   const handleOAuthSuccess = async (accessToken: string) => {
     try {
       setLoading(true);
-      setMessage("Logging in...");
+      setMessage("Logging you in...");
+      setError("");
 
-      const response = await fetch(`${BACKEND_URL}/authentication/me`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-        credentials: "include",
-      });
+      // Fetch user data with retry logic - this fixes intermittent failures
+      const userData = await fetchUserDataWithRetry(accessToken, 3, 1000);
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch user data");
-      }
-
-      const userData = await response.json();
       const expiresAt = Date.now() + 60 * 60 * 1000;
 
       const userObj: User = {
@@ -169,15 +198,98 @@ export default function AuthPage() {
       };
 
       localStorage.setItem("user", JSON.stringify(userObj));
+
+      // Clean URL before redirect
       window.history.replaceState({}, "", "/login");
-      setMessage("Login successful!");
-      window.location.href = "/";
+
+      setMessage("Login successful! Redirecting...");
+
+      // Small delay to show success message
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 500);
+
     } catch (err) {
       console.error("OAuth error:", err);
-      setError("Authentication failed. Please try again.");
+      const errorMessage = err instanceof Error ? err.message : "Authentication failed";
+      setError(errorMessage);
+      setLoading(false);
+
+      // Clean URL on error
+      window.history.replaceState({}, "", "/login");
+    }
+  };
+
+  // Enhanced OAuth callback handler
+  useEffect(() => {
+    const handleOAuthCallback = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get("token");
+      const errorParam = params.get("error");
+
+      // Handle error first
+      if (errorParam) {
+        const errorMessage = decodeURIComponent(errorParam);
+
+        // Map backend errors to user-friendly messages
+        const errorMap: Record<string, string> = {
+          'Email not provided by Google': 'Could not get your email from Google. Please ensure email access is granted.',
+          'Failed to get user information from Google': 'Google authentication failed. Please try again.',
+          'Invalid response from Google': 'Invalid response from Google. Please try again.',
+          'No verified email found in GitHub account': 'No verified email found in your GitHub account. Please verify your email on GitHub first.',
+          'Failed to authenticate with GitHub': 'GitHub authentication failed. Please try again.',
+          'Failed to fetch GitHub profile': 'Could not fetch your GitHub profile. Please try again.',
+          'Failed to fetch GitHub email': 'Could not fetch your email from GitHub. Please try again.',
+          'Invalid response from GitHub': 'Invalid response from GitHub. Please try again.',
+          'Network error connecting to GitHub': 'Network error. Please check your connection and try again.',
+          'Authentication failed': 'Authentication failed. Please try again.',
+          'Failed to create or update user': 'Server error. Please try again or contact support.',
+        };
+
+        const userFriendlyError = errorMap[errorMessage] || errorMessage || 'Authentication failed. Please try again.';
+
+        setError(userFriendlyError);
+        setLoading(false);
+
+        // Clean URL
+        window.history.replaceState({}, "", "/login");
+        return;
+      }
+
+      // Handle successful OAuth with token
+      if (token) {
+        await handleOAuthSuccess(token);
+      }
+    };
+
+    handleOAuthCallback();
+  }, []);
+
+  const handleOAuthLogin = (provider: "google" | "github") => {
+    // Prevent multiple simultaneous OAuth attempts
+    if (loading) {
+      console.log("OAuth already in progress");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError("");
+      setMessage(`Redirecting to ${provider === 'google' ? 'Google' : 'GitHub'}...`);
+
+      // Add a small delay to show the loading message
+      setTimeout(() => {
+        window.location.href = `${BACKEND_URL}/authentication/${provider}`;
+      }, 300);
+
+    } catch (err) {
+      console.error("OAuth initiation error:", err);
+      setError("Failed to initiate login. Please try again.");
       setLoading(false);
     }
   };
+
+  // ==================== END OAUTH HANDLING ====================
 
   useEffect(() => {
     setName("");
@@ -296,8 +408,46 @@ export default function AuthPage() {
     }
   };
 
-  const handleOAuthLogin = (provider: "google" | "github") => {
-    window.location.href = `${BACKEND_URL}/authentication/${provider}`;
+  // Forgot Password Handler
+  const handleForgotPassword = async () => {
+    console.log("handleForgotPassword called!"); // DEBUG
+    setForgotPasswordError("");
+    setForgotPasswordMessage("");
+
+    if (!forgotPasswordEmail.trim()) {
+      setForgotPasswordError("Please enter your email address");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(forgotPasswordEmail)) {
+      setForgotPasswordError("Please enter a valid email address");
+      return;
+    }
+
+    setForgotPasswordLoading(true);
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/authentication/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotPasswordEmail }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || 'Failed to send reset email');
+      }
+
+      setForgotPasswordMessage(data.message);
+      setForgotPasswordEmail("");
+
+    } catch (err) {
+      setForgotPasswordError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setForgotPasswordLoading(false);
+    }
   };
 
   const panelVariants = {
@@ -353,7 +503,7 @@ export default function AuthPage() {
               <Image
                 src={logo}
                 alt="PromptlyLearn Logo"
-                height="100px"          // smaller, more premium
+                height="100px"
                 objectFit="contain"
                 mb={2}
               />
@@ -402,7 +552,7 @@ export default function AuthPage() {
               </Button>
             </HStack>
 
-            {/* OAuth Buttons */}
+            {/* OAuth Buttons - UPDATED WITH LOADING STATES */}
             <VStack gap={3} mb={6}>
               <Button
                 w="full"
@@ -418,8 +568,17 @@ export default function AuthPage() {
                   borderColor: googleHoverBorder
                 }}
               >
-                <FaGoogle />
-                Continue with Google
+                {loading && message?.includes('Google') ? (
+                  <>
+                    <Spinner size="sm" mr={2} />
+                    Connecting to Google...
+                  </>
+                ) : (
+                  <>
+                    <FaGoogle />
+                    Continue with Google
+                  </>
+                )}
               </Button>
               <Button
                 w="full"
@@ -435,8 +594,17 @@ export default function AuthPage() {
                   borderColor: githubHoverBorder
                 }}
               >
-                <FaGithub />
-                Continue with GitHub
+                {loading && message?.includes('GitHub') ? (
+                  <>
+                    <Spinner size="sm" mr={2} />
+                    Connecting to GitHub...
+                  </>
+                ) : (
+                  <>
+                    <FaGithub />
+                    Continue with GitHub
+                  </>
+                )}
               </Button>
             </VStack>
 
@@ -921,7 +1089,6 @@ export default function AuthPage() {
                           type="tel"
                           value={phone}
                           onChange={(e) => {
-                            // Allow only numbers, spaces, dashes, parentheses, and plus sign
                             const value = e.target.value.replace(/[^\d\s\-()+ ]/g, '');
                             setPhone(value);
                           }}
@@ -1092,20 +1259,66 @@ export default function AuthPage() {
       {/* Forgot Password Modal */}
       <Dialog.Root
         open={showForgotPassword}
-        onOpenChange={(e) => setShowForgotPassword(e.open)}
+        onOpenChange={(e) => {
+          setShowForgotPassword(e.open);
+          if (!e.open) {
+            setForgotPasswordEmail("");
+            setForgotPasswordError("");
+            setForgotPasswordMessage("");
+          }
+        }}
       >
-        <Dialog.Backdrop />
-        <Dialog.Positioner>
-          <Dialog.Content maxW="md" mx={4}>
+        <Dialog.Backdrop pointerEvents="none" />
+        <Dialog.Positioner pointerEvents="none">
+          <Dialog.Content maxW="md" mx={4} pointerEvents="auto">
             <Dialog.Header>
               <Dialog.Title>Reset Password</Dialog.Title>
             </Dialog.Header>
             <Dialog.CloseTrigger />
-            <Dialog.Body pb={6}>
+            <Dialog.Body pb={6} pointerEvents="auto">
               <VStack gap={4} align="stretch">
                 <Text fontSize="sm" color={mutedText}>
                   Enter your email address and we'll send you a link to reset your password.
                 </Text>
+
+                {/* Success Message */}
+                {forgotPasswordMessage && (
+                  <HStack
+                    p={3}
+                    bg={successAlertBg}
+                    borderRadius="lg"
+                    borderWidth="1px"
+                    borderColor={successAlertBorder}
+                    gap={2}
+                  >
+                    <Icon color={successAlertIconColor} flexShrink={0}>
+                      <CheckCircle size={18} />
+                    </Icon>
+                    <Text fontSize="sm" color={successAlertTextColor} fontWeight="medium">
+                      {forgotPasswordMessage}
+                    </Text>
+                  </HStack>
+                )}
+
+                {/* Error Message */}
+                {forgotPasswordError && (
+                  <HStack
+                    p={3}
+                    bg={errorAlertBg}
+                    borderRadius="lg"
+                    borderWidth="1px"
+                    borderColor={errorAlertBorder}
+                    gap={2}
+                  >
+                    <Icon color={errorAlertIconColor} flexShrink={0}>
+                      <AlertCircle size={18} />
+                    </Icon>
+                    <Text fontSize="sm" color={errorAlertTextColor} fontWeight="medium">
+                      {forgotPasswordError}
+                    </Text>
+                  </HStack>
+                )}
+
                 <VStack align="stretch" gap={1.5}>
                   <Text fontSize="sm" fontWeight="semibold">
                     Email
@@ -1128,22 +1341,50 @@ export default function AuthPage() {
                     <Input
                       placeholder="you@example.com"
                       type="email"
+                      value={forgotPasswordEmail}
+                      onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                      disabled={forgotPasswordLoading}
                       border="none"
                       outline="none"
                       h="full"
                       px={2}
                       bg="transparent"
                       _focus={{ border: "none", boxShadow: "none", bg: "transparent", outline: "none" }}
+                      _disabled={{ opacity: 0.6, cursor: "not-allowed" }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !forgotPasswordLoading) {
+                          handleForgotPassword();
+                        }
+                      }}
                     />
                   </HStack>
                 </VStack>
               </VStack>
             </Dialog.Body>
-            <Dialog.Footer gap={3}>
-              <Button variant="outline" onClick={() => setShowForgotPassword(false)}>
+            <Dialog.Footer gap={3} pointerEvents="auto" zIndex={9999}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  console.log("Cancel clicked"); // DEBUG
+                  setShowForgotPassword(false);
+                }}
+                pointerEvents="auto"
+              >
                 Cancel
               </Button>
-              <Button colorScheme="teal">
+              <Button
+                type="button"
+                variant="solid"
+                onClick={() => {
+                  console.log("Send Reset Link clicked"); // DEBUG
+                  handleForgotPassword();
+                }}
+                pointerEvents="auto"
+                bg="teal.500"
+                color="white"
+                _hover={{ bg: "teal.600" }}
+              >
                 Send Reset Link
               </Button>
             </Dialog.Footer>

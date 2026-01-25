@@ -338,7 +338,7 @@ const EditCreditsModal: React.FC<EditCreditsModalProps> = ({
       onSuccess();
       onClose();
     } catch (error) {
-      toaster.create({ title: "Failed to update credits", type: "error" });
+      toaster.create({ title: "Failed to update credits", type: "error", description: error });
     } finally {
       setLoading(false);
     }
@@ -468,7 +468,7 @@ const SuspendUserModal: React.FC<SuspendUserModalProps> = ({
       onSuccess();
       onClose();
     } catch (error) {
-      toaster.create({ title: "Failed to suspend user", type: "error" });
+      toaster.create({ title: "Failed to suspend user", type: "error", description: error });
     } finally {
       setLoading(false);
     }

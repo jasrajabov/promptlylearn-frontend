@@ -310,7 +310,7 @@ const UserRoadmaps: React.FC = () => {
                 )}
                 bgClip="text"
               >
-                My Roadmaps
+                My Learning Tracks
               </Heading>
               <Text color={mutedText} fontSize="md">
                 Track your learning paths and milestones
@@ -333,7 +333,7 @@ const UserRoadmaps: React.FC = () => {
             >
               <HStack gap={2}>
                 <Plus size={18} />
-                <Text fontWeight="600">Create Roadmap</Text>
+                <Text fontWeight="600">Create Learning Track</Text>
               </HStack>
             </Button>
           </HStack>

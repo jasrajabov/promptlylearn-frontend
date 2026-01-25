@@ -6,6 +6,8 @@ import PremiumRoute from "./components/PremiumRoute";
 import { Provider } from "./components/ui/provider";
 import RequireAuth from "./pages/RequireAuth";
 import { PWAInstallBanner } from './components/PWAInstallBanner';
+import ResetPasswordForm from './components/ResetPasswordForm';
+
 
 
 // Lazy load all pages
@@ -48,6 +50,7 @@ const App: React.FC = () => {
               <Route path="/" element={<HomePage _mode="course" />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/about" element={<AboutPage />} />
+              <Route path="/reset-password" element={<ResetPasswordForm />} />
 
               <Route element={<RequireAuth />}>
                 <Route path="/user-info" element={<UserInfoPage />} />

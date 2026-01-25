@@ -318,7 +318,7 @@ export default function TrackRoadmap(): React.ReactElement {
                 </Box>
                 <VStack align="start" gap={0}>
                   <Text fontSize="md" fontWeight="medium">
-                    Roadmap
+                    Learning Track
                   </Text>
                   <Heading
                     fontSize={{ base: "2xl", md: "4xl" }}

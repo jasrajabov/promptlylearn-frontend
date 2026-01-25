@@ -170,11 +170,11 @@ const AboutPage: React.FC = () => {
             label: "Faster Learning",
         },
         {
-            value: "25 min",
+            value: "~20 min",
             label: "Avg Lesson",
         },
         {
-            value: "10k+",
+            value: "100+",
             label: "Lessons Done",
         },
     ];
@@ -633,7 +633,7 @@ const AboutPage: React.FC = () => {
                                         your input helps shape PromptlyLearn.
                                     </Text>
                                     <Link
-                                        href="mailto:hello@promptlylearn.com"
+                                        href="mailto:jasurbek@promptlylearn.app"
                                         _hover={{ textDecoration: "none" }}
                                     >
                                         <Button
