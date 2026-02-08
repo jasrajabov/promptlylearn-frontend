@@ -1,5 +1,5 @@
-const CACHE_VERSION = '1.0.1'; // Increment on each deploy
-const BUILD_TIME =  Date.now()
+const CACHE_VERSION = '1.0.2'; // Increment on each deploy
+const BUILD_TIME =  "2026-02-07-001"
 const CACHE_NAME = `promptlylearn-v${CACHE_VERSION}-${BUILD_TIME}`;
 const RUNTIME_CACHE = 'promptlylearn-runtime';
 const API_CACHE = 'promptlylearn-api';
@@ -15,11 +15,9 @@ const STATIC_ASSETS = [
 
 // Install event - cache static assets
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing service worker...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        console.log('[SW] Caching static assets');
         return cache.addAll(STATIC_ASSETS);
       })
       .then(() => self.skipWaiting())
@@ -28,7 +26,6 @@ self.addEventListener('install', (event) => {
 
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating service worker...');
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
@@ -36,7 +33,6 @@ self.addEventListener('activate', (event) => {
           if (cacheName !== CACHE_NAME && 
               cacheName !== RUNTIME_CACHE && 
               cacheName !== API_CACHE) {
-            console.log('[SW] Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
@@ -93,7 +89,6 @@ async function cacheFirstStrategy(request, cacheName) {
   const cached = await cache.match(request);
   
   if (cached) {
-    console.log('[SW] Serving from cache:', request.url);
     return cached;
   }
 
@@ -125,7 +120,6 @@ async function networkFirstStrategy(request, cacheName) {
     }
     return response;
   } catch (error) {
-    console.log('[SW] Network failed, trying cache:', request.url);
     const cached = await cache.match(request);
     if (cached) {
       return cached;
@@ -151,14 +145,12 @@ self.addEventListener('sync', (event) => {
 });
 
 async function syncCourseProgress() {
-  console.log('[SW] Syncing course progress...');
   
   try {
     // Get pending updates from IndexedDB or localStorage
     const pendingUpdates = await getPendingUpdates();
     
     if (pendingUpdates.length === 0) {
-      console.log('[SW] No pending updates to sync');
       return;
     }
 
@@ -176,7 +168,6 @@ async function syncCourseProgress() {
 
         if (response.ok) {
           await removePendingUpdate(update.id);
-          console.log('[SW] Synced update:', update.id);
         }
       } catch (error) {
         console.error('[SW] Failed to sync update:', error);
@@ -196,7 +187,6 @@ async function getPendingUpdates() {
 
 async function removePendingUpdate(id) {
   // This would remove from IndexedDB or localStorage
-  console.log('[SW] Removed pending update:', id);
 }
 
 // Push notifications

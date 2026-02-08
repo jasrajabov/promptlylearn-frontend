@@ -115,6 +115,7 @@ const getLayoutedElements = (nodes: FlowNode[], edges: Edge[]) => {
 // --- MAIN COMPONENT ---
 
 export default function TrackRoadmap(): React.ReactElement {
+  // 1. All useState hooks first
   const [label, setLabel] = useState<string>("");
   const [roadmapNodeTypes, setRoadmapNodeTypes] = useState<Set<string>>(
     new Set(),
@@ -124,10 +125,12 @@ export default function TrackRoadmap(): React.ReactElement {
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
+
+  // 2. All useContext hooks (useParams, useUser)
   const { id } = useParams<{ id: string }>();
   const { user } = useUser();
 
-  // Theme colors
+  // 3. ALL useColorModeValue hooks together (BEFORE any useMemo/useCallback)
   const pageBg = useColorModeValue("#fafbfc", "#0a0b0d");
   const cardBg = useColorModeValue("white", "#1a1b1e");
   const borderColor = useColorModeValue("#e5e7eb", "#27272a");
@@ -135,12 +138,13 @@ export default function TrackRoadmap(): React.ReactElement {
   const headingColor = useColorModeValue("#111827", "#f9fafb");
   const accentColor = useColorModeValue("#0f766e", "#14b8a6");
   const hoverBg = useColorModeValue("#f3f4f6", "#27272a");
-
   const gradientText = useColorModeValue(
     "linear-gradient(135deg, #0D9488 0%, #14B8A6 50%, #06B6D4 100%)",
     "linear-gradient(135deg, #14B8A6 0%, #2DD4BF 50%, #5EEAD4 100%)",
   );
+  const backgroundPatternColor = useColorModeValue("#e5e7eb", "#27272a");
 
+  // 4. useMemo hooks
   const progressPercentage = useMemo(() => {
     if (allNodes.length === 0) return 0;
     const completedNodes = allNodes.filter(
@@ -151,6 +155,7 @@ export default function TrackRoadmap(): React.ReactElement {
 
   const totalNodes = allNodes.length;
 
+  // 5. useCallback hooks
   const updateNodeStatus = useCallback((nodeId: string, status: string) => {
     setAllNodes((prev) =>
       prev.map((n) =>
@@ -159,6 +164,16 @@ export default function TrackRoadmap(): React.ReactElement {
     );
   }, []);
 
+  const getEdgeColor = useCallback(
+    (edge: Edge, nodesMap: Map<string, FlowNode>) => {
+      const sourceNode = nodesMap.get(edge.source);
+      if (!sourceNode) return "#CBD5E0";
+      return sourceNode.data?.status === "COMPLETED" ? "#14b8a6" : "#d1d5db";
+    },
+    [],
+  );
+
+  // 6. More useMemo hooks that depend on callbacks
   const nodeTypes = useMemo(
     () => ({
       custom: (props: NodeProps<any>) => (
@@ -180,12 +195,6 @@ export default function TrackRoadmap(): React.ReactElement {
     [visibleNodes],
   );
 
-  const getEdgeColor = useCallback((edge: Edge, nodesMap: Map<string, FlowNode>) => {
-    const sourceNode = nodesMap.get(edge.source);
-    if (!sourceNode) return "#CBD5E0";
-    return sourceNode.data?.status === "COMPLETED" ? "#14b8a6" : "#d1d5db";
-  }, []);
-
   const visibleEdges = useMemo(() => {
     const nodesMap = new Map(visibleNodes.map((n) => [n.id, n]));
     return allEdges
@@ -202,6 +211,7 @@ export default function TrackRoadmap(): React.ReactElement {
       }));
   }, [allEdges, visibleNodes, visibleNodeIds, getEdgeColor]);
 
+  // 7. useEffect hooks last
   useEffect(() => {
     if (!user) return;
 
@@ -225,6 +235,7 @@ export default function TrackRoadmap(): React.ReactElement {
           id: node.node_id,
           type: "custom",
           data: {
+            roadmapName: data.roadmap_name,
             label: node.label,
             description: node.description,
             type: node.type,
@@ -272,6 +283,7 @@ export default function TrackRoadmap(): React.ReactElement {
     fetchRoadmap();
   }, [id, user]);
 
+  // Loading state
   if (loading)
     return (
       <Center h="100vh" bg={pageBg}>
@@ -284,6 +296,7 @@ export default function TrackRoadmap(): React.ReactElement {
       </Center>
     );
 
+  // Helper functions
   const toggleType = (type: string) => {
     setSelectedTypes((prev) => {
       const next = new Set(prev);
@@ -298,9 +311,9 @@ export default function TrackRoadmap(): React.ReactElement {
   };
 
   const hasActiveFilters = selectedTypes.size > 0;
+
   return (
     <Box w="100%" h="100vh" display="flex" flexDirection="column" bg={pageBg}>
-
       {/* Professional Header - Following CoursePage Pattern */}
       <VStack align="stretch" gap={4}>
         {/* Main Header Card */}
@@ -357,13 +370,7 @@ export default function TrackRoadmap(): React.ReactElement {
             <Filter size={16} style={{ marginRight: "8px" }} />
             Filter by Type
             {hasActiveFilters && (
-              <Badge
-                colorScheme="teal"
-                size="sm"
-                variant="solid"
-                ml={2}
-
-              >
+              <Badge colorScheme="teal" size="sm" variant="solid" ml={2}>
                 {selectedTypes.size}
               </Badge>
             )}
@@ -391,16 +398,16 @@ export default function TrackRoadmap(): React.ReactElement {
 
         {/* Collapsible Filter Pills */}
         {showFilters && (
-          <Box
-            opacity={1}
-            transition="opacity 0.2s ease-out"
-          >
+          <Box opacity={1} transition="opacity 0.2s ease-out">
             <HStack gap={2} wrap="wrap">
               {Array.from(roadmapNodeTypes).map((type) => {
                 const isSelected = selectedTypes.has(type);
-                const typeCount = allNodes.filter((n) => n.data?.type === type).length;
+                const typeCount = allNodes.filter(
+                  (n) => n.data?.type === type,
+                ).length;
                 const completedCount = allNodes.filter(
-                  (n) => n.data?.type === type && n.data?.status === "COMPLETED",
+                  (n) =>
+                    n.data?.type === type && n.data?.status === "COMPLETED",
                 ).length;
 
                 return (
@@ -421,7 +428,9 @@ export default function TrackRoadmap(): React.ReactElement {
                     transition="all 0.2s"
                   >
                     {type} ({completedCount}/{typeCount})
-                    {isSelected && <CheckCircle size={12} style={{ marginLeft: "4px" }} />}
+                    {isSelected && (
+                      <CheckCircle size={12} style={{ marginLeft: "4px" }} />
+                    )}
                   </Button>
                 );
               })}
@@ -430,9 +439,8 @@ export default function TrackRoadmap(): React.ReactElement {
         )}
       </VStack>
 
-
       {/* Canvas Area */}
-      < Box flex="1" position="relative" >
+      <Box flex="1" position="relative">
         <ReactFlow
           nodes={visibleNodes}
           edges={visibleEdges}
@@ -441,38 +449,33 @@ export default function TrackRoadmap(): React.ReactElement {
           fitView
           fitViewOptions={{ padding: 0.2 }}
         >
-          <Background
-            color={useColorModeValue("#e5e7eb", "#27272a")}
-            gap={16}
-          />
+          <Background color={backgroundPatternColor} gap={16} />
           <Controls />
         </ReactFlow>
 
         {/* Floating Filter Indicator */}
-        {
-          hasActiveFilters && (
-            <Box
-              position="absolute"
-              bottom={4}
-              left={4}
-              bg={cardBg}
-              borderWidth="1px"
-              borderColor={borderColor}
-              borderRadius="lg"
-              px={4}
-              py={2}
-              boxShadow="0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)"
-            >
-              <HStack gap={2}>
-                <Filter size={14} color={accentColor} />
-                <Text fontSize="sm" fontWeight="600" color={headingColor}>
-                  {visibleNodes.length} of {totalNodes} nodes
-                </Text>
-              </HStack>
-            </Box>
-          )
-        }
-      </Box >
-    </Box >
+        {hasActiveFilters && (
+          <Box
+            position="absolute"
+            bottom={4}
+            left={4}
+            bg={cardBg}
+            borderWidth="1px"
+            borderColor={borderColor}
+            borderRadius="lg"
+            px={4}
+            py={2}
+            boxShadow="0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)"
+          >
+            <HStack gap={2}>
+              <Filter size={14} color={accentColor} />
+              <Text fontSize="sm" fontWeight="600" color={headingColor}>
+                {visibleNodes.length} of {totalNodes} nodes
+              </Text>
+            </HStack>
+          </Box>
+        )}
+      </Box>
+    </Box>
   );
 }

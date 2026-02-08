@@ -48,13 +48,23 @@ const UserCourses: React.FC = () => {
         "created",
     );
 
-    // UI Colors - Updated for minimalistic design
+    // UI Colors - ALL useColorModeValue calls at the top (CRITICAL for hooks rules)
     const cardBg = useColorModeValue("white", "gray.950");
     const emptyBg = useColorModeValue("white", "gray.900");
     const cardBorderColor = useColorModeValue("gray.200", "gray.700");
     const mutedText = useColorModeValue("gray.600", "gray.400");
     const accentColor = useColorModeValue("teal.600", "teal.400");
     const highlightBg = useColorModeValue("teal.50", "rgba(20, 184, 166, 0.1)");
+    const gradientText = useColorModeValue(
+        "linear-gradient(135deg, #0D9488 0%, #14B8A6 50%, #06B6D4 100%)",
+        "linear-gradient(135deg, #14B8A6 0%, #2DD4BF 50%, #5EEAD4 100%)",
+    );
+    const purpleBg = useColorModeValue("purple.50", "rgba(139, 92, 246, 0.1)");
+    const purpleBorder = useColorModeValue("purple.200", "purple.800");
+    const purpleText = useColorModeValue("purple.700", "purple.400");
+    const blueBg = useColorModeValue("blue.50", "rgba(59, 130, 246, 0.1)");
+    const redBg = useColorModeValue("red.50", "rgba(239, 68, 68, 0.1)");
+    const grayTrack = useColorModeValue("gray.100", "gray.800");
 
     const navigate = useNavigate();
 
@@ -287,10 +297,7 @@ const UserCourses: React.FC = () => {
                                         fontSize={{ base: "3xl", md: "4xl" }}
                                         lineHeight={1.1}
                                         fontWeight="800"
-                                        bgGradient={useColorModeValue(
-                                            "linear-gradient(135deg, #0D9488 0%, #14B8A6 50%, #06B6D4 100%)",
-                                            "linear-gradient(135deg, #14B8A6 0%, #2DD4BF 50%, #5EEAD4 100%)",
-                                        )}
+                                        bgGradient={gradientText}
                                         bgClip="text"
                                     >
                                         My Courses
@@ -518,7 +525,7 @@ const UserCourses: React.FC = () => {
                             >
                                 <Box
                                     p={5}
-                                    bg={useColorModeValue("blue.50", "rgba(59, 130, 246, 0.1)")}
+                                    bg={blueBg}
                                     borderRadius="2xl"
                                 >
                                     <SearchX size={48} color="#3b82f6" />
@@ -701,16 +708,10 @@ const UserCourses: React.FC = () => {
                                                     {isGenerating ? (
                                                         <Box
                                                             p={3}
-                                                            bg={useColorModeValue(
-                                                                "purple.50",
-                                                                "rgba(139, 92, 246, 0.1)",
-                                                            )}
+                                                            bg={purpleBg}
                                                             borderRadius="lg"
                                                             borderWidth="1px"
-                                                            borderColor={useColorModeValue(
-                                                                "purple.200",
-                                                                "purple.800",
-                                                            )}
+                                                            borderColor={purpleBorder}
                                                         >
                                                             <HStack gap={2}>
                                                                 <Loader2
@@ -720,10 +721,7 @@ const UserCourses: React.FC = () => {
                                                                 />
                                                                 <Text
                                                                     fontSize="xs"
-                                                                    color={useColorModeValue(
-                                                                        "purple.700",
-                                                                        "purple.400",
-                                                                    )}
+                                                                    color={purpleText}
                                                                     fontWeight="600"
                                                                 >
                                                                     AI is building your curriculum...
@@ -795,9 +793,7 @@ const UserCourses: React.FC = () => {
                                                             striped={isGenerating}
                                                             animated={isGenerating}
                                                         >
-                                                            <Progress.Track
-                                                                bg={useColorModeValue("gray.100", "gray.800")}
-                                                            >
+                                                            <Progress.Track bg={grayTrack}>
                                                                 <Progress.Range />
                                                             </Progress.Track>
                                                         </Progress.Root>
@@ -839,10 +835,7 @@ const UserCourses: React.FC = () => {
                                                                     borderRadius="lg"
                                                                     px={2}
                                                                     _hover={{
-                                                                        bg: useColorModeValue(
-                                                                            "red.50",
-                                                                            "rgba(239, 68, 68, 0.1)",
-                                                                        ),
+                                                                        bg: redBg,
                                                                     }}
                                                                 >
                                                                     <Trash2 size={14} />
@@ -866,10 +859,7 @@ const UserCourses: React.FC = () => {
                                                                                     <Box
                                                                                         p={2}
                                                                                         borderRadius="lg"
-                                                                                        bg={useColorModeValue(
-                                                                                            "red.50",
-                                                                                            "rgba(239, 68, 68, 0.1)",
-                                                                                        )}
+                                                                                        bg={redBg}
                                                                                     >
                                                                                         <AlertCircle
                                                                                             size={24}

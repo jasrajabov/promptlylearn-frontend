@@ -42,7 +42,6 @@ export default function ResetPasswordPage() {
     const inputBg = useColorModeValue('white', 'gray.900');
     const borderColor = useColorModeValue('gray.300', 'gray.600');
     const focusBorderColor = useColorModeValue('teal.500', 'teal.400');
-    const errorBorderColor = useColorModeValue('red.500', 'red.400');
     const mutedText = useColorModeValue('gray.600', 'gray.400');
     const iconColor = useColorModeValue('gray.400', 'gray.500');
     const cardBorderColor = useColorModeValue('gray.200', 'gray.800');

@@ -20,7 +20,8 @@ const TrackRoadmap = lazy(() => import("./pages/RoadmapPage"));
 const UpgradePage = lazy(() => import("./pages/UpgradePage"));
 const AboutPage = lazy(() => import("./pages/About"));
 const UserInfoPage = lazy(() => import("./pages/UserInfo"));
-const AdminDashboard = lazy(() => import("./pages/AdminPage"));
+const AdminPage = lazy(() => import("./pages/AdminPage"));
+
 
 // Loading component
 const PageLoader = () => (
@@ -58,7 +59,7 @@ const App: React.FC = () => {
                 <Route path="/roadmap/:id/" element={<TrackRoadmap />} />
                 <Route path="/my-courses" element={<UserCourses />} />
                 <Route path="/my-roadmaps" element={<UserRoadmaps />} />
-                <Route path="/admin" element={<AdminDashboard />} />
+                <Route path="/admin" element={<AdminPage />} />
                 {/* Premium routes */}
                 <Route element={<PremiumRoute />}></Route>
 

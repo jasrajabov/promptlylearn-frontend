@@ -13,9 +13,9 @@ import {
   Card,
   SimpleGrid,
   Container,
-  Badge,
+  Grid,
 } from "@chakra-ui/react";
-import { Fade, SlideFade, ScaleFade } from "@chakra-ui/transition";
+import { SlideFade, ScaleFade } from "@chakra-ui/transition";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useUser } from "../contexts/UserContext";
 import { fetchWithTimeout } from "../utils/dbUtils";
@@ -23,44 +23,39 @@ import {
   Rocket,
   BookOpen,
   ArrowRight,
-  Code,
-  Computer,
   Sprout,
   Zap,
   Sparkles,
-  CheckCircle2,
+  CheckCircle2
 } from "lucide-react";
 import { useColorModeValue } from "../components/ui/color-mode";
-import { motion } from "framer-motion";
 
 export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
-
-const MotionBox = motion(Box);
-const MotionCard = motion(Card.Root);
 
 const levelItems = [
   {
     label: "Beginner",
     value: "beginner",
-    description: "Start from basics",
+    description: "Start from the fundamentals",
     icon: Sprout,
     color: "#10B981",
   },
   {
     label: "Intermediate",
     value: "intermediate",
-    description: "Build knowledge",
+    description: "Expand your knowledge",
     icon: Rocket,
     color: "#3B82F6",
   },
   {
     label: "Advanced",
     value: "advanced",
-    description: "Master it",
+    description: "Master the subject",
     icon: Zap,
-    color: "#F59E0B",
+    color: "#8B5CF6",
   },
 ];
+
 
 interface HomePageProps {
   _mode: "course" | "roadmap";
@@ -79,39 +74,18 @@ const HomePage: React.FC<HomePageProps> = ({ _mode = "course" }) => {
   const [error, setError] = useState<string | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
+  // Theme colors
   const cardBg = useColorModeValue("white", "gray.950");
-  const borderColor = useColorModeValue("gray.200", "gray.700");
+  const borderColor = useColorModeValue("gray.200", "gray.800");
   const mutedText = useColorModeValue("gray.600", "gray.400");
-  const bodyText = useColorModeValue("gray.700", "gray.300");
-  const accentColor = useColorModeValue("teal.600", "teal.400");
-  const highlightBg = useColorModeValue("teal.50", "rgba(20, 184, 166, 0.08)");
+  const bodyText = useColorModeValue("gray.900", "gray.50");
+  const accentColor = useColorModeValue("#0F766E", "#14B8A6");
+  const accentHover = useColorModeValue("#0D9488", "#2DD4BF");
+
   const gradientText = useColorModeValue(
     "linear-gradient(135deg, #0D9488 0%, #14B8A6 50%, #06B6D4 100%)",
     "linear-gradient(135deg, #14B8A6 0%, #2DD4BF 50%, #5EEAD4 100%)",
   );
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.08,
-        delayChildren: 0.1,
-      },
-    },
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 0.5,
-        ease: [0.25, 0.1, 0.25, 1] as const,
-      },
-    },
-  };
 
   const handleGenerate = async () => {
     if (!user) {
@@ -130,7 +104,7 @@ const HomePage: React.FC<HomePageProps> = ({ _mode = "course" }) => {
 
       const body =
         mode === "course"
-          ? { topic, level, custom_prompt: customPrompt }
+          ? { topic, level, custom_prompt: customPrompt, roadmap_name: null }
           : { roadmap_name: topic, custom_prompt: customPrompt };
 
       const response = await fetchWithTimeout(
@@ -159,385 +133,351 @@ const HomePage: React.FC<HomePageProps> = ({ _mode = "course" }) => {
   };
 
   return (
-    <Box minH="100vh" position="relative" overflowX="hidden">
-      {/* Background glow */}
+    <Box minH="100vh" position="relative">
+      {/* Subtle background gradient */}
       <Box
         position="absolute"
-        top="-10%"
+        top="0"
         left="50%"
         transform="translateX(-50%)"
-        width={{ base: "400px", md: "800px" }}
-        height={{ base: "300px", md: "500px" }}
-        bgGradient="radial(circle at center, teal.400 0%, transparent 70%)"
-        opacity={useColorModeValue(0.05, 0.03)}
-        filter="blur(80px)"
+        width="100%"
+        height="600px"
+        bgGradient={useColorModeValue(
+          "radial(ellipse at top, rgba(20, 184, 166, 0.05) 0%, transparent 60%)",
+          "radial(ellipse at top, rgba(20, 184, 166, 0.08) 0%, transparent 60%)"
+        )}
         pointerEvents="none"
         zIndex={0}
       />
 
       <Container
-        maxW="900px"
-        py={{ base: 6, md: 12 }}
+        maxW="1100px"
+        py={{ base: 8, md: 20 }}
         px={{ base: 4, md: 6 }}
         position="relative"
         zIndex={1}
       >
-        <MotionBox
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          {/* HERO - Compact */}
-          <MotionBox variants={itemVariants} textAlign="center" mb={{ base: 6, md: 10 }}>
-            <VStack gap={{ base: 3, md: 4 }}>
-              {/* Badge */}
-              <HStack
-                gap={2}
-                justify="center"
-                px={3}
-                py={1.5}
-                bg={highlightBg}
+        {/* Hero Section */}
+        <VStack gap={{ base: 6, md: 12 }} mb={{ base: 8, md: 16 }}>
+          <VStack gap={{ base: 3, md: 5 }} textAlign="center" maxW="800px">
+            {/* Badge */}
+            <HStack
+              gap={2}
+              px={{ base: 2.5, md: 3 }}
+              py={{ base: 1, md: 1.5 }}
+              bg={useColorModeValue("purple.50", "rgba(20, 184, 166, 0.1)")}
+              borderRadius="full"
+              display="inline-flex"
+
+            >
+              <Box
+                w={2}
+                h={2}
+                bg="blue.600"
                 borderRadius="full"
-                borderWidth="1px"
-                borderColor={useColorModeValue("teal.200", "teal.800")}
-                display="inline-flex"
-              >
-                <Sparkles size={12} color="#14B8A6" />
-                <Text
-                  fontSize="2xs"
-                  fontWeight="600"
-                  color={accentColor}
-                  letterSpacing="wide"
-                >
-                  AI-Powered Learning
-                </Text>
-              </HStack>
-
-              {/* Heading */}
-              <Heading
-                fontSize={{ base: "3xl", sm: "4xl", md: "5xl", lg: "6xl" }}
-                fontWeight="800"
-                bgGradient={gradientText}
-                bgClip="text"
-                lineHeight="1.1"
-                letterSpacing="-0.02em"
-                maxW="700px"
-              >
-                Learn Anything. Faster.
-              </Heading>
-
-              {/* Subtitle */}
+                animation="pulse 2s ease-in-out infinite"
+              />
               <Text
-                fontSize={{ base: "sm", md: "md" }}
-                maxW="500px"
-                lineHeight="1.5"
-                color={mutedText}
-                px={{ base: 2, md: 0 }}
+                fontSize={{ base: "2xs", md: "xs" }}
+                fontWeight="600"
+                color={useColorModeValue("blue.700", "blue.500")}
+                letterSpacing="0.5px"
               >
-                AI-powered courses & roadmaps, personalized for you
+                AI-Powered Learning Platform
               </Text>
-            </VStack>
-          </MotionBox>
+            </HStack>
 
-          {/* MAIN CARD - Compact */}
-          <MotionCard
-            variants={itemVariants}
-            maxW="700px"
-            mx="auto"
-            mb={{ base: 8, md: 12 }}
+            {/* Main Heading */}
+            <Heading
+              as="h1"
+              fontSize={{ base: "2rem", sm: "2.5rem", md: "4rem", lg: "4.5rem" }}
+              fontWeight="700"
+              lineHeight="1.1"
+              letterSpacing="-0.02em"
+              bgGradient={gradientText}
+              bgClip="text"
+              px={{ base: 2, md: 0 }}
+            >
+              Learn Anything. Faster.
+            </Heading>
+
+            {/* Subtitle */}
+            <Text
+              fontSize={{ base: "md", md: "xl" }}
+              color={mutedText}
+              maxW="600px"
+              lineHeight="1.7"
+              fontWeight="400"
+              px={{ base: 2, md: 0 }}
+            >
+              Create personalized learning paths powered by AI. From beginner to
+              expert, get a curriculum designed for your goals.
+            </Text>
+          </VStack>
+
+          {/* Main Card */}
+          <Card.Root
+            maxW="720px"
+            w="100%"
             bg={cardBg}
-            borderRadius={{ base: "2xl", md: "3xl" }}
+            borderRadius={{ base: "xl", md: "2xl" }}
             borderWidth="1px"
             borderColor={borderColor}
             boxShadow={useColorModeValue(
-              "0 10px 40px -12px rgba(0, 0, 0, 0.1)",
-              "0 10px 40px -12px rgba(0, 0, 0, 0.3)"
+              "0 4px 24px rgba(0, 0, 0, 0.06)",
+              "0 4px 24px rgba(0, 0, 0, 0.3)"
             )}
-            overflow="hidden"
           >
-            <Card.Body p={{ base: 5, md: 7 }}>
-              <VStack gap={{ base: 4, md: 5 }} w="100%">
+            <Card.Body p={{ base: 4, md: 8 }}>
+              <VStack gap={{ base: 5, md: 7 }} w="100%">
                 {/* Topic Input */}
-                <Box w="100%">
-                  <Text
-                    fontSize="xs"
-                    fontWeight="600"
-                    color={bodyText}
-                    mb={2}
-                  >
-                    What do you want to learn?
-                  </Text>
-
-                  <Box position="relative" w="100%">
-                    <Input
-                      placeholder="e.g., React, Machine Learning, GenAI..."
-                      value={topic}
-                      onChange={(e) => setTopic(e.target.value)}
-                      height={{ base: "48px", md: "52px" }}
-                      borderRadius="xl"
-                      borderWidth="2px"
-                      borderColor={topic ? accentColor : borderColor}
-                      bg={cardBg}
-                      _focus={{
-                        borderColor: accentColor,
-                        boxShadow: `0 0 0 3px ${useColorModeValue("rgba(20, 184, 166, 0.12)", "rgba(20, 184, 166, 0.15)")}`,
-                        outline: "none",
-                      }}
-                      px={4}
-                      fontSize="sm"
-                      fontWeight="500"
-                      transition="all 0.2s"
-                    />
+                <VStack gap={3} w="100%" align="start">
+                  <HStack justify="space-between" w="100%">
+                    <Text fontSize={{ base: "xs", md: "sm" }} fontWeight="600" color={bodyText}>
+                      What do you want to learn?
+                    </Text>
                     {topic && (
-                      <Box
-                        position="absolute"
-                        right={3}
-                        top="50%"
-                        transform="translateY(-50%)"
-                        p={1.5}
-                        bg={accentColor}
-                        borderRadius="lg"
-                        color="white"
-                      >
+                      <HStack gap={1.5} color="teal.500">
                         <CheckCircle2 size={14} />
-                      </Box>
+                        <Text fontSize="xs" fontWeight="500">
+                          Ready
+                        </Text>
+                      </HStack>
                     )}
-                  </Box>
-                </Box>
+                  </HStack>
 
-                {/* Divider */}
-                <Box w="100%" h="1px" bg={borderColor} />
+                  <Input
+                    placeholder="e.g., Python Programming"
+                    value={topic}
+                    onChange={(e) => setTopic(e.target.value)}
+                    height={{ base: "48px", md: "56px" }}
+                    borderRadius="lg"
+                    borderWidth="1px"
+                    borderColor={topic ? accentColor : borderColor}
+                    bg={cardBg}
+                    fontSize={{ base: "15px", md: "md" }}
+                    fontWeight="400"
+                    px={{ base: 3, md: 4 }}
+                    _focus={{
+                      borderColor: accentColor,
+                      boxShadow: `0 0 0 3px ${useColorModeValue("rgba(15, 118, 110, 0.1)", "rgba(20, 184, 166, 0.15)")}`,
+                      outline: "none",
+                    }}
+                    _placeholder={{
+                      color: mutedText,
+                      fontSize: { base: "14px", md: "md" }
+                    }}
+                    transition="all 0.2s"
+                  />
+                </VStack>
 
-                {/* Mode Selection */}
-                <Box w="100%">
-                  <Text fontSize="xs" fontWeight="600" color={bodyText} mb={2}>
+                {/* Format Selection */}
+                <VStack gap={3} w="100%" align="start">
+                  <Text fontSize={{ base: "xs", md: "sm" }} fontWeight="600" color={bodyText}>
                     Choose format
                   </Text>
 
-                  <SimpleGrid columns={2} gap={3} w="100%">
-                    {/* Course */}
+                  <Grid templateColumns="repeat(2, 1fr)" gap={{ base: 2, md: 3 }} w="100%">
                     <Box
                       onClick={() => setMode("course")}
-                      p={{ base: 3, md: 4 }}
-                      borderRadius="xl"
-                      borderWidth="2px"
-                      borderColor={mode === "course" ? accentColor : borderColor}
-                      bg={mode === "course" ? highlightBg : cardBg}
                       cursor="pointer"
                       transition="all 0.2s"
-                      _hover={{
-                        borderColor: accentColor,
-                        transform: "translateY(-2px)",
-                      }}
-                      _active={{
-                        transform: "scale(0.98)",
-                      }}
+                      _hover={{ transform: "translateY(-2px)" }}
+                      h="100%"
+                      display="flex"
                     >
-                      <VStack align="start" gap={2}>
-                        <HStack justify="space-between" w="100%">
-                          <Box
-                            p={2}
-                            bg={useColorModeValue("orange.50", "rgba(251, 146, 60, 0.1)")}
-                            borderRadius="lg"
-                          >
-                            <BookOpen size={18} color="#F59E0B" />
-                          </Box>
-                          {mode === "course" && (
-                            <Box p={0.5} bg={accentColor} borderRadius="full" color="white">
-                              <CheckCircle2 size={12} />
-                            </Box>
-                          )}
-                        </HStack>
-                        <VStack align="start" gap={0}>
-                          <Text fontWeight="700" fontSize="md" color={bodyText}>
-                            Course
-                          </Text>
-                          <Text fontSize="2xs" color={mutedText}>
-                            Lessons & exercises
-                          </Text>
-                        </VStack>
-                      </VStack>
-                    </Box>
-
-                    {/* Roadmap */}
-                    <Box
-                      onClick={() => setMode("roadmap")}
-                      p={{ base: 3, md: 4 }}
-                      borderRadius="xl"
-                      borderWidth="2px"
-                      borderColor={mode === "roadmap" ? accentColor : borderColor}
-                      bg={mode === "roadmap" ? highlightBg : cardBg}
-                      cursor="pointer"
-                      transition="all 0.2s"
-                      _hover={{
-                        borderColor: accentColor,
-                        transform: "translateY(-2px)",
-                      }}
-                      _active={{
-                        transform: "scale(0.98)",
-                      }}
-                    >
-                      <VStack align="start" gap={2}>
-                        <HStack justify="space-between" w="100%">
-                          <Box
-                            p={2}
-                            bg={useColorModeValue("green.50", "rgba(16, 185, 129, 0.1)")}
-                            borderRadius="lg"
-                          >
-                            <Rocket size={18} color="#10B981" />
-                          </Box>
-                          {mode === "roadmap" && (
-                            <Box p={0.5} bg={accentColor} borderRadius="full" color="white">
-                              <CheckCircle2 size={12} />
-                            </Box>
-                          )}
-                        </HStack>
-                        <VStack align="start" gap={0}>
-                          <Text fontWeight="700" fontSize="md" color={bodyText}>
-                            Learning Track
-                          </Text>
-                          <Text fontSize="2xs" color={mutedText}>
-                            Complete path
-                          </Text>
-                        </VStack>
-                      </VStack>
-                    </Box>
-                  </SimpleGrid>
-                </Box>
-
-                {/* Skill Level (Course only) */}
-                {mode === "course" && (
-                  <Box w="100%">
-                    <Box w="100%" h="1px" bg={borderColor} mb={4} />
-
-                    <SlideFade in={mode === "course"} offsetY="15px">
-                      <VStack align="start" gap={3} w="100%">
-                        <Text fontSize="xs" fontWeight="600" color={bodyText}>
-                          Select skill level
-                        </Text>
-
-                        <SimpleGrid columns={3} gap={2} w="100%">
-                          {levelItems.map((item) => (
-                            <Box
-                              key={item.value}
-                              p={3}
-                              borderRadius="xl"
-                              bg={level === item.value ? highlightBg : cardBg}
-                              borderWidth="2px"
-                              borderColor={level === item.value ? accentColor : borderColor}
-                              cursor="pointer"
-                              onClick={() => setLevel(item.value)}
-                              transition="all 0.2s"
-                              _hover={{
-                                borderColor: accentColor,
-                                transform: "translateY(-2px)",
-                              }}
-                              _active={{
-                                transform: "scale(0.98)",
-                              }}
-                              position="relative"
-                            >
-                              <VStack gap={1.5} align="center">
-                                <item.icon size={20} color={item.color} />
-                                <Text fontWeight="700" fontSize="2xs" color={bodyText}>
-                                  {item.label}
-                                </Text>
-                                {/* <Text fontSize="3xs" color={mutedText} textAlign="center" display={{ base: "none", sm: "block" }}>
-                                  {item.description}
-                                </Text> */}
-
-                                {level === item.value && (
-                                  <Box
-                                    position="absolute"
-                                    top={2}
-                                    right={2}
-                                    p={0.5}
-                                    bg={accentColor}
-                                    borderRadius="full"
-                                    color="white"
-                                  >
-                                    <CheckCircle2 size={10} />
-                                  </Box>
-                                )}
-                              </VStack>
-                            </Box>
-                          ))}
-                        </SimpleGrid>
-                      </VStack>
-                    </SlideFade>
-                  </Box>
-                )}
-
-                {/* Roadmap Info */}
-                {mode === "roadmap" && (
-                  <Box w="100%">
-                    <Box w="100%" h="1px" bg={borderColor} mb={4} />
-
-                    <Fade in={mode === "roadmap"}>
                       <Box
-                        p={5}
-                        bg={highlightBg}
-                        borderRadius="xl"
-                        borderWidth="2px"
-                        borderColor={useColorModeValue("teal.200", "teal.800")}
+                        p={{ base: 3, md: 5 }}
+                        borderRadius="lg"
+                        borderWidth="1.5px"
+                        borderColor={
+                          mode === "course" ? accentColor : borderColor
+                        }
+                        bg={mode === "course" ? useColorModeValue("teal.50", "rgba(20, 184, 166, 0.05)") : cardBg}
+                        transition="all 0.2s"
+                        w="100%"
+                        display="flex"
+                        flexDirection="column"
                       >
-                        <VStack gap={3}>
-                          <Box
-                            p={3}
-                            bgGradient="linear(to-br, green.400, emerald.600)"
-                            borderRadius="xl"
-                            color="white"
-                          >
-                            <Rocket size={24} />
-                          </Box>
-                          <VStack gap={1}>
-                            <Text fontWeight="700" color={accentColor} fontSize="sm">
-                              Complete Learning Path
+                        <VStack align="start" gap={{ base: 2, md: 3 }} flex="1">
+                          <HStack justify="space-between" w="100%">
+                            <Box
+                              p={{ base: 2, md: 2.5 }}
+                              bg={useColorModeValue("blue.100", "rgba(59, 130, 246, 0.15)")}
+                              borderRadius="md"
+                            >
+                              <BookOpen size={18} color="#3B82F6" />
+                            </Box>
+                            {mode === "course" && (
+                              <CheckCircle2 size={16} color={accentColor} />
+                            )}
+                          </HStack>
+
+                          <VStack align="start" gap={1} flex="1">
+                            <Text fontWeight="600" fontSize={{ base: "sm", md: "md" }} color={bodyText}>
+                              Course
                             </Text>
-                            <Text textAlign="center" color={mutedText} fontSize="xs" lineHeight="1.5">
-                              Structured roadmap from beginner to expert
+                            <Text fontSize={{ base: "xs", md: "sm" }} color={mutedText} lineHeight="1.5">
+                              Lessons & projects
                             </Text>
                           </VStack>
                         </VStack>
                       </Box>
-                    </Fade>
-                  </Box>
+                    </Box>
+
+                    <Box
+                      onClick={() => setMode("roadmap")}
+                      cursor="pointer"
+                      transition="all 0.2s"
+                      _hover={{ transform: "translateY(-2px)" }}
+                      h="100%"
+                      display="flex"
+                    >
+                      <Box
+                        p={{ base: 3, md: 5 }}
+                        borderRadius="lg"
+                        borderWidth="1.5px"
+                        borderColor={
+                          mode === "roadmap" ? accentColor : borderColor
+                        }
+                        bg={mode === "roadmap" ? useColorModeValue("teal.50", "rgba(20, 184, 166, 0.05)") : cardBg}
+                        transition="all 0.2s"
+                        w="100%"
+                        display="flex"
+                        flexDirection="column"
+                      >
+                        <VStack align="start" gap={{ base: 2, md: 3 }} flex="1">
+                          <HStack justify="space-between" w="100%">
+                            <Box
+                              p={{ base: 2, md: 2.5 }}
+                              bg={useColorModeValue("purple.100", "rgba(139, 92, 246, 0.15)")}
+                              borderRadius="md"
+                            >
+                              <Rocket size={18} color="#8B5CF6" />
+                            </Box>
+                            {mode === "roadmap" && (
+                              <CheckCircle2 size={16} color={accentColor} />
+                            )}
+                          </HStack>
+
+                          <VStack align="start" gap={1} flex="1">
+                            <Text fontWeight="600" fontSize={{ base: "sm", md: "md" }} color={bodyText}>
+                              Roadmap
+                            </Text>
+                            <Text fontSize={{ base: "xs", md: "sm" }} color={mutedText} lineHeight="1.5">
+                              Path to expertise
+                            </Text>
+                          </VStack>
+                        </VStack>
+                      </Box>
+                    </Box>
+                  </Grid>
+                </VStack>
+
+                {/* Skill Level */}
+                {mode === "course" && (
+                  <SlideFade in={mode === "course"} offsetY="10px">
+                    <VStack gap={3} w="100%" align="start">
+                      <Text fontSize={{ base: "xs", md: "sm" }} fontWeight="600" color={bodyText}>
+                        Your current level
+                      </Text>
+
+                      <SimpleGrid columns={3} gap={{ base: 2, md: 3 }} w="100%">
+                        {levelItems.map((item) => (
+                          <Box
+                            key={item.value}
+                            onClick={() => setLevel(item.value)}
+                            cursor="pointer"
+                            transition="all 0.2s"
+                            _hover={{ transform: "translateY(-2px)" }}
+                            h="100%"
+                            display="flex"
+                          >
+                            <Box
+                              p={{ base: 3, md: 4 }}
+                              borderRadius="lg"
+                              borderWidth="1.5px"
+                              borderColor={
+                                level === item.value ? accentColor : borderColor
+                              }
+                              bg={level === item.value ? useColorModeValue("teal.50", "rgba(20, 184, 166, 0.05)") : cardBg}
+                              transition="all 0.2s"
+                              position="relative"
+                              w="100%"
+                              display="flex"
+                            >
+                              <VStack gap={{ base: 1.5, md: 2.5 }} align="center" w="100%" flex="1">
+                                <item.icon size={22} color={item.color} />
+                                <VStack gap={0.5} flex="1" justify="center">
+                                  <Text
+                                    fontWeight="600"
+                                    fontSize={{ base: "xs", md: "sm" }}
+                                    color={bodyText}
+                                  >
+                                    {item.label}
+                                  </Text>
+                                  <Text
+                                    fontSize="2xs"
+                                    color={mutedText}
+                                    textAlign="center"
+                                    display={{ base: "none", sm: "block" }}
+                                  >
+                                    {item.description}
+                                  </Text>
+                                </VStack>
+                              </VStack>
+
+                              {level === item.value && (
+                                <Box
+                                  position="absolute"
+                                  top={2}
+                                  right={2}
+                                >
+                                  <CheckCircle2 size={12} color={accentColor} />
+                                </Box>
+                              )}
+                            </Box>
+                          </Box>
+                        ))}
+                      </SimpleGrid>
+                    </VStack>
+                  </SlideFade>
                 )}
 
-                {/* Custom Prompt */}
+                {/* Custom Instructions */}
                 <Box w="100%">
-                  <Box w="100%" h="1px" bg={borderColor} mb={3} />
-
                   {!showAdvanced ? (
                     <Button
                       onClick={() => setShowAdvanced(true)}
                       variant="ghost"
-                      size="sm"
-                      borderRadius="lg"
+                      size={{ base: "md", md: "md" }}
                       w="100%"
-                      py={3}
+                      h={{ base: "44px", md: "48px" }}
+                      borderRadius="lg"
                       color={mutedText}
                       borderWidth="1px"
-                      borderColor="transparent"
+                      borderColor={borderColor}
+                      borderStyle="dashed"
                       _hover={{
-                        bg: highlightBg,
-                        color: accentColor,
+                        bg: useColorModeValue("gray.50", "gray.800"),
                         borderColor: accentColor,
+                        color: accentColor,
                       }}
+                      transition="all 0.2s"
                     >
-                      <HStack gap={1.5}>
+                      <HStack gap={2}>
                         <Sparkles size={14} />
-                        <Text fontSize="xs" fontWeight="600">
+                        <Text fontSize={{ base: "xs", md: "sm" }} fontWeight="500">
                           Add custom instructions
                         </Text>
                       </HStack>
                     </Button>
                   ) : (
                     <ScaleFade in={showAdvanced}>
-                      <VStack align="start" gap={2} w="100%">
+                      <VStack gap={3} w="100%" align="start">
                         <HStack justify="space-between" w="100%">
-                          <Text fontSize="xs" fontWeight="600" color={bodyText}>
-                            Custom Instructions
+                          <Text fontSize={{ base: "xs", md: "sm" }} fontWeight="600" color={bodyText}>
+                            Custom instructions
                           </Text>
                           <Button
                             size="xs"
@@ -549,26 +489,26 @@ const HomePage: React.FC<HomePageProps> = ({ _mode = "course" }) => {
                             color={mutedText}
                             _hover={{ color: "red.500" }}
                           >
-                            <Text fontSize="2xs">Remove</Text>
+                            Remove
                           </Button>
                         </HStack>
+
                         <Textarea
-                          placeholder="Add requirements...&#10;• Focus on projects&#10;• Include videos"
+                          placeholder="Add specific requirements...&#10;&#10;Examples:&#10;• Focus on hands-on projects&#10;• Include real-world examples"
                           value={customPrompt}
                           onChange={(e) => setCustomPrompt(e.target.value)}
-                          size="sm"
+                          size="md"
                           rows={4}
                           borderRadius="lg"
-                          borderWidth="2px"
+                          borderWidth="1px"
                           borderColor={borderColor}
-                          bg={cardBg}
-                          fontSize="xs"
+                          fontSize={{ base: "13px", md: "sm" }}
                           _focus={{
                             borderColor: accentColor,
-                            boxShadow: `0 0 0 3px ${useColorModeValue("rgba(20, 184, 166, 0.1)", "rgba(20, 184, 166, 0.15)")}`,
+                            boxShadow: `0 0 0 3px ${useColorModeValue("rgba(15, 118, 110, 0.1)", "rgba(20, 184, 166, 0.15)")}`,
                           }}
                           resize="vertical"
-                          lineHeight="1.5"
+                          lineHeight="1.6"
                         />
                       </VStack>
                     </ScaleFade>
@@ -576,66 +516,82 @@ const HomePage: React.FC<HomePageProps> = ({ _mode = "course" }) => {
                 </Box>
 
                 {/* Generate Button */}
-                <Box w="100%" pt={2}>
-                  <Button
-                    colorPalette="teal"
-                    size="lg"
-                    width="100%"
-                    height={{ base: "52px", md: "56px" }}
-                    borderRadius="xl"
-                    onClick={handleGenerate}
-                    disabled={!topic || loading}
-                    fontSize="sm"
-                    fontWeight="700"
-                    bgGradient="linear(to-r, teal.500, cyan.500)"
-                    boxShadow="0 4px 14px rgba(20, 184, 166, 0.3)"
-                    _hover={{
-                      bgGradient: "linear(to-r, teal.600, cyan.600)",
-                      transform: "translateY(-2px)",
-                      boxShadow: "0 6px 20px rgba(20, 184, 166, 0.4)",
-                    }}
-                    _active={{
-                      transform: "translateY(0)",
-                    }}
-                    _disabled={{
-                      opacity: 0.5,
-                      cursor: "not-allowed",
-                      transform: "none",
-                    }}
-                    transition="all 0.2s"
-                  >
-                    {loading ? (
-                      <HStack gap={2}>
-                        <Spinner size="sm" />
-                        <Text>Generating...</Text>
-                      </HStack>
-                    ) : (
-                      <HStack gap={2}>
-                        <Sparkles size={16} />
-                        <Text>
-                          Generate {mode === "course" ? "Course" : "Track"}
-                        </Text>
-                        <ArrowRight size={16} />
-                      </HStack>
-                    )}
-                  </Button>
-                </Box>
+                <Button
+                  size={{ base: "md", md: "lg" }}
+                  w="100%"
+                  h={{ base: "48px", md: "56px" }}
+                  borderRadius="lg"
+                  onClick={handleGenerate}
+                  disabled={!topic || loading}
+                  bg={accentColor}
+                  color="white"
+                  fontSize={{ base: "sm", md: "md" }}
+                  fontWeight="600"
+                  _hover={{
+                    bg: accentHover,
+                    transform: !topic || loading ? "none" : "translateY(-1px)",
+                  }}
+                  _active={{
+                    transform: "translateY(0)",
+                  }}
+                  _disabled={{
+                    opacity: 0.5,
+                    cursor: "not-allowed",
+                  }}
+                  boxShadow={
+                    !topic || loading
+                      ? "none"
+                      : useColorModeValue(
+                        "0 4px 12px rgba(15, 118, 110, 0.25)",
+                        "0 4px 12px rgba(20, 184, 166, 0.3)"
+                      )
+                  }
+                  transition="all 0.2s"
+                >
+                  {loading ? (
+                    <HStack gap={3}>
+                      <Spinner size="sm" />
+                      <Text>Generating...</Text>
+                    </HStack>
+                  ) : (
+                    <HStack gap={2}>
+                      <Text>
+                        Create {mode === "course" ? "Course" : "Roadmap"}
+                      </Text>
+                      <ArrowRight size={16} />
+                    </HStack>
+                  )}
+                </Button>
 
-                {/* Error */}
+                {/* Error Alert */}
                 {error && (
                   <ScaleFade in={!!error}>
-                    <Alert.Root status="error" borderRadius="xl" w="100%">
+                    <Alert.Root status="error" borderRadius="lg">
                       <Alert.Indicator />
-                      <Alert.Title fontSize="sm">{error}</Alert.Title>
+                      <Alert.Title fontSize={{ base: "xs", md: "sm" }}>{error}</Alert.Title>
                     </Alert.Root>
                   </ScaleFade>
                 )}
               </VStack>
             </Card.Body>
-          </MotionCard>
-        </MotionBox>
+          </Card.Root>
+        </VStack>
       </Container>
-    </Box >
+
+      {/* Animations */}
+      <style>
+        {`
+          @keyframes pulse {
+            0%, 100% {
+              opacity: 1;
+            }
+            50% {
+              opacity: 0.5;
+            }
+          }
+        `}
+      </style>
+    </Box>
   );
 };
 

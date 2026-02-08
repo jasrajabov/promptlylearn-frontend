@@ -136,8 +136,6 @@ export default function AuthPage() {
         return await response.json();
 
       } catch (err) {
-        console.log(`Fetch attempt ${attempt + 1}/${maxRetries} failed:`, err);
-
         // If this is the last attempt, throw the error
         if (attempt === maxRetries - 1) {
           throw new Error(
@@ -147,7 +145,6 @@ export default function AuthPage() {
 
         // Exponential backoff: wait longer between each retry
         const delay = baseDelay * Math.pow(2, attempt);
-        console.log(`Retrying in ${delay}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
@@ -268,7 +265,6 @@ export default function AuthPage() {
   const handleOAuthLogin = (provider: "google" | "github") => {
     // Prevent multiple simultaneous OAuth attempts
     if (loading) {
-      console.log("OAuth already in progress");
       return;
     }
 
@@ -398,7 +394,12 @@ export default function AuthPage() {
 
     setLoading(true);
     try {
-      await signup(name, email, password, { phone, organization, role });
+      const personal_info = {
+        phone: phone,
+        organization: organization,
+        role: role
+      }
+      await signup(name, email, password, personal_info);
       setMessage("Account created successfully!");
       navigate("/");
     } catch (err: any) {
@@ -410,7 +411,6 @@ export default function AuthPage() {
 
   // Forgot Password Handler
   const handleForgotPassword = async () => {
-    console.log("handleForgotPassword called!"); // DEBUG
     setForgotPasswordError("");
     setForgotPasswordMessage("");
 
@@ -1366,7 +1366,6 @@ export default function AuthPage() {
                 type="button"
                 variant="outline"
                 onClick={() => {
-                  console.log("Cancel clicked"); // DEBUG
                   setShowForgotPassword(false);
                 }}
                 pointerEvents="auto"
@@ -1377,7 +1376,6 @@ export default function AuthPage() {
                 type="button"
                 variant="solid"
                 onClick={() => {
-                  console.log("Send Reset Link clicked"); // DEBUG
                   handleForgotPassword();
                 }}
                 pointerEvents="auto"

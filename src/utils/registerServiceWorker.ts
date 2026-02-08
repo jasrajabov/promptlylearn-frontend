@@ -9,8 +9,6 @@ export function registerServiceWorker() {
       navigator.serviceWorker
         .register(swUrl)
         .then((registration) => {
-          console.log("[SW] Service Worker registered:", registration);
-
           // Check for updates periodically (every 60 seconds)
           setInterval(() => {
             registration.update();
@@ -18,16 +16,12 @@ export function registerServiceWorker() {
 
           registration.addEventListener("updatefound", () => {
             const newWorker = registration.installing;
-            console.log("[SW] New service worker found");
 
             newWorker?.addEventListener("statechange", () => {
               if (
                 newWorker.state === "installed" &&
                 navigator.serviceWorker.controller
               ) {
-                // New service worker available
-                console.log("[SW] New content available, please refresh");
-
                 // Show update notification
                 if (confirm("New version available! Reload to update?")) {
                   newWorker.postMessage({ type: "SKIP_WAITING" });
@@ -50,8 +44,6 @@ export function registerServiceWorker() {
         }
       });
     });
-  } else {
-    console.log("[SW] Service workers are not supported");
   }
 }
 
@@ -70,7 +62,6 @@ export function unregisterServiceWorker() {
 // Request notification permission
 export async function requestNotificationPermission() {
   if (!("Notification" in window)) {
-    console.log("[Notifications] Not supported");
     return false;
   }
 
@@ -105,7 +96,6 @@ export async function syncCourseProgress(
     !("serviceWorker" in navigator) ||
     !("sync" in ServiceWorkerRegistration.prototype)
   ) {
-    console.log("[Sync] Background sync not supported");
     return false;
   }
 
@@ -126,7 +116,6 @@ export async function syncCourseProgress(
     // Register sync
     const registration = await navigator.serviceWorker.ready;
     await (registration as any).sync.register("sync-course-progress");
-    console.log("[Sync] Course progress sync registered");
     return true;
   } catch (error) {
     console.error("[Sync] Failed to register sync:", error);

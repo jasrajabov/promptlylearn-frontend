@@ -60,7 +60,6 @@ const ChatBox = forwardRef<ChatBoxRef, ChatBoxProps>((props, ref) => {
 
     // Theme colors
     const borderColor = useColorModeValue("gray.200", "gray.700");
-    const headerBg = useColorModeValue("teal.700", "teal.00");
     const userMessageBg = useColorModeValue("teal.500", "teal.600");
     const assistantMessageBg = useColorModeValue("gray.100", "gray.800");
     const inputBg = useColorModeValue("gray.50", "gray.800");
@@ -394,7 +393,6 @@ const ChatBox = forwardRef<ChatBoxRef, ChatBoxProps>((props, ref) => {
             >
                 {/* Header */}
                 <Box
-                    bg={headerBg}
                     color="white"
                     px={4}
                     py={3}

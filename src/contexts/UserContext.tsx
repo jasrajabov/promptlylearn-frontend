@@ -145,7 +145,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     const res = await fetch(`${BACKEND_URL}/authentication/signup`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password, ...personal_info }),
+      body: JSON.stringify({ name, email, password, personal_info }),
     });
 
     if (!res.ok) {

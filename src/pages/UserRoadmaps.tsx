@@ -9,7 +9,6 @@ import {
   VStack,
   Dialog,
   Portal,
-  CloseButton,
   createListCollection,
   Progress,
   HStack,
@@ -63,6 +62,8 @@ const UserRoadmaps: React.FC = () => {
   const mutedText = useColorModeValue("gray.600", "gray.400");
   const accentColor = useColorModeValue("teal.600", "teal.400");
   const highlightBg = useColorModeValue("teal.50", "rgba(20, 184, 166, 0.1)");
+
+  const pollersRef = useRef<Record<string, number | null>>({});
 
   const navigate = useNavigate();
 
@@ -128,7 +129,6 @@ const UserRoadmaps: React.FC = () => {
     fetchRoadmaps();
   }, []);
 
-  const pollersRef = useRef<Record<string, number | null>>({});
 
   const refreshRoadmaps = async () => {
     if (!user) return;

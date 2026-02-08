@@ -24,11 +24,11 @@ import {
     Trophy,
     FileCheck,
     Map,
-    Boxes,
     ArrowRight,
     Clock,
     BarChart3,
     Lightbulb,
+    Share2,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -56,7 +56,7 @@ const AboutPage: React.FC = () => {
     const mutedText = useColorModeValue("gray.600", "gray.400");
     const navigate = useNavigate();
 
-    const whyUs = [
+    const coreFeatures = [
         {
             icon: Database,
             title: "Persistent Learning Library",
@@ -72,11 +72,11 @@ const AboutPage: React.FC = () => {
             color: "#14B8A6", // Teal
         },
         {
-            icon: FileCheck,
-            title: "Intelligent Assessments",
+            icon: Brain,
+            title: "Smart Course Generation",
             description:
-                "Automatically generated quizzes and knowledge checks for every module.",
-            color: "#F59E0B", // Orange
+                "AI analyzes your goals to create perfectly tailored learning paths with optimal progression.",
+            color: "#8B5CF6", // Purple
         },
         {
             icon: Map,
@@ -86,63 +86,28 @@ const AboutPage: React.FC = () => {
             color: "#10B981", // Green
         },
         {
-            icon: Boxes,
-            title: "Structured Curriculum",
+            icon: FileCheck,
+            title: "Intelligent Assessments",
             description:
-                "Professionally organized modules with clear objectives and outcomes.",
-            color: "#8B5CF6", // Purple
+                "Automatically generated quizzes and knowledge checks for every module.",
+            color: "#F59E0B", // Orange
         },
         {
-            icon: BarChart3,
-            title: "Advanced Analytics",
+            icon: Lightbulb,
+            title: "24/7 AI Companion",
             description:
-                "Detailed insights into your learning patterns and progress trends.",
+                "Get instant explanations and guidance. Your personal tutor is always ready to help.",
             color: "#06B6D4", // Cyan
         },
     ];
 
-    const microLearningBenefits = [
+    const comingSoonFeatures = [
         {
-            icon: Clock,
-            title: "Optimized Time",
-            stat: "15-25 min",
+            icon: BarChart3,
+            title: "Advanced Analytics",
             description:
-                "Science-backed lesson lengths that match attention span. Learn deeply without fatigue.",
-            color: "#3B82F6", // Blue
-        },
-        {
-            icon: Brain,
-            title: "Enhanced Retention",
-            stat: "2-3x Better",
-            description:
-                "Spaced repetition dramatically improves long-term retention vs marathon sessions.",
-            color: "#8B5CF6", // Purple
-        },
-        {
-            icon: Trophy,
-            title: "Continuous Progress",
-            stat: "Daily Wins",
-            description:
-                "Experience regular achievements that build momentum and confidence.",
-            color: "#F59E0B", // Orange
-        },
-        {
-            icon: TrendingUp,
-            title: "Faster Learning",
-            stat: "3x Speed",
-            description:
-                "Focus on essentials in digestible chunks. Apply knowledge immediately.",
-            color: "#10B981", // Green
-        },
-    ];
-
-    const additionalFeatures = [
-        {
-            icon: Brain,
-            title: "Smart Course Generation",
-            description:
-                "AI analyzes your goals to create perfectly tailored learning paths with optimal progression.",
-            color: "#8B5CF6", // Purple
+                "Detailed insights into your learning patterns, progress trends, and performance metrics.",
+            color: "#06B6D4", // Cyan
         },
         {
             icon: Award,
@@ -152,11 +117,46 @@ const AboutPage: React.FC = () => {
             color: "#F59E0B", // Orange
         },
         {
-            icon: Lightbulb,
-            title: "24/7 AI Companion",
+            icon: Share2,
+            title: "Course Certificate Sharing",
             description:
-                "Get instant explanations and guidance. Your personal tutor is always ready to help.",
-            color: "#06B6D4", // Cyan
+                "Showcase your accomplishments with shareable certificates on LinkedIn and social media.",
+            color: "#8B5CF6", // Purple
+        },
+    ];
+
+    const microLearningBenefits = [
+        {
+            icon: Clock,
+            title: "Optimized Time",
+            stat: "15-25 min",
+            description:
+                "Science-backed lesson lengths that match attention span.",
+            color: "#3B82F6", // Blue
+        },
+        {
+            icon: Brain,
+            title: "Enhanced Retention",
+            stat: "2-3x Better",
+            description:
+                "Spaced repetition improves long-term retention vs marathon sessions.",
+            color: "#8B5CF6", // Purple
+        },
+        {
+            icon: Trophy,
+            title: "Continuous Progress",
+            stat: "Daily Wins",
+            description:
+                "Regular achievements that build momentum and confidence.",
+            color: "#F59E0B", // Orange
+        },
+        {
+            icon: TrendingUp,
+            title: "Faster Learning",
+            stat: "3x Speed",
+            description:
+                "Focus on essentials in digestible chunks. Apply knowledge immediately.",
+            color: "#10B981", // Green
         },
     ];
 
@@ -199,7 +199,7 @@ const AboutPage: React.FC = () => {
     };
 
     return (
-        <Box minH="100vh" position="relative">
+        <Box minH="100vh" position="relative" overflowX="hidden">
             {/* Subtle background glow */}
             <Box
                 position="absolute"
@@ -217,25 +217,25 @@ const AboutPage: React.FC = () => {
             <Container
                 maxW="1200px"
                 px={{ base: 4, md: 8 }}
-                py={{ base: 12, md: 20 }}
+                py={{ base: 8, md: 16 }}
             >
-                {/* Hero Section */}
+                {/* Hero Section - More Compact */}
                 <MotionBox
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6 } as any}
                 >
-                    <VStack gap={3} mb={10} textAlign="center">
+                    <VStack gap={2} mb={8} textAlign="center">
                         <Image
                             src={logo}
                             alt="PromptlyLearn Logo"
-                            height="200px"          // smaller, more premium
+                            height={{ base: "140px", md: "180px" }}
                             objectFit="contain"
-                            mb={2}
+                            mb={1}
                         />
-                        <VStack gap={4} maxW="800px">
+                        <VStack gap={3} maxW="800px">
                             <Heading
-                                fontSize={{ base: "4xl", md: "6xl" }}
+                                fontSize={{ base: "3xl", md: "5xl" }}
                                 fontWeight="900"
                                 bgGradient={gradientText}
                                 bgClip="text"
@@ -247,7 +247,7 @@ const AboutPage: React.FC = () => {
                                 Through Micro-Learning
                             </Heading>
                             <Text
-                                fontSize={{ base: "lg", md: "xl" }}
+                                fontSize={{ base: "md", md: "lg" }}
                                 lineHeight="1.6"
                                 maxW="700px"
                                 color={mutedText}
@@ -257,13 +257,13 @@ const AboutPage: React.FC = () => {
                             </Text>
                         </VStack>
 
-                        {/* Stats Bar */}
+                        {/* Stats Bar - Compact */}
                         <SimpleGrid
                             columns={{ base: 2, md: 4 }}
-                            gap={4}
+                            gap={3}
                             w="full"
-                            maxW="800px"
-                            mt={4}
+                            maxW="700px"
+                            mt={3}
                         >
                             {stats.map((stat, index) => (
                                 <MotionBox
@@ -274,8 +274,8 @@ const AboutPage: React.FC = () => {
                                 >
                                     <VStack
                                         gap={1}
-                                        p={4}
-                                        borderRadius="xl"
+                                        p={3}
+                                        borderRadius="lg"
                                         bg={cardBg}
                                         borderWidth="1px"
                                         borderColor={borderColor}
@@ -286,7 +286,7 @@ const AboutPage: React.FC = () => {
                                         }}
                                     >
                                         <Text
-                                            fontSize="2xl"
+                                            fontSize="xl"
                                             fontWeight="800"
                                             bgGradient={gradientText}
                                             bgClip="text"
@@ -303,17 +303,17 @@ const AboutPage: React.FC = () => {
                     </VStack>
                 </MotionBox>
 
-                <VStack align="stretch" gap={20}>
-                    {/* Why PromptlyLearn Section */}
+                <VStack align="stretch" gap={12}>
+                    {/* Core Features Section */}
                     <MotionBox
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                         transition={{ duration: 0.6 } as any}
                     >
-                        <VStack gap={6} mb={12}>
+                        <VStack gap={4} mb={8}>
                             <Text
-                                fontSize="sm"
+                                fontSize="xs"
                                 fontWeight="700"
                                 color={accentColor}
                                 textTransform="uppercase"
@@ -322,15 +322,15 @@ const AboutPage: React.FC = () => {
                                 Why Choose Us
                             </Text>
                             <Heading
-                                fontSize={{ base: "3xl", md: "4xl" }}
+                                fontSize={{ base: "2xl", md: "3xl" }}
                                 fontWeight="800"
                                 textAlign="center"
                                 maxW="700px"
                             >
-                                More Than Just Another AI Tool
+                                Everything You Need to Master New Skills
                             </Heading>
                             <Text
-                                fontSize="md"
+                                fontSize="sm"
                                 textAlign="center"
                                 maxW="600px"
                                 color={mutedText}
@@ -341,15 +341,15 @@ const AboutPage: React.FC = () => {
                             </Text>
                         </VStack>
 
-                        {/* Feature Grid */}
+                        {/* Core Feature Grid */}
                         <MotionBox
                             variants={containerVariants}
                             initial="hidden"
                             whileInView="visible"
                             viewport={{ once: true }}
                         >
-                            <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} gap={4}>
-                                {whyUs.map((item, index) => (
+                            <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} gap={3}>
+                                {coreFeatures.map((item, index) => (
                                     <MotionCard
                                         key={index}
                                         variants={itemVariants}
@@ -361,12 +361,12 @@ const AboutPage: React.FC = () => {
                                         borderColor={borderColor}
                                         overflow="hidden"
                                     >
-                                        <Card.Body p={6}>
-                                            <VStack align="start" gap={3}>
-                                                <Box p={3} borderRadius="lg" bg={highlightBg}>
-                                                    <item.icon size={24} color={item.color} />
+                                        <Card.Body p={5}>
+                                            <VStack align="start" gap={2.5}>
+                                                <Box p={2.5} borderRadius="lg" bg={highlightBg}>
+                                                    <item.icon size={22} color={item.color} />
                                                 </Box>
-                                                <Heading fontSize="lg" fontWeight="700">
+                                                <Heading fontSize="md" fontWeight="700">
                                                     {item.title}
                                                 </Heading>
                                                 <Text fontSize="sm" lineHeight="1.6" color={mutedText}>
@@ -380,16 +380,92 @@ const AboutPage: React.FC = () => {
                         </MotionBox>
                     </MotionBox>
 
-                    {/* Micro-Learning Benefits Section */}
+                    {/* Coming Soon Features */}
                     <MotionBox
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                         transition={{ duration: 0.6 } as any}
                     >
-                        <VStack gap={6} mb={12}>
+                        <VStack gap={4} mb={8}>
                             <Text
-                                fontSize="sm"
+                                fontSize="xs"
+                                fontWeight="700"
+                                color="purple.500"
+                                textTransform="uppercase"
+                                letterSpacing="wide"
+                            >
+                                Coming Soon
+                            </Text>
+                            <Heading
+                                fontSize={{ base: "2xl", md: "3xl" }}
+                                fontWeight="800"
+                                textAlign="center"
+                            >
+                                We're Just Getting Started
+                            </Heading>
+                        </VStack>
+                        <MotionBox
+                            variants={containerVariants}
+                            initial="hidden"
+                            whileInView="visible"
+                            viewport={{ once: true }}
+                        >
+                            <SimpleGrid columns={{ base: 1, md: 3 }} gap={3}>
+                                {comingSoonFeatures.map((feature, index) => (
+                                    <MotionCard
+                                        key={index}
+                                        variants={itemVariants}
+                                        whileHover={{ y: -4 }}
+                                        transition={{ duration: 0.2 } as any}
+                                        bg={cardBg}
+                                        borderRadius="xl"
+                                        borderWidth="1px"
+                                        borderColor={borderColor}
+                                        position="relative"
+                                        overflow="hidden"
+                                    >
+                                        <Badge
+                                            position="absolute"
+                                            top={3}
+                                            right={3}
+                                            colorPalette="purple"
+                                            fontSize="xs"
+                                            px={2}
+                                            py={1}
+                                            borderRadius="md"
+                                        >
+                                            Coming Soon
+                                        </Badge>
+                                        <Card.Body p={5} pt={8}>
+                                            <VStack align="start" gap={2.5}>
+                                                <Box p={2.5} borderRadius="lg" bg={highlightBg}>
+                                                    <feature.icon size={22} color={feature.color} />
+                                                </Box>
+                                                <Heading fontSize="md" fontWeight="700">
+                                                    {feature.title}
+                                                </Heading>
+                                                <Text fontSize="sm" lineHeight="1.6" color={mutedText}>
+                                                    {feature.description}
+                                                </Text>
+                                            </VStack>
+                                        </Card.Body>
+                                    </MotionCard>
+                                ))}
+                            </SimpleGrid>
+                        </MotionBox>
+                    </MotionBox>
+
+                    {/* Micro-Learning Benefits Section - Compact */}
+                    <MotionBox
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.6 } as any}
+                    >
+                        <VStack gap={4} mb={8}>
+                            <Text
+                                fontSize="xs"
                                 fontWeight="700"
                                 color={accentColor}
                                 textTransform="uppercase"
@@ -398,7 +474,7 @@ const AboutPage: React.FC = () => {
                                 Learning Science
                             </Text>
                             <Heading
-                                fontSize={{ base: "3xl", md: "4xl" }}
+                                fontSize={{ base: "2xl", md: "3xl" }}
                                 fontWeight="800"
                                 textAlign="center"
                                 maxW="700px"
@@ -406,9 +482,9 @@ const AboutPage: React.FC = () => {
                                 The Power of Micro-Learning
                             </Heading>
                             <Text
-                                fontSize="md"
+                                fontSize="sm"
                                 textAlign="center"
-                                maxW="700px"
+                                maxW="650px"
                                 color={mutedText}
                                 lineHeight="1.6"
                             >
@@ -423,7 +499,7 @@ const AboutPage: React.FC = () => {
                             whileInView="visible"
                             viewport={{ once: true }}
                         >
-                            <SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
+                            <SimpleGrid columns={{ base: 1, md: 2 }} gap={3}>
                                 {microLearningBenefits.map((benefit, index) => (
                                     <MotionCard
                                         key={index}
@@ -435,15 +511,15 @@ const AboutPage: React.FC = () => {
                                         borderWidth="1px"
                                         borderColor={borderColor}
                                     >
-                                        <Card.Body p={6}>
-                                            <HStack align="start" gap={4}>
+                                        <Card.Body p={5}>
+                                            <HStack align="start" gap={3}>
                                                 <Box
-                                                    p={3}
+                                                    p={2.5}
                                                     borderRadius="lg"
                                                     bg={highlightBg}
                                                     flexShrink={0}
                                                 >
-                                                    <benefit.icon size={28} color={benefit.color} />
+                                                    <benefit.icon size={24} color={benefit.color} />
                                                 </Box>
                                                 <VStack align="start" gap={2} flex={1}>
                                                     <HStack justify="space-between" w="full">
@@ -477,63 +553,7 @@ const AboutPage: React.FC = () => {
                         </MotionBox>
                     </MotionBox>
 
-                    {/* Additional Features */}
-                    <Box>
-                        <VStack gap={4} mb={10}>
-                            <Heading
-                                fontSize={{ base: "3xl", md: "4xl" }}
-                                fontWeight="800"
-                                textAlign="center"
-                            >
-                                Everything You Need
-                            </Heading>
-                            <Text
-                                fontSize="md"
-                                textAlign="center"
-                                maxW="600px"
-                                color={mutedText}
-                            >
-                                A complete ecosystem to help you achieve your goals faster
-                            </Text>
-                        </VStack>
-                        <MotionBox
-                            variants={containerVariants}
-                            initial="hidden"
-                            whileInView="visible"
-                            viewport={{ once: true }}
-                        >
-                            <SimpleGrid columns={{ base: 1, md: 3 }} gap={4}>
-                                {additionalFeatures.map((feature, index) => (
-                                    <MotionCard
-                                        key={index}
-                                        variants={itemVariants}
-                                        whileHover={{ y: -4 }}
-                                        transition={{ duration: 0.2 } as any}
-                                        bg={cardBg}
-                                        borderRadius="xl"
-                                        borderWidth="1px"
-                                        borderColor={borderColor}
-                                    >
-                                        <Card.Body p={6}>
-                                            <VStack align="start" gap={3}>
-                                                <Box p={3} borderRadius="lg" bg={highlightBg}>
-                                                    <feature.icon size={28} color={feature.color} />
-                                                </Box>
-                                                <Heading fontSize="lg" fontWeight="700">
-                                                    {feature.title}
-                                                </Heading>
-                                                <Text fontSize="sm" lineHeight="1.6" color={mutedText}>
-                                                    {feature.description}
-                                                </Text>
-                                            </VStack>
-                                        </Card.Body>
-                                    </MotionCard>
-                                ))}
-                            </SimpleGrid>
-                        </MotionBox>
-                    </Box>
-
-                    {/* CTA Section */}
+                    {/* CTA Section - Compact */}
                     <MotionBox
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
@@ -546,17 +566,17 @@ const AboutPage: React.FC = () => {
                             borderWidth="1.5px"
                             borderColor={accentColor}
                         >
-                            <Card.Body p={{ base: 10, md: 12 }} textAlign="center">
-                                <VStack gap={6}>
+                            <Card.Body p={{ base: 8, md: 10 }} textAlign="center">
+                                <VStack gap={5}>
                                     <Box
-                                        p={4}
+                                        p={3}
                                         borderRadius="xl"
                                         bg={cardBg}
                                         display="inline-block"
                                     >
-                                        <Sparkles size={40} color="#8B5CF6" />
+                                        <Sparkles size={32} color="#8B5CF6" />
                                     </Box>
-                                    <VStack gap={3}>
+                                    <VStack gap={2}>
                                         <Heading
                                             fontSize={{ base: "2xl", md: "3xl" }}
                                             fontWeight="800"
@@ -565,7 +585,7 @@ const AboutPage: React.FC = () => {
                                         >
                                             Start Learning Smarter Today
                                         </Heading>
-                                        <Text fontSize="md" maxW="500px" color={mutedText}>
+                                        <Text fontSize="sm" maxW="500px" color={mutedText}>
                                             Join thousands mastering new skills with structured,
                                             science-backed micro-learning.
                                         </Text>
@@ -573,8 +593,8 @@ const AboutPage: React.FC = () => {
                                     <Button
                                         size="lg"
                                         colorPalette="teal"
-                                        height="56px"
-                                        px={8}
+                                        height="52px"
+                                        px={7}
                                         fontSize="md"
                                         fontWeight="600"
                                         borderRadius="xl"
@@ -591,7 +611,7 @@ const AboutPage: React.FC = () => {
                                     >
                                         <HStack gap={2}>
                                             <Text>Create Your First Course</Text>
-                                            <ArrowRight size={20} />
+                                            <ArrowRight size={18} />
                                         </HStack>
                                     </Button>
                                     <Text fontSize="xs" color={mutedText}>
@@ -602,7 +622,7 @@ const AboutPage: React.FC = () => {
                         </Card.Root>
                     </MotionBox>
 
-                    {/* Contact Section */}
+                    {/* Contact Section - Compact */}
                     <MotionBox
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
@@ -615,12 +635,12 @@ const AboutPage: React.FC = () => {
                             borderWidth="1px"
                             borderColor={borderColor}
                         >
-                            <Card.Body p={10} textAlign="center">
-                                <VStack gap={5}>
-                                    <Box p={4} borderRadius="xl" bg={highlightBg}>
-                                        <Mail size={36} color="#14B8A6" />
+                            <Card.Body p={8} textAlign="center">
+                                <VStack gap={4}>
+                                    <Box p={3} borderRadius="xl" bg={highlightBg}>
+                                        <Mail size={28} color="#14B8A6" />
                                     </Box>
-                                    <Heading fontSize="2xl" fontWeight="800">
+                                    <Heading fontSize="xl" fontWeight="800">
                                         We'd Love to Hear From You
                                     </Heading>
                                     <Text
@@ -641,7 +661,7 @@ const AboutPage: React.FC = () => {
                                             colorPalette="teal"
                                             variant="outline"
                                             borderWidth="1.5px"
-                                            px={6}
+                                            px={5}
                                             borderRadius="xl"
                                             _hover={{
                                                 bg: highlightBg,
@@ -650,7 +670,7 @@ const AboutPage: React.FC = () => {
                                             transition="all 0.2s"
                                         >
                                             <HStack gap={2}>
-                                                <Mail size={18} />
+                                                <Mail size={16} />
                                                 <Text>Get in Touch</Text>
                                             </HStack>
                                         </Button>
@@ -661,10 +681,10 @@ const AboutPage: React.FC = () => {
                     </MotionBox>
                 </VStack>
 
-                {/* Footer */}
+                {/* Footer - Compact */}
                 <MotionBox
-                    mt={16}
-                    pt={6}
+                    mt={12}
+                    pt={5}
                     borderTop="1px"
                     borderColor={borderColor}
                     textAlign="center"

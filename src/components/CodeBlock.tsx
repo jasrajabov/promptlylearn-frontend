@@ -19,12 +19,12 @@ const CodeBlock: React.FC<{ lang: string; code: string }> = ({
   };
 
   return (
-    <div style={{ position: "relative" }}>
+    <div style={{ position: "relative", marginBottom: "1.5em", marginTop: "1.5em" }}>
       <Button
         size="xs"
         position="absolute"
-        top="4px"
-        right="4px"
+        top="8px"
+        right="8px"
         zIndex={1}
         onClick={copyToClipboard}
         color="gray.300"
@@ -34,7 +34,27 @@ const CodeBlock: React.FC<{ lang: string; code: string }> = ({
         {copied ? "Copied!" : "Copy"}
       </Button>
 
-      <SyntaxHighlighter style={prismStyle} language={lang} PreTag="div">
+      <SyntaxHighlighter
+        style={prismStyle}
+        language={lang}
+        PreTag="div"
+        customStyle={{
+          margin: 0,
+          padding: "16px",
+          borderRadius: "8px",
+          border: "none",
+          outline: "none",
+          boxShadow: "none",
+        }}
+        codeTagProps={{
+          style: {
+            border: "none",
+            outline: "none",
+            boxShadow: "none",
+            background: "transparent",
+          },
+        }}
+      >
         {code}
       </SyntaxHighlighter>
     </div>

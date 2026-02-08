@@ -67,8 +67,9 @@ const PRODUCTS = [
     features: [
       "Unlimited courses",
       "Advanced AI",
+      "Deeper course contents",
       "Priority support",
-      "Early access",
+      "Early access to all future features",
       "No ads",
     ],
   },
