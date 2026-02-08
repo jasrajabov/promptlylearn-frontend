@@ -19,8 +19,10 @@ import {
   Badge,
   HStack,
   VStack,
-  Card,
   Button,
+  IconButton,
+  Drawer,
+  Portal,
 } from "@chakra-ui/react";
 import { Stats } from "../components/Stats";
 import dagre from "dagre";
@@ -34,6 +36,9 @@ import {
   X,
   Map as MapIcon,
   ChevronRight,
+  ChevronDown,
+  TrendingUp,
+  ListFilter,
 } from "lucide-react";
 
 export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
@@ -125,6 +130,8 @@ export default function TrackRoadmap(): React.ReactElement {
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
+  const [showMobileStats, setShowMobileStats] = useState(false);
+  const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
 
   // 2. All useContext hooks (useParams, useUser)
   const { id } = useParams<{ id: string }>();
@@ -143,6 +150,8 @@ export default function TrackRoadmap(): React.ReactElement {
     "linear-gradient(135deg, #14B8A6 0%, #2DD4BF 50%, #5EEAD4 100%)",
   );
   const backgroundPatternColor = useColorModeValue("#e5e7eb", "#27272a");
+  const drawerBg = useColorModeValue("white", "#1a1b1e");
+  const overlayBg = useColorModeValue("blackAlpha.300", "blackAlpha.500");
 
   // 4. useMemo hooks
   const progressPercentage = useMemo(() => {
@@ -154,6 +163,9 @@ export default function TrackRoadmap(): React.ReactElement {
   }, [allNodes]);
 
   const totalNodes = allNodes.length;
+  const completedNodes = allNodes.filter(
+    (n) => n.data?.status === "COMPLETED",
+  ).length;
 
   // 5. useCallback hooks
   const updateNodeStatus = useCallback((nodeId: string, status: string) => {
@@ -314,133 +326,241 @@ export default function TrackRoadmap(): React.ReactElement {
 
   return (
     <Box w="100%" h="100vh" display="flex" flexDirection="column" bg={pageBg}>
-      {/* Professional Header - Following CoursePage Pattern */}
-      <VStack align="stretch" gap={4}>
-        {/* Main Header Card */}
-        <Card.Root>
-          <Card.Body>
-            <HStack
-              justify="space-between"
-              align="center"
-              flexWrap="wrap"
-              gap={4}
-            >
-              <HStack gap={3}>
-                <Box p={2} borderRadius="lg">
-                  <MapIcon size={50} className="w-6 h-6 text-teal-600" />
-                </Box>
-                <VStack align="start" gap={0}>
-                  <Text fontSize="md" fontWeight="medium">
-                    Learning Track
-                  </Text>
-                  <Heading
-                    fontSize={{ base: "2xl", md: "4xl" }}
-                    fontWeight="900"
-                    bgGradient={gradientText}
-                    bgClip="text"
-                    lineHeight="2.05"
-                    letterSpacing="-0.04em"
-                    maxW="1000px"
-                  >
-                    {label}
-                  </Heading>
-                </VStack>
-              </HStack>
+      {/* Compact Mobile-First Header */}
+      <Box
+        borderBottomWidth="1px"
+        borderColor={borderColor}
+        bg={cardBg}
+        position="sticky"
+        top={0}
+        zIndex={10}
+      >
+        <VStack align="stretch" gap={0} p={{ base: 3, md: 4 }}>
+          {/* Top Row: Icon + Title + Stats Toggle (Mobile) / Stats (Desktop) */}
+          <HStack justify="space-between" align="center" gap={3}>
+            {/* Left: Icon + Title */}
+            <HStack gap={2} flex={1} minW={0}>
+              <Box
+                p={{ base: 1.5, md: 2 }}
+                borderRadius="lg"
+                bg={useColorModeValue("teal.50", "teal.900/20")}
+                flexShrink={0}
+              >
+                <MapIcon
+                  size={window.innerWidth < 768 ? 20 : 24}
+                  className="text-teal-600"
+                />
+              </Box>
+              <VStack align="start" gap={0} flex={1} minW={0}>
+                <Text
+                  fontSize={{ base: "xs", md: "sm" }}
+                  fontWeight="medium"
+                  color={mutedText}
+                  display={{ base: "none", sm: "block" }}
+                >
+                  Learning Track
+                </Text>
+                <Heading
+                  fontSize={{ base: "lg", sm: "xl", md: "2xl" }}
+                  fontWeight="800"
+                  bgGradient={gradientText}
+                  bgClip="text"
+                  lineHeight="1.2"
+                  letterSpacing="-0.02em"
+
+                >
+                  {label}
+                </Heading>
+              </VStack>
+            </HStack>
+
+            {/* Right: Stats (Desktop) / Stats Toggle Button (Mobile) */}
+            <Box display={{ base: "none", lg: "block" }} flexShrink={0}>
               <Stats
                 stats={[
-                  { label: "Track Nodes", progress: progressPercentage },
+                  { label: "Track Progress", progress: progressPercentage },
                 ]}
               />
-            </HStack>
-          </Card.Body>
-        </Card.Root>
+            </Box>
 
-        {/* Standalone Filter Button */}
-        <HStack justify="space-between" align="center">
-          <Button
-            size="md"
-            variant="outline"
-            onClick={() => setShowFilters(!showFilters)}
-            borderRadius="lg"
-            px={4}
-            fontWeight="600"
-            _hover={{ bg: hoverBg }}
+            {/* Mobile: Quick Stats Display */}
+            <HStack
+              gap={2}
+              display={{ base: "flex", lg: "none" }}
+              flexShrink={0}
+            >
+              <VStack gap={0} align="end">
+                <HStack gap={1}>
+                  <TrendingUp size={14} color={accentColor} />
+                  <Text fontSize="lg" fontWeight="bold" color={headingColor}>
+                    {progressPercentage}%
+                  </Text>
+                </HStack>
+                <Text fontSize="2xs" color={mutedText}>
+                  {completedNodes}/{totalNodes}
+                </Text>
+              </VStack>
+              <IconButton
+                aria-label="Toggle stats"
+                size="sm"
+                variant="ghost"
+                onClick={() => setShowMobileStats(!showMobileStats)}
+                color={mutedText}
+              >
+                <ChevronDown
+                  size={16}
+                  style={{
+                    transform: showMobileStats ? "rotate(180deg)" : "rotate(0)",
+                    transition: "transform 0.2s",
+                  }}
+                />
+              </IconButton>
+            </HStack>
+          </HStack>
+
+          {/* Mobile Stats Expansion */}
+          {showMobileStats && (
+            <Box
+              mt={3}
+              pt={3}
+              borderTopWidth="1px"
+              borderColor={borderColor}
+              display={{ base: "block", lg: "none" }}
+            >
+              <Stats
+                stats={[
+                  { label: "Track Progress", progress: progressPercentage },
+                ]}
+              />
+            </Box>
+          )}
+
+          {/* Filter Row */}
+          <HStack
+            justify="space-between"
+            align="center"
+            mt={3}
+            pt={3}
+            borderTopWidth="1px"
             borderColor={borderColor}
           >
-            <Filter size={16} style={{ marginRight: "8px" }} />
-            Filter by Type
-            {hasActiveFilters && (
-              <Badge colorScheme="teal" size="sm" variant="solid" ml={2}>
-                {selectedTypes.size}
-              </Badge>
-            )}
-            <Box
-              ml={2}
-              transform={showFilters ? "rotate(90deg)" : "rotate(0deg)"}
-              transition="transform 0.2s"
+            {/* Desktop: Inline Filter Button */}
+            <Button
+              size={{ base: "sm", md: "md" }}
+              variant="outline"
+              onClick={() => setShowFilters(!showFilters)}
+              borderRadius="lg"
+              px={{ base: 3, md: 4 }}
+              fontWeight="600"
+              _hover={{ bg: hoverBg }}
+              borderColor={borderColor}
+              display={{ base: "none", md: "flex" }}
             >
-              <ChevronRight size={16} />
-            </Box>
-          </Button>
+              <Filter size={16} style={{ marginRight: "8px" }} />
+              Filter by Type
+              {hasActiveFilters && (
+                <Badge colorPalette="teal" size="sm" variant="solid" ml={2}>
+                  {selectedTypes.size}
+                </Badge>
+              )}
+              <Box
+                ml={2}
+                transform={showFilters ? "rotate(90deg)" : "rotate(0deg)"}
+                transition="transform 0.2s"
+              >
+                <ChevronRight size={16} />
+              </Box>
+            </Button>
 
-          {hasActiveFilters && (
+            {/* Mobile: Drawer Filter Button */}
             <Button
               size="sm"
-              variant="ghost"
-              onClick={clearFilters}
-              colorPalette="gray"
+              variant="outline"
+              onClick={() => setIsFilterDrawerOpen(true)}
+              borderRadius="lg"
+              px={3}
+              fontWeight="600"
+              _hover={{ bg: hoverBg }}
+              borderColor={borderColor}
+              display={{ base: "flex", md: "none" }}
+              flex={1}
             >
-              <X size={14} style={{ marginRight: "4px" }} />
-              Clear Filters
+              <ListFilter size={16} style={{ marginRight: "8px" }} />
+              Filters
+              {hasActiveFilters && (
+                <Badge colorPalette="teal" size="sm" variant="solid" ml={2}>
+                  {selectedTypes.size}
+                </Badge>
+              )}
             </Button>
+
+            {/* Clear Filters Button */}
+            {hasActiveFilters && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={clearFilters}
+                colorPalette="gray"
+                display={{ base: "flex", md: "flex" }}
+              >
+                <X size={14} style={{ marginRight: "4px" }} />
+                <Text display={{ base: "none", sm: "inline" }}>Clear</Text>
+              </Button>
+            )}
+          </HStack>
+
+          {/* Desktop: Collapsible Filter Pills */}
+          {showFilters && (
+            <Box
+              mt={3}
+              pt={3}
+              borderTopWidth="1px"
+              borderColor={borderColor}
+              display={{ base: "none", md: "block" }}
+            >
+              <HStack gap={2} wrap="wrap">
+                {Array.from(roadmapNodeTypes).map((type) => {
+                  const isSelected = selectedTypes.has(type);
+                  const typeCount = allNodes.filter(
+                    (n) => n.data?.type === type,
+                  ).length;
+                  const completedCount = allNodes.filter(
+                    (n) =>
+                      n.data?.type === type && n.data?.status === "COMPLETED",
+                  ).length;
+
+                  return (
+                    <Button
+                      key={type}
+                      size="sm"
+                      onClick={() => toggleType(type)}
+                      variant={isSelected ? "solid" : "outline"}
+                      colorPalette={isSelected ? "teal" : "gray"}
+                      bg={isSelected ? getTypeColor(type) : "transparent"}
+                      borderRadius="full"
+                      px={3}
+                      fontWeight="600"
+                      fontSize="xs"
+                      _hover={{
+                        transform: "translateY(-1px)",
+                      }}
+                      transition="all 0.2s"
+                    >
+                      {type} ({completedCount}/{typeCount})
+                      {isSelected && (
+                        <CheckCircle size={12} style={{ marginLeft: "4px" }} />
+                      )}
+                    </Button>
+                  );
+                })}
+              </HStack>
+            </Box>
           )}
-        </HStack>
+        </VStack>
+      </Box>
 
-        {/* Collapsible Filter Pills */}
-        {showFilters && (
-          <Box opacity={1} transition="opacity 0.2s ease-out">
-            <HStack gap={2} wrap="wrap">
-              {Array.from(roadmapNodeTypes).map((type) => {
-                const isSelected = selectedTypes.has(type);
-                const typeCount = allNodes.filter(
-                  (n) => n.data?.type === type,
-                ).length;
-                const completedCount = allNodes.filter(
-                  (n) =>
-                    n.data?.type === type && n.data?.status === "COMPLETED",
-                ).length;
-
-                return (
-                  <Button
-                    key={type}
-                    size="sm"
-                    onClick={() => toggleType(type)}
-                    variant={isSelected ? "solid" : "outline"}
-                    colorPalette={isSelected ? "teal" : "gray"}
-                    bg={getTypeColor(type)}
-                    borderRadius="full"
-                    px={3}
-                    fontWeight="600"
-                    fontSize="xs"
-                    _hover={{
-                      transform: "translateY(-1px)",
-                    }}
-                    transition="all 0.2s"
-                  >
-                    {type} ({completedCount}/{typeCount})
-                    {isSelected && (
-                      <CheckCircle size={12} style={{ marginLeft: "4px" }} />
-                    )}
-                  </Button>
-                );
-              })}
-            </HStack>
-          </Box>
-        )}
-      </VStack>
-
-      {/* Canvas Area */}
-      <Box flex="1" position="relative">
+      {/* Canvas Area - Takes remaining space */}
+      <Box flex="1" position="relative" overflow="hidden">
         <ReactFlow
           nodes={visibleNodes}
           edges={visibleEdges}
@@ -457,13 +577,13 @@ export default function TrackRoadmap(): React.ReactElement {
         {hasActiveFilters && (
           <Box
             position="absolute"
-            bottom={4}
-            left={4}
+            bottom={{ base: 3, md: 4 }}
+            left={{ base: 3, md: 4 }}
             bg={cardBg}
             borderWidth="1px"
             borderColor={borderColor}
             borderRadius="lg"
-            px={4}
+            px={{ base: 3, md: 4 }}
             py={2}
             boxShadow="0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)"
           >
@@ -476,6 +596,106 @@ export default function TrackRoadmap(): React.ReactElement {
           </Box>
         )}
       </Box>
+
+      {/* Mobile Filter Drawer */}
+      <Portal>
+        <Drawer.Root
+          open={isFilterDrawerOpen}
+          onOpenChange={(e) => setIsFilterDrawerOpen(e.open)}
+          placement="bottom"
+        >
+          <Drawer.Backdrop bg={overlayBg} />
+          <Drawer.Positioner>
+            <Drawer.Content
+              bg={drawerBg}
+              borderTopRadius="xl"
+              maxH="80vh"
+              pb="env(safe-area-inset-bottom)"
+            >
+              <Drawer.Header borderBottomWidth="1px" borderColor={borderColor}>
+                <HStack justify="space-between" w="full">
+                  <Drawer.Title
+                    fontSize="lg"
+                    fontWeight="bold"
+                    color={headingColor}
+                  >
+                    Filter by Type
+                  </Drawer.Title>
+                  <Drawer.CloseTrigger asChild>
+                    <IconButton
+                      aria-label="Close"
+                      size="sm"
+                      variant="ghost"
+                      color={mutedText}
+                    >
+                      <X size={18} />
+                    </IconButton>
+                  </Drawer.CloseTrigger>
+                </HStack>
+              </Drawer.Header>
+
+              <Drawer.Body p={4}>
+                <VStack align="stretch" gap={3}>
+                  {Array.from(roadmapNodeTypes).map((type) => {
+                    const isSelected = selectedTypes.has(type);
+                    const typeCount = allNodes.filter(
+                      (n) => n.data?.type === type,
+                    ).length;
+                    const completedCount = allNodes.filter(
+                      (n) =>
+                        n.data?.type === type && n.data?.status === "COMPLETED",
+                    ).length;
+
+                    return (
+                      <Button
+                        key={type}
+                        size="lg"
+                        onClick={() => toggleType(type)}
+                        variant={isSelected ? "solid" : "outline"}
+                        colorPalette={isSelected ? "teal" : "gray"}
+                        bg={isSelected ? getTypeColor(type) : "transparent"}
+                        borderRadius="xl"
+                        px={4}
+                        py={6}
+                        fontWeight="600"
+                        fontSize="md"
+                        justifyContent="space-between"
+                        _active={{ transform: "scale(0.98)" }}
+                        transition="all 0.2s"
+                      >
+                        <HStack gap={3}>
+                          {isSelected && <CheckCircle size={18} />}
+                          <Text>{type}</Text>
+                        </HStack>
+                        <Badge colorPalette="gray" size="md" variant="subtle">
+                          {completedCount}/{typeCount}
+                        </Badge>
+                      </Button>
+                    );
+                  })}
+                </VStack>
+
+                {hasActiveFilters && (
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    onClick={() => {
+                      clearFilters();
+                      setIsFilterDrawerOpen(false);
+                    }}
+                    colorPalette="red"
+                    mt={4}
+                    w="full"
+                  >
+                    <X size={18} style={{ marginRight: "8px" }} />
+                    Clear All Filters
+                  </Button>
+                )}
+              </Drawer.Body>
+            </Drawer.Content>
+          </Drawer.Positioner>
+        </Drawer.Root>
+      </Portal>
     </Box>
   );
 }

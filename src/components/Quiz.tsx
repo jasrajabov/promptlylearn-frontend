@@ -72,11 +72,9 @@ const ModuleQuiz: React.FC<ModuleQuizProps> = ({ quiz, setShowQuiz }) => {
     setScore(totalScore);
     setSubmitted(true);
   };
-
   const handleClose = () => {
     setShowQuiz(false);
   };
-
   const progressValue = ((currentQ + 1) / quiz.questions.length) * 100;
   const currentQuestion = quiz.questions[currentQ];
   const answeredCount = selectedAnswers.filter((a) => a !== null).length;

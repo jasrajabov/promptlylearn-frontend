@@ -158,9 +158,7 @@ export default function AuthPage() {
       setMessage("Logging you in...");
       setError("");
 
-      // Fetch user data with retry logic - this fixes intermittent failures
       const userData = await fetchUserDataWithRetry(accessToken, 3, 1000);
-
       const expiresAt = Date.now() + 60 * 60 * 1000;
 
       const userObj: User = {
@@ -196,26 +194,56 @@ export default function AuthPage() {
 
       localStorage.setItem("user", JSON.stringify(userObj));
 
-      // Clean URL before redirect
+      // ✅ FIX: Check if in OAuth popup
+      if (window.opener) {
+        try {
+          window.opener.postMessage(
+            { type: 'OAUTH_SUCCESS', user: userObj },
+            window.location.origin
+          );
+          window.close();
+        } catch (err) {
+          console.error("Failed to close popup:", err);
+          window.location.href = "/";
+        }
+        return;
+      }
+
+      // Regular flow
       window.history.replaceState({}, "", "/login");
-
       setMessage("Login successful! Redirecting...");
-
-      // Small delay to show success message
-      setTimeout(() => {
-        window.location.href = "/";
-      }, 500);
+      setTimeout(() => window.location.href = "/", 500);
 
     } catch (err) {
       console.error("OAuth error:", err);
-      const errorMessage = err instanceof Error ? err.message : "Authentication failed";
-      setError(errorMessage);
+      setError(err instanceof Error ? err.message : "Authentication failed");
       setLoading(false);
-
-      // Clean URL on error
+      setMessage("");
       window.history.replaceState({}, "", "/login");
     }
   };
+
+  useEffect(() => {
+    const handleOAuthMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+
+      if (event.data?.type === 'OAUTH_SUCCESS') {
+        localStorage.setItem("user", JSON.stringify(event.data.user));
+        setMessage("Login successful! Redirecting...");
+        setLoading(false);
+        setTimeout(() => window.location.href = "/", 500);
+      }
+
+      if (event.data?.type === 'OAUTH_ERROR') {
+        setError(event.data.error);
+        setLoading(false);
+        setMessage("");
+      }
+    };
+
+    window.addEventListener('message', handleOAuthMessage);
+    return () => window.removeEventListener('message', handleOAuthMessage);
+  }, []);
 
   // Enhanced OAuth callback handler
   useEffect(() => {
@@ -224,36 +252,51 @@ export default function AuthPage() {
       const token = params.get("token");
       const errorParam = params.get("error");
 
-      // Handle error first
+      if (!token && !errorParam) {
+        setLoading(false);
+        setShowForgotPassword(false);
+        setShowTerms(false);
+        setShowPrivacy(false);
+        return;
+      }
+
+      setShowForgotPassword(false);
+      setShowTerms(false);
+      setShowPrivacy(false);
+
       if (errorParam) {
         const errorMessage = decodeURIComponent(errorParam);
-
-        // Map backend errors to user-friendly messages
         const errorMap: Record<string, string> = {
-          'Email not provided by Google': 'Could not get your email from Google. Please ensure email access is granted.',
-          'Failed to get user information from Google': 'Google authentication failed. Please try again.',
-          'Invalid response from Google': 'Invalid response from Google. Please try again.',
-          'No verified email found in GitHub account': 'No verified email found in your GitHub account. Please verify your email on GitHub first.',
-          'Failed to authenticate with GitHub': 'GitHub authentication failed. Please try again.',
-          'Failed to fetch GitHub profile': 'Could not fetch your GitHub profile. Please try again.',
-          'Failed to fetch GitHub email': 'Could not fetch your email from GitHub. Please try again.',
-          'Invalid response from GitHub': 'Invalid response from GitHub. Please try again.',
-          'Network error connecting to GitHub': 'Network error. Please check your connection and try again.',
-          'Authentication failed': 'Authentication failed. Please try again.',
-          'Failed to create or update user': 'Server error. Please try again or contact support.',
+          'Email not provided by Google': 'Could not get your email from Google.',
+          'Failed to get user information from Google': 'Google authentication failed.',
+          'Invalid response from Google': 'Invalid response from Google.',
+          'No verified email found in GitHub account': 'No verified email in GitHub account.',
+          'Failed to authenticate with GitHub': 'GitHub authentication failed.',
+          'Failed to fetch GitHub profile': 'Could not fetch your GitHub profile.',
+          'Failed to fetch GitHub email': 'Could not fetch your email from GitHub.',
+          'Invalid response from GitHub': 'Invalid response from GitHub.',
+          'Network error connecting to GitHub': 'Network error.',
+          'Authentication failed': 'Authentication failed.',
+          'Failed to create or update user': 'Server error.',
         };
 
-        const userFriendlyError = errorMap[errorMessage] || errorMessage || 'Authentication failed. Please try again.';
+        const userFriendlyError = errorMap[errorMessage] || errorMessage || 'Authentication failed.';
+
+        if (window.opener) {
+          window.opener.postMessage({
+            type: 'OAUTH_ERROR',
+            error: userFriendlyError
+          }, window.location.origin);
+          setTimeout(() => window.close(), 1000);
+        }
 
         setError(userFriendlyError);
         setLoading(false);
-
-        // Clean URL
+        setMessage("");
         window.history.replaceState({}, "", "/login");
         return;
       }
 
-      // Handle successful OAuth with token
       if (token) {
         await handleOAuthSuccess(token);
       }
@@ -262,9 +305,10 @@ export default function AuthPage() {
     handleOAuthCallback();
   }, []);
 
+
   const handleOAuthLogin = (provider: "google" | "github") => {
-    // Prevent multiple simultaneous OAuth attempts
     if (loading) {
+      console.log("OAuth already in progress");
       return;
     }
 
@@ -273,14 +317,16 @@ export default function AuthPage() {
       setError("");
       setMessage(`Redirecting to ${provider === 'google' ? 'Google' : 'GitHub'}...`);
 
-      // Add a small delay to show the loading message
+      setShowForgotPassword(false);
+      setShowTerms(false);
+      setShowPrivacy(false);
+
       setTimeout(() => {
         window.location.href = `${BACKEND_URL}/authentication/${provider}`;
       }, 300);
-
     } catch (err) {
-      console.error("OAuth initiation error:", err);
-      setError("Failed to initiate login. Please try again.");
+      console.error("OAuth error:", err);
+      setError("Failed to initiate login.");
       setLoading(false);
     }
   };
@@ -835,7 +881,7 @@ export default function AuthPage() {
                       _disabled={{ opacity: 0.6, cursor: "not-allowed" }}
                       mt={2}
                     >
-                      {loading ? <Spinner size="sm" /> : "Sign In"}
+                      {loading && !message?.includes('Google') && !message?.includes('GitHub') ? <Spinner size="sm" /> : "Sign In"}
                     </Button>
                   </VStack>
                 </MotionBox>
@@ -1225,7 +1271,7 @@ export default function AuthPage() {
                       _disabled={{ opacity: 0.6, cursor: "not-allowed" }}
                       mt={2}
                     >
-                      {loading ? <Spinner size="sm" /> : "Create Account"}
+                      {loading && !message?.includes('Google') && !message?.includes('GitHub') ? <Spinner size="sm" /> : "Create Account"}
                     </Button>
 
                     <Text fontSize="xs" color={mutedText} textAlign="center" px={4}>

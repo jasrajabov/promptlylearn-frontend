@@ -29,6 +29,7 @@ import {
     Sparkles,
     Minus,
     Maximize,
+    ChevronDown,
 } from "lucide-react";
 
 export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
@@ -107,6 +108,16 @@ const ChatBox = forwardRef<ChatBoxRef, ChatBoxProps>((props, ref) => {
         }
     }, [open, chatReplying, isMinimized]);
 
+    // Prevent body scroll when chat is open and NOT minimized on mobile
+    useEffect(() => {
+        if (open && !isMinimized && window.innerWidth < 768) {
+            document.body.style.overflow = 'hidden';
+            return () => {
+                document.body.style.overflow = '';
+            };
+        }
+    }, [open, isMinimized]);
+
     const formatTime = (date: Date): string => {
         return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     };
@@ -117,7 +128,6 @@ const ChatBox = forwardRef<ChatBoxRef, ChatBoxProps>((props, ref) => {
             return;
         }
 
-
         const newUserMessage: ChatMessage = {
             role: "user",
             content: trimmedInput,
@@ -126,6 +136,11 @@ const ChatBox = forwardRef<ChatBoxRef, ChatBoxProps>((props, ref) => {
 
         setChatMessages((prev) => [...prev, newUserMessage]);
         setInput("");
+
+        // Reset textarea height
+        if (inputRef.current) {
+            inputRef.current.style.height = "auto";
+        }
 
         try {
             setChatReplying(true);
@@ -358,54 +373,95 @@ const ChatBox = forwardRef<ChatBoxRef, ChatBoxProps>((props, ref) => {
         ),
     };
 
+    const handleMinimize = () => {
+        setIsMinimized(!isMinimized);
+    };
+
+    const handleExpand = () => {
+        setIsExpanded(!isExpanded);
+    };
+
+    const handleClose = () => {
+        setOpenChatBox && setOpenChatBox(false);
+    };
+
     if (!open) return null;
+
+    // Mobile: Full screen or minimized bar
+    // Desktop: Resizable card
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
     return (
         <Box
             position="fixed"
-            bottom={4}
-            right={4}
+            bottom={{ base: 0, md: 4 }}
+            right={{ base: 0, md: 4 }}
+            left={{ base: 0, md: "auto" }}
+            top={{ base: isMinimized ? "auto" : 0, md: "auto" }}
             zIndex={1000}
             w={
                 isExpanded
-                    ? { base: "95vw", md: "600px", lg: "700px" }
-                    : { base: "95vw", md: "420px" }
+                    ? { base: "100vw", md: "600px", lg: "700px" }
+                    : { base: "100vw", md: "420px" }
             }
             h={
                 isMinimized
-                    ? "auto"
+                    ? { base: "auto", md: "auto" }
                     : isExpanded
-                        ? "85vh"
-                        : { base: "600px", md: "650px" }
+                        ? { base: "100vh", md: "85vh" }
+                        : { base: "100vh", md: "650px" }
             }
-            transition="all 0.3s ease"
+            transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+            pointerEvents={isMinimized ? "none" : "auto"}
         >
             <Card.Root
-                // bg={bgColor}
-                borderRadius="xl"
+                borderRadius={{ base: isMinimized ? "xl xl 0 0" : 0, md: "xl" }}
                 overflow="hidden"
                 boxShadow={shadowColor}
-                borderWidth="1px"
+                borderWidth={{ base: 0, md: "1px" }}
                 borderColor={borderColor}
                 h="full"
                 display="flex"
                 flexDirection="column"
+                pointerEvents="auto"
             >
                 {/* Header */}
                 <Box
+                    bgGradient="linear(to-r, teal.500, cyan.500)"
                     color="white"
                     px={4}
                     py={3}
+                    pt={{ base: isMinimized ? 3 : "calc(env(safe-area-inset-top) + 12px)", md: 3 }}
+                    pb={{ base: isMinimized ? "calc(env(safe-area-inset-bottom) + 12px)" : 3, md: 3 }}
                     display="flex"
                     alignItems="center"
                     justifyContent="space-between"
+                    cursor={{ base: isMinimized ? "pointer" : "default", md: "default" }}
+                    onClick={() => {
+                        // On mobile, tapping minimized header expands it
+                        if (isMobile && isMinimized) {
+                            setIsMinimized(false);
+                        }
+                    }}
+                    userSelect="none"
                 >
                     <HStack gap={3}>
                         <Box position="relative">
                             <Avatar.Root size="sm">
-                                {/* <Avatar.Image src={aiBuddy} alt="AI Buddy" /> */}
                                 <Avatar.Fallback>AI</Avatar.Fallback>
                             </Avatar.Root>
+                            {/* Animated pulse indicator */}
+                            <Box
+                                position="absolute"
+                                bottom={0}
+                                right={0}
+                                w="10px"
+                                h="10px"
+                                bg="green.400"
+                                borderRadius="full"
+                                borderWidth="2px"
+                                borderColor="white"
+                            />
                         </Box>
                         <VStack align="start" gap={0}>
                             <Text fontWeight="semibold" fontSize="md">
@@ -421,35 +477,61 @@ const ChatBox = forwardRef<ChatBoxRef, ChatBoxProps>((props, ref) => {
                     </HStack>
 
                     <HStack gap={1}>
+                        {/* Expand button - visible on both mobile and desktop */}
                         <IconButton
                             aria-label="Toggle expand"
                             size="sm"
                             variant="ghost"
                             color="white"
                             _hover={{ bg: "whiteAlpha.200" }}
-                            onClick={() => setIsExpanded(!isExpanded)}
+                            _active={{ bg: "whiteAlpha.300" }}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleExpand();
+                            }}
                         >
-                            {isExpanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                            {isExpanded ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
                         </IconButton>
+
+                        {/* Minimize button - different icons for mobile vs desktop */}
                         <IconButton
-                            aria-label="Minimize"
+                            aria-label={isMinimized ? "Expand" : "Minimize"}
                             size="sm"
                             variant="ghost"
                             color="white"
                             _hover={{ bg: "whiteAlpha.200" }}
-                            onClick={() => setIsMinimized(!isMinimized)}
+                            _active={{ bg: "whiteAlpha.300" }}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleMinimize();
+                            }}
                         >
-                            {!isMinimized ? <Minus size={16} /> : <Maximize size={16} />}
+                            {isMinimized ? (
+                                <Maximize size={18} />
+                            ) : (
+                                // ChevronDown for mobile, Minus for desktop
+                                <Box display={{ base: "block", md: "none" }}>
+                                    <ChevronDown size={18} />
+                                </Box>
+                            )}
+                            <Box display={{ base: "none", md: "block" }}>
+                                <Minus size={18} />
+                            </Box>
                         </IconButton>
+
                         <IconButton
                             aria-label="Close"
                             size="sm"
                             variant="ghost"
                             color="white"
                             _hover={{ bg: "whiteAlpha.200" }}
-                            onClick={() => setOpenChatBox && setOpenChatBox(false)}
+                            _active={{ bg: "whiteAlpha.300" }}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleClose();
+                            }}
                         >
-                            <X size={16} />
+                            <X size={18} />
                         </IconButton>
                     </HStack>
                 </Box>
@@ -460,7 +542,9 @@ const ChatBox = forwardRef<ChatBoxRef, ChatBoxProps>((props, ref) => {
                         <Box
                             flex="1"
                             overflowY="auto"
+                            overflowX="hidden"
                             p={4}
+                            minHeight={0}
                             css={{
                                 "&::-webkit-scrollbar": {
                                     width: "6px",
@@ -515,7 +599,6 @@ const ChatBox = forwardRef<ChatBoxRef, ChatBoxProps>((props, ref) => {
                                     >
                                         {m.role === "assistant" && (
                                             <Avatar.Root size="xs" flexShrink={0} mt={1}>
-                                                {/* <Avatar.Image src={aiBuddy} alt="AI" /> */}
                                                 <Avatar.Fallback>AI</Avatar.Fallback>
                                             </Avatar.Root>
                                         )}
@@ -523,7 +606,7 @@ const ChatBox = forwardRef<ChatBoxRef, ChatBoxProps>((props, ref) => {
                                         <VStack
                                             align={m.role === "user" ? "flex-end" : "flex-start"}
                                             gap={1}
-                                            maxW="80%"
+                                            maxW={{ base: "85%", md: "80%" }}
                                         >
                                             <Box
                                                 bg={
@@ -571,7 +654,6 @@ const ChatBox = forwardRef<ChatBoxRef, ChatBoxProps>((props, ref) => {
                                 {chatReplying && (
                                     <HStack align="start" gap={2}>
                                         <Avatar.Root size="xs" flexShrink={0} mt={1}>
-                                            {/* <Avatar.Image src={aiBuddy} alt="AI" /> */}
                                             <Avatar.Fallback>AI</Avatar.Fallback>
                                         </Avatar.Root>
                                         <Box
@@ -595,7 +677,9 @@ const ChatBox = forwardRef<ChatBoxRef, ChatBoxProps>((props, ref) => {
                         <Box
                             borderTop="1px solid"
                             borderColor={borderColor}
-                            p={4}
+                            p={{ base: 3, md: 4 }}
+                            pb={{ base: "calc(env(safe-area-inset-bottom) + 12px)", md: 4 }}
+                            bg={useColorModeValue("white", "gray.900")}
                         >
                             <VStack gap={2}>
                                 <HStack gap={2} w="full">
@@ -619,7 +703,7 @@ const ChatBox = forwardRef<ChatBoxRef, ChatBoxProps>((props, ref) => {
                                                 paddingRight: "50px",
                                                 borderRadius: "12px",
                                                 border: `2px solid ${inputBorder}`,
-                                                fontSize: "14px",
+                                                fontSize: "16px", // 16px prevents iOS zoom
                                                 fontFamily: "inherit",
                                                 resize: "none",
                                                 minHeight: "48px",
@@ -631,6 +715,12 @@ const ChatBox = forwardRef<ChatBoxRef, ChatBoxProps>((props, ref) => {
                                             onFocus={(e) => {
                                                 e.target.style.borderColor = "#319795";
                                                 e.target.style.outline = "none";
+                                                // Scroll to input on mobile
+                                                if (window.innerWidth < 768) {
+                                                    setTimeout(() => {
+                                                        e.target.scrollIntoView({ behavior: "smooth", block: "center" });
+                                                    }, 300);
+                                                }
                                             }}
                                             onBlur={(e) => {
                                                 e.target.style.borderColor = inputBorder;
@@ -652,12 +742,20 @@ const ChatBox = forwardRef<ChatBoxRef, ChatBoxProps>((props, ref) => {
                                             onClick={() => sendMessage(input)}
                                             disabled={!input.trim() || chatReplying}
                                             borderRadius="lg"
+                                            _hover={{ transform: "scale(1.05)" }}
+                                            _active={{ transform: "scale(0.95)" }}
+                                            transition="all 0.2s"
                                         >
                                             <Send size={16} />
                                         </IconButton>
                                     </Box>
                                 </HStack>
-                                <Text fontSize="2xs" color="gray.500" textAlign="center">
+                                <Text
+                                    fontSize="2xs"
+                                    color="gray.500"
+                                    textAlign="center"
+                                    display={{ base: "none", md: "block" }}
+                                >
                                     Press Enter to send • Shift + Enter for new line
                                 </Text>
                             </VStack>

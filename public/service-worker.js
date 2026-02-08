@@ -1,5 +1,5 @@
-const CACHE_VERSION = '1.0.2'; // Increment on each deploy
-const BUILD_TIME =  "2026-02-07-001"
+const CACHE_VERSION = '1.0.4'; // Increment on each deploy
+const BUILD_TIME =  "2026-02-07-004"
 const CACHE_NAME = `promptlylearn-v${CACHE_VERSION}-${BUILD_TIME}`;
 const RUNTIME_CACHE = 'promptlylearn-runtime';
 const API_CACHE = 'promptlylearn-api';
