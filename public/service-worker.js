@@ -1,6 +1,5 @@
-const CACHE_VERSION = '1.0.4'; // Increment on each deploy
-const BUILD_TIME =  "2026-02-07-004"
-const CACHE_NAME = `promptlylearn-v${CACHE_VERSION}-${BUILD_TIME}`;
+const CACHE_VERSION = '1.0.5';
+const CACHE_NAME = `promptlylearn-v${CACHE_VERSION}`;
 const RUNTIME_CACHE = 'promptlylearn-runtime';
 const API_CACHE = 'promptlylearn-api';
 
@@ -53,6 +52,11 @@ self.addEventListener('fetch', (event) => {
 
   // Skip chrome extensions and non-http(s) requests
   if (!url.protocol.startsWith('http')) {
+    return;
+  }
+
+  // Skip localhost / dev server requests
+  if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
     return;
   }
 

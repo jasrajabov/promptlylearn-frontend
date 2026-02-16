@@ -25,5 +25,7 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   </React.StrictMode>,
 );
 
-registerServiceWorker();
-createOfflineIndicator();
+if (import.meta.env.PROD) {
+  registerServiceWorker();
+  createOfflineIndicator();
+}

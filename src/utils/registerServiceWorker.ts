@@ -9,23 +9,41 @@ export function registerServiceWorker() {
       navigator.serviceWorker
         .register(swUrl)
         .then((registration) => {
-          // Check for updates periodically (every 60 seconds)
+          console.log("[SW] Service Worker registered successfully");
+
+          // Check for updates when user returns to the tab (better than polling)
+          document.addEventListener("visibilitychange", () => {
+            if (!document.hidden && registration) {
+              registration.update();
+            }
+          });
+
+          // Optional: Check for updates every 30 minutes (instead of 1 minute)
+          // You can remove this if you only want to check on visibility change
           setInterval(() => {
             registration.update();
-          }, 60000);
+          }, 1800000); // 30 minutes
 
+          // Handle when a new service worker is found
           registration.addEventListener("updatefound", () => {
             const newWorker = registration.installing;
+            console.log("[SW] New service worker found, installing...");
 
             newWorker?.addEventListener("statechange", () => {
+              console.log("[SW] Service worker state:", newWorker.state);
+
               if (
                 newWorker.state === "installed" &&
                 navigator.serviceWorker.controller
               ) {
+                // New service worker is installed and ready
+                // Only show this when there's actually a new version
+                console.log("[SW] New version available");
+
                 // Show update notification
                 if (confirm("New version available! Reload to update?")) {
                   newWorker.postMessage({ type: "SKIP_WAITING" });
-                  window.location.reload();
+                  // Don't reload here - wait for controllerchange event
                 }
               }
             });
@@ -35,10 +53,11 @@ export function registerServiceWorker() {
           console.error("[SW] Service Worker registration failed:", error);
         });
 
-      // Handle controller change
+      // Handle controller change (when new SW takes over)
       let refreshing = false;
       navigator.serviceWorker.addEventListener("controllerchange", () => {
         if (!refreshing) {
+          console.log("[SW] Controller changed, reloading page");
           refreshing = true;
           window.location.reload();
         }

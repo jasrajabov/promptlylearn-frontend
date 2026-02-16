@@ -10,13 +10,13 @@ import {
   RadioCard,
   HStack,
   Heading,
-  HoverCard,
   Badge,
   Spinner,
   VStack,
   Separator,
   IconButton,
 } from "@chakra-ui/react";
+import { motion } from "framer-motion";
 import fetchWithTimeout from "../utils/dbUtils";
 import TagHandler from "./TagHandler";
 import { useUser } from "../contexts/UserContext";
@@ -32,11 +32,11 @@ import {
   ChevronRight,
   Layers,
   CheckCircle2,
-  Play,
   Award,
   TrendingUp,
-  Zap,
 } from "lucide-react";
+
+const MotionBox = motion(Box);
 
 export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -278,207 +278,198 @@ export const RoadmapNode: React.FC<
         position={Position.Top}
         style={{
           background: isCompleted ? "#10b981" : lineColor,
-          border: `3px solid ${cardBg}`,
-          width: 14,
-          height: 14,
-          boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+          border: `2px solid ${cardBg}`,
+          width: 12,
+          height: 12,
+          boxShadow: "0 2px 6px rgba(0,0,0,0.12)",
+          transition: "all 0.2s",
         }}
       />
 
-      {/* Metro Ticket Style Node */}
-      <HoverCard.Root openDelay={200} closeDelay={100}>
-        <HoverCard.Trigger asChild>
-          <Box
-            bg={isCompleted ? completedBg : cardBg}
-            borderRadius="12px"
-            p={4}
-            minW="280px"
-            maxW="320px"
-            borderWidth="2px"
-            borderColor={isCompleted ? "#10b981" : borderColor}
-            borderLeftWidth="6px"
-            borderLeftColor={isCompleted ? "#10b981" : lineColor}
-            position="relative"
-            cursor="pointer"
-            transition="all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
-            boxShadow="0 2px 8px rgba(0,0,0,0.08)"
-            _hover={{
-              borderColor: isCompleted ? "#10b981" : lineColor,
-              boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-              transform: "translateY(-4px)",
-            }}
-            onClick={() => {
-              setIsDrawerOpen(true);
-              getCourseForNodeId(
-                roadmapNodeData.roadmapId,
-                roadmapNodeData.roadmapNodeId,
-              );
-            }}
-          >
-            <VStack align="stretch" gap={3}>
-              {/* Header Row */}
-              <HStack justify="space-between" align="start">
-                <Badge
-                  size="sm"
-                  bg={isCompleted ? "#10b98120" : `${lineColor}20`}
-                  color={isCompleted ? "#10b981" : lineColor}
-                  fontSize="10px"
-                  fontWeight="700"
-                  px={2.5}
-                  py={1}
-                  borderRadius="6px"
-                  letterSpacing="0.5px"
-                  textTransform="uppercase"
-                >
-                  {roadmapNodeData.type || "Module"}
-                </Badge>
+      {/* SaaS-Grade Node Card */}
+      <MotionBox
+        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
+        bg={isCompleted ? completedBg : cardBg}
+        borderRadius="14px"
+        p={4}
+        minW="280px"
+        maxW="320px"
+        borderWidth="1px"
+        borderColor={isCompleted ? "#10b981" : borderColor}
+        position="relative"
+        cursor="pointer"
+        overflow="hidden"
+        css={{ transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)" }}
+        boxShadow={
+          isCompleted
+            ? "0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(16,185,129,0.08)"
+            : "0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.06)"
+        }
+        _hover={{
+          borderColor: isCompleted ? "#10b981" : lineColor,
+          boxShadow: isCompleted
+            ? "0 0 0 1px #10b98140, 0 8px 24px rgba(16,185,129,0.12)"
+            : "0 4px 8px rgba(0,0,0,0.06), 0 12px 32px rgba(0,0,0,0.10)",
+          transform: "translateY(-3px)",
+        }}
+        onClick={() => {
+          setIsDrawerOpen(true);
+          getCourseForNodeId(
+            roadmapNodeData.roadmapId,
+            roadmapNodeData.roadmapNodeId,
+          );
+        }}
+      >
+        {/* Left accent gradient strip */}
+        <Box
+          position="absolute"
+          left={0}
+          top={0}
+          bottom={0}
+          w="4px"
+          bg={
+            isCompleted
+              ? "linear-gradient(to bottom, #10b981, #06d6a0)"
+              : `linear-gradient(to bottom, ${lineColor}, ${lineColor}80)`
+          }
+          borderLeftRadius="14px"
+        />
 
-                {isCompleted && (
-                  <HStack gap={1.5}>
-                    <CheckCircle2 size={16} color="#10b981" strokeWidth={2.5} />
-                    <Text fontSize="xs" color="#10b981" fontWeight="700" letterSpacing="0.3px">
-                      DONE
-                    </Text>
-                  </HStack>
-                )}
-              </HStack>
+        <VStack align="stretch" gap={3} pl={1}>
+          {/* Header Row */}
+          <HStack justify="space-between" align="center">
+            <Badge
+              size="sm"
+              bg={isCompleted ? "#10b98115" : `${lineColor}15`}
+              color={isCompleted ? "#10b981" : lineColor}
+              fontSize="2xs"
+              fontWeight="700"
+              px={2}
+              py={0.5}
+              borderRadius="full"
+              letterSpacing="0.5px"
+              textTransform="uppercase"
+            >
+              {roadmapNodeData.type || "Module"}
+            </Badge>
 
-              {/* Title */}
-              <Heading
-                fontSize="md"
-                fontWeight="700"
-                color={headingColor}
-                lineHeight="1.4"
-                letterSpacing="-0.01em"
-              >
-                {roadmapNodeData.label}
-              </Heading>
-
-              {/* Footer Action */}
-              <HStack
-                justify="space-between"
-                pt={2}
-                borderTopWidth="1px"
-                borderColor={borderColor}
-                fontSize="xs"
-                color={mutedText}
-              >
-                <HStack gap={1.5}>
-                  <Play size={12} />
-                  <Text fontWeight="600">Explore Course</Text>
-                </HStack>
-                <ChevronRight size={14} />
-              </HStack>
-            </VStack>
-
-            {/* Completion indicator line */}
             {isCompleted && (
-              <Box
-                position="absolute"
-                bottom={0}
-                left={0}
-                right={0}
-                h="3px"
-                bg="#10b981"
-                borderBottomRadius="10px"
-              />
+              <Badge
+                bg="#10b98115"
+                color="#10b981"
+                borderRadius="full"
+                px={2}
+                py={0.5}
+                fontSize="2xs"
+                fontWeight="700"
+              >
+                <HStack gap={1}>
+                  <CheckCircle2 size={12} strokeWidth={2.5} />
+                  <Text>Done</Text>
+                </HStack>
+              </Badge>
             )}
-          </Box>
-        </HoverCard.Trigger>
+          </HStack>
 
-        {/* Hover Preview */}
-        <Portal>
-          <HoverCard.Positioner>
-            <HoverCard.Content maxW="340px" p={4}>
-              <HoverCard.Arrow />
-              <VStack align="stretch" gap={3}>
-                <HStack justify="space-between">
-                  <Badge
-                    size="sm"
-                    bg={`${lineColor}20`}
-                    color={lineColor}
-                    fontSize="10px"
-                    fontWeight="700"
-                    px={2.5}
-                    py={1}
-                    borderRadius="full"
-                    letterSpacing="0.5px"
-                    textTransform="uppercase"
-                  >
-                    {roadmapNodeData.type}
-                  </Badge>
-                  <TagHandler status={roadmapNodeData.status || "NOT_STARTED"} />
-                </HStack>
+          {/* Title */}
+          <Heading
+            fontSize="sm"
+            fontWeight="800"
+            color={headingColor}
+            lineHeight="1.4"
+            letterSpacing="-0.01em"
+            lineClamp={2}
+          >
+            {roadmapNodeData.label}
+          </Heading>
 
-                <Heading size="sm" fontWeight="700" lineHeight="1.4">
-                  {roadmapNodeData.label}
-                </Heading>
+          {/* Footer Action */}
+          <HStack
+            justify="space-between"
+            align="center"
+            pt={1.5}
+            borderTopWidth="1px"
+            borderColor={borderColor}
+            fontSize="xs"
+            color={mutedText}
+          >
+            <HStack gap={1.5}>
+              <Box w="5px" h="5px" borderRadius="full" bg={lineColor} />
+              <Text fontWeight="700">Explore</Text>
+            </HStack>
+            <Box
+              bg={hoverBg}
+              borderRadius="full"
+              p={0.5}
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
+              transition="all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
+              css={{
+                ".chakra-box:hover > .chakra-stack > .chakra-stack > &, *:hover > &": {
+                  transform: "translateX(2px)",
+                },
+              }}
+            >
+              <ChevronRight size={13} />
+            </Box>
+          </HStack>
+        </VStack>
+      </MotionBox>
 
-                {roadmapNodeData.description && (
-                  <Text fontSize="sm" color={mutedText} lineHeight="1.6">
-                    {roadmapNodeData.description}
-                  </Text>
-                )}
-
-                <HStack
-                  fontSize="xs"
-                  color={mutedText}
-                  pt={2}
-                  borderTopWidth="1px"
-                  borderColor={borderColor}
-                  gap={2}
-                >
-                  <Zap size={12} />
-                  <Text fontWeight="500">Click to start learning</Text>
-                </HStack>
-              </VStack>
-            </HoverCard.Content>
-          </HoverCard.Positioner>
-        </Portal>
-      </HoverCard.Root>
-
-      {/* Enhanced Drawer - Same as before */}
+      {/* Polished Drawer */}
       <Drawer.Root
         open={isDrawerOpen}
         size="lg"
         onOpenChange={(e) => setIsDrawerOpen(e.open)}
       >
         <Portal>
-          <Drawer.Backdrop bg="blackAlpha.700" backdropFilter="blur(8px)" />
+          <Drawer.Backdrop bg="blackAlpha.700" backdropFilter="blur(10px)" />
           <Drawer.Positioner>
             <Drawer.Content bg={drawerBg}>
-              {/* Header */}
+              {/* Header with gradient background */}
               <Box
-                borderBottom="3px solid"
+                borderBottom="2px solid"
                 borderColor={isCompleted ? "#10b981" : lineColor}
-                bg={sectionBg}
+                bg={useColorModeValue(
+                  "linear-gradient(to right, #f8fafc, #f1f5f9)",
+                  "linear-gradient(to right, #0a0a0a, #111111)"
+                )}
               >
                 <Drawer.Header py={5} px={6}>
                   <HStack justify="space-between" w="full" align="start">
                     <VStack align="start" gap={2} flex={1}>
                       <HStack gap={3}>
                         <Box
-                          w="6px"
-                          h="40px"
-                          bg={isCompleted ? "#10b981" : lineColor}
-                          borderRadius="full"
-                        />
+                          w="44px"
+                          h="44px"
+                          borderRadius="xl"
+                          bg={isCompleted ? "#10b98115" : `${lineColor}15`}
+                          display="flex"
+                          alignItems="center"
+                          justifyContent="center"
+                          flexShrink={0}
+                        >
+                          <BookOpen size={22} color={isCompleted ? "#10b981" : lineColor} />
+                        </Box>
                         <Heading
                           size="xl"
-                          fontWeight="700"
+                          fontWeight="800"
                           letterSpacing="-0.02em"
                         >
                           {roadmapNodeData.label}
                         </Heading>
                       </HStack>
 
-                      <HStack gap={2} pl={5}>
+                      <HStack gap={2} pl="56px">
                         <Badge
-                          fontSize="10px"
+                          fontSize="2xs"
                           px={2.5}
-                          py={1}
+                          py={0.5}
                           borderRadius="full"
-                          bg={isCompleted ? "#10b98120" : `${lineColor}20`}
+                          bg={isCompleted ? "#10b98115" : `${lineColor}15`}
                           color={isCompleted ? "#10b981" : lineColor}
                           fontWeight="700"
                           letterSpacing="0.5px"
@@ -507,9 +498,15 @@ export const RoadmapNode: React.FC<
 
               <Drawer.Body py={6} px={6}>
                 <VStack align="stretch" gap={6}>
-                  {/* Description */}
+                  {/* Description as styled callout */}
                   {roadmapNodeData.description && (
-                    <Box>
+                    <Box
+                      p={4}
+                      bg={sectionBg}
+                      borderRadius="lg"
+                      borderLeft="3px solid"
+                      borderLeftColor={isCompleted ? "#10b981" : lineColor}
+                    >
                       <Text fontSize="md" color={mutedText} lineHeight="1.7">
                         {roadmapNodeData.description}
                       </Text>
@@ -518,39 +515,44 @@ export const RoadmapNode: React.FC<
 
                   <Separator />
 
-                  {/* Mark as Complete Button */}
-                  <Button
-                    onClick={() =>
-                      handleMarkAsComplete(
-                        roadmapNodeData.status || "",
-                        roadmapNodeData.roadmapId,
-                        roadmapNodeData.roadmapNodeId,
-                      )
-                    }
-                    variant="outline"
-                    borderWidth="2px"
-                    borderColor={isCompleted ? "#10b981" : borderColor}
-                    color={isCompleted ? "#10b981" : headingColor}
-                    bg={isCompleted ? completedBg : "transparent"}
-                    _hover={{
-                      bg: isCompleted ? completedBg : hoverBg,
-                      borderColor: isCompleted ? "#10b981" : accentColor,
-                    }}
-                    gap={2}
-                    fontWeight="700"
-                  >
-                    {isCompleted ? (
-                      <>
-                        <CheckCircle2 size={18} />
-                        Mark as Incomplete
-                      </>
-                    ) : (
-                      <>
-                        <Circle size={18} />
-                        Mark as Complete
-                      </>
-                    )}
-                  </Button>
+                  {/* Mark as Complete Button with tap animation */}
+                  <MotionBox whileTap={{ scale: 0.97 }}>
+                    <Button
+                      onClick={() =>
+                        handleMarkAsComplete(
+                          roadmapNodeData.status || "",
+                          roadmapNodeData.roadmapId,
+                          roadmapNodeData.roadmapNodeId,
+                        )
+                      }
+                      w="full"
+                      variant={isCompleted ? "solid" : "outline"}
+                      borderWidth={isCompleted ? "0" : "1px"}
+                      borderColor={borderColor}
+                      color={isCompleted ? "white" : headingColor}
+                      bg={isCompleted ? "#10b981" : "transparent"}
+                      _hover={{
+                        bg: isCompleted ? "#0d9668" : hoverBg,
+                        borderColor: isCompleted ? "transparent" : accentColor,
+                      }}
+                      gap={2}
+                      fontWeight="700"
+                      borderRadius="lg"
+                      transition="all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
+                    >
+                      {isCompleted ? (
+                        <>
+                          <CheckCircle2 size={18} />
+                          Mark as Incomplete
+                        </>
+                      ) : (
+                        <>
+                          <Circle size={18} />
+                          Mark as Complete
+                        </>
+                      )}
+                    </Button>
+                  </MotionBox>
 
                   <Separator />
 
@@ -593,13 +595,19 @@ export const RoadmapNode: React.FC<
                               onClick={() => setCurrCourseIdx(i)}
                               w="full"
                               borderRadius="lg"
-                              borderWidth="2px"
-                              borderLeftWidth="5px"
+                              borderWidth="1px"
+                              borderLeftWidth="4px"
                               borderLeftColor={levelColor}
-                              transition="all 0.2s"
+                              transition="all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
+                              boxShadow="0 1px 2px rgba(0,0,0,0.04)"
                               _hover={{
                                 borderColor: levelColor,
-                                transform: "translateX(4px)",
+                                boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                              }}
+                              _checked={{
+                                borderColor: levelColor,
+                                boxShadow: `0 0 0 1px ${levelColor}`,
+                                bg: `${levelColor}08`,
                               }}
                             >
                               <RadioCard.ItemHiddenInput />
@@ -741,23 +749,23 @@ export const RoadmapNode: React.FC<
                                       borderColor={borderColor}
                                       borderLeft="4px solid"
                                       borderLeftColor={getLevelColor(courseLevelInfo[currCourseIdx].value)}
-                                      transition="all 0.2s"
+                                      transition="all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
                                       _hover={{
-                                        transform: "translateX(4px)",
-                                        boxShadow: "sm",
+                                        bg: hoverBg,
+                                        borderColor: getLevelColor(courseLevelInfo[currCourseIdx].value),
                                       }}
                                     >
                                       <HStack gap={3} align="start">
                                         <Box
-                                          minW={7}
-                                          h={7}
+                                          minW="28px"
+                                          h="28px"
                                           borderRadius="md"
                                           bg={`${getLevelColor(courseLevelInfo[currCourseIdx].value)}15`}
                                           display="flex"
                                           alignItems="center"
                                           justifyContent="center"
-                                          fontSize="xs"
-                                          fontWeight="700"
+                                          fontSize="2xs"
+                                          fontWeight="800"
                                           color={getLevelColor(courseLevelInfo[currCourseIdx].value)}
                                         >
                                           {idx + 1}
@@ -785,7 +793,7 @@ export const RoadmapNode: React.FC<
                       </>
                     )}
 
-                  {/* Empty State */}
+                  {/* Empty State with breathing animation */}
                   {courseLevelInfo[currCourseIdx].status === "NOT_GENERATED" && (
                     <Box
                       textAlign="center"
@@ -793,12 +801,14 @@ export const RoadmapNode: React.FC<
                       px={6}
                       bg={sectionBg}
                       borderRadius="xl"
-                      borderWidth="2px"
+                      borderWidth="1px"
                       borderStyle="dashed"
                       borderColor={borderColor}
                     >
                       <VStack gap={4}>
-                        <Box
+                        <MotionBox
+                          animate={{ scale: [1, 1.05, 1] }}
+                          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                           w={16}
                           h={16}
                           borderRadius="full"
@@ -808,7 +818,7 @@ export const RoadmapNode: React.FC<
                           justifyContent="center"
                         >
                           <Sparkles size={32} color={accentColor} />
-                        </Box>
+                        </MotionBox>
                         <VStack gap={2}>
                           <Text fontSize="md" fontWeight="700">
                             Ready to Begin?
@@ -838,6 +848,7 @@ export const RoadmapNode: React.FC<
                     size="md"
                     borderRadius="lg"
                     fontWeight="600"
+                    borderColor={borderColor}
                   >
                     Close
                   </Button>
@@ -846,17 +857,19 @@ export const RoadmapNode: React.FC<
                       onClick={() =>
                         navigate(`/course/${courseLevelInfo[currCourseIdx].courseId}`)
                       }
-                      bg={getLevelColor(courseLevelInfo[currCourseIdx].value)}
+                      bg={`linear-gradient(135deg, ${getLevelColor(courseLevelInfo[currCourseIdx].value)}, ${getLevelColor(courseLevelInfo[currCourseIdx].value)}cc)`}
                       color="white"
                       flex={1}
                       size="md"
                       borderRadius="lg"
-                      fontWeight="600"
+                      fontWeight="700"
                       gap={2}
+                      boxShadow={`0 4px 14px ${getLevelColor(courseLevelInfo[currCourseIdx].value)}30`}
                       _hover={{
-                        bg: getLevelColor(courseLevelInfo[currCourseIdx].value),
                         opacity: 0.9,
+                        boxShadow: `0 6px 20px ${getLevelColor(courseLevelInfo[currCourseIdx].value)}40`,
                       }}
+                      transition="all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
                     >
                       <Eye size={18} />
                       View Course
@@ -872,21 +885,23 @@ export const RoadmapNode: React.FC<
                           courseLevelInfo[currCourseIdx].value,
                         )
                       }
-                      bg={getLevelColor(courseLevelInfo[currCourseIdx].value)}
+                      bg={`linear-gradient(135deg, ${getLevelColor(courseLevelInfo[currCourseIdx].value)}, ${getLevelColor(courseLevelInfo[currCourseIdx].value)}cc)`}
                       color="white"
                       flex={1}
                       size="md"
                       borderRadius="lg"
-                      fontWeight="600"
+                      fontWeight="700"
                       gap={2}
                       disabled={
                         courseLevelInfo[currCourseIdx].status === "GENERATING" ||
                         isGenerating
                       }
+                      boxShadow={`0 4px 14px ${getLevelColor(courseLevelInfo[currCourseIdx].value)}30`}
                       _hover={{
-                        bg: getLevelColor(courseLevelInfo[currCourseIdx].value),
                         opacity: 0.9,
+                        boxShadow: `0 6px 20px ${getLevelColor(courseLevelInfo[currCourseIdx].value)}40`,
                       }}
+                      transition="all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
                     >
                       <Sparkles size={18} />
                       {courseLevelInfo[currCourseIdx].status === "GENERATING" || isGenerating
@@ -906,10 +921,11 @@ export const RoadmapNode: React.FC<
         position={Position.Bottom}
         style={{
           background: isCompleted ? "#10b981" : lineColor,
-          border: `3px solid ${cardBg}`,
-          width: 14,
-          height: 14,
-          boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+          border: `2px solid ${cardBg}`,
+          width: 12,
+          height: 12,
+          boxShadow: "0 2px 6px rgba(0,0,0,0.12)",
+          transition: "all 0.2s",
         }}
         isConnectable={true}
       />
