@@ -38,7 +38,38 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: undefined,
+        manualChunks(id) {
+          if (id.includes("node_modules/react/") || id.includes("node_modules/react-dom/"))
+            return "vendor-react";
+          if (id.includes("node_modules/@chakra-ui/") || id.includes("node_modules/@ark-ui/"))
+            return "vendor-chakra";
+          if (
+            id.includes("node_modules/react-markdown") ||
+            id.includes("node_modules/remark-") ||
+            id.includes("node_modules/rehype-") ||
+            id.includes("node_modules/unified") ||
+            id.includes("node_modules/mdast-") ||
+            id.includes("node_modules/hast-") ||
+            id.includes("node_modules/micromark")
+          )
+            return "vendor-markdown";
+          if (
+            id.includes("node_modules/react-syntax-highlighter") ||
+            id.includes("node_modules/refractor") ||
+            id.includes("node_modules/prismjs")
+          )
+            return "vendor-syntax-highlight";
+          if (id.includes("node_modules/katex"))
+            return "vendor-katex";
+          if (
+            id.includes("node_modules/reactflow") ||
+            id.includes("node_modules/@reactflow/") ||
+            id.includes("node_modules/dagre")
+          )
+            return "vendor-reactflow";
+          if (id.includes("node_modules/framer-motion"))
+            return "vendor-framer";
+        },
       },
       external: ["/manifest.json"],
     },

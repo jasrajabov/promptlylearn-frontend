@@ -29,3 +29,4 @@ dist-ssr
 .env.production
 .env.test
 build_and_upload.sh
+.claude

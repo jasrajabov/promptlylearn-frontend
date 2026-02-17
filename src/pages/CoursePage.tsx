@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   Box,
   HStack,
@@ -13,12 +13,13 @@ import {
 import { useParams } from "react-router-dom";
 import type { Course } from "../types";
 import { useUser } from "../contexts/UserContext";
-import { Stats } from "../components/Stats";
 import CourseRenderer from "../components/CourseRenderer";
 import { TOC } from "../components/TOC";
 import { useGenerationQueue } from "../hooks/useGenerationQueue";
 import { BookOpen, GraduationCap, Menu, X } from "lucide-react";
 import { useColorModeValue } from "../components/ui/color-mode";
+import { ProgressCircleComponent } from "../components/ProgressCircle";
+
 
 export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -43,21 +44,55 @@ export default function CourseTimeline() {
     "linear-gradient(135deg, #0D9488 0%, #14B8A6 50%, #06B6D4 100%)",
     "linear-gradient(135deg, #14B8A6 0%, #2DD4BF 50%, #5EEAD4 100%)",
   );
-  const cardBg = useColorModeValue("white", "gray.950");
+  const cardBg = useColorModeValue("white", "#111111");
+  const cardBorderColor = useColorModeValue("#e5e7eb", "#27272a");
+  const mutedText = useColorModeValue("#6b7280", "#9ca3af");
+  const accentColor = useColorModeValue("#0f766e", "#14b8a6");
+  const highlightBg = useColorModeValue("teal.50", "rgba(20, 184, 166, 0.1)");
 
   // ---------------------------------------------------------------------------
-  // Progress calculations (unchanged)
+  // Progress calculations (memoized for performance)
   // ---------------------------------------------------------------------------
-  const completedPercentageModules = courseState.modules
-    ? Math.round((courseState.modules.filter((m) => m.status === "COMPLETED").length / courseState.modules.length) * 100)
-    : 0;
-  const totalLessons = courseState.modules
-    ? courseState.modules.reduce((sum, module) => sum + module.lessons.length, 0)
-    : 0;
-  const completedLessons = courseState.modules
-    ? courseState.modules.reduce((sum, module) => sum + module.lessons.filter((l) => l.status === "COMPLETED").length, 0)
-    : 0;
-  const completedPercentagesLessons = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
+  const { completedPercentageModules, totalLessons, completedLessons, completedPercentagesLessons, totalModules, completedModules, inProgressModules } = useMemo(() => {
+    if (!courseState.modules) {
+      return {
+        completedPercentageModules: 0,
+        totalLessons: 0,
+        completedLessons: 0,
+        completedPercentagesLessons: 0,
+        totalModules: 0,
+        completedModules: 0,
+        inProgressModules: 0
+      };
+    }
+
+    const modules = courseState.modules;
+    const totalModules = modules.length;
+    const completedModules = modules.filter((m) => m.status === "COMPLETED").length;
+    const inProgressModules = modules.filter((m) => {
+      const hasCompletedLessons = m.lessons?.some((l) => l.status === "COMPLETED");
+      const hasIncompleteLessons = m.lessons?.some((l) => l.status !== "COMPLETED");
+      return hasCompletedLessons && hasIncompleteLessons;
+    }).length;
+    const completedPercentageModules = Math.round((completedModules / modules.length) * 100);
+
+    const totalLessons = modules.reduce((sum, module) => sum + (module.lessons?.length || 0), 0);
+    const completedLessons = modules.reduce(
+      (sum, module) => sum + (module.lessons?.filter((l) => l.status === "COMPLETED").length || 0),
+      0
+    );
+    const completedPercentagesLessons = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
+
+    return {
+      completedPercentageModules,
+      totalLessons,
+      completedLessons,
+      completedPercentagesLessons,
+      totalModules,
+      completedModules,
+      inProgressModules
+    };
+  }, [courseState.modules]);
 
   // ---------------------------------------------------------------------------
   // Fetch course on mount (unchanged)
@@ -133,26 +168,47 @@ export default function CourseTimeline() {
   // ---------------------------------------------------------------------------
   if (loading) {
     return (
-      <Box w="100%" h="100vh" display="flex" alignItems="center" justifyContent="center">
-        <VStack gap={4}>
-          <Spinner size="xl" color="teal.500" />
-          <Text color="gray.600" _dark={{ color: "gray.400" }} fontWeight="medium">Loading course…</Text>
-        </VStack>
+      <Box w="100%" minH="100vh" py={{ base: 8, md: 12 }}>
+        <Box maxW="1400px" mx="auto" px={{ base: 4, md: 8 }}>
+          <VStack gap={6} align="center" py={10}>
+            <Spinner size="xl" color="teal.500" />
+            <Text fontSize="md" color={mutedText} fontWeight="600">
+              Loading your course...
+            </Text>
+          </VStack>
+        </Box>
       </Box>
     );
   }
 
   if (!courseState || courseState === null) {
     return (
-      <Box w="100%" h="100vh" display="flex" alignItems="center" justifyContent="center" p={4}>
-        <Card.Root maxW="md" textAlign="center">
+      <Box w="100%" minH="100vh" display="flex" alignItems="center" justifyContent="center" p={4}>
+        <Card.Root
+          maxW="md"
+          textAlign="center"
+          bg={cardBg}
+          borderWidth="1px"
+          borderColor={cardBorderColor}
+          borderRadius="2xl"
+        >
           <Card.Body p={{ base: 6, md: 8 }}>
             <VStack gap={4}>
-              <Box p={4} borderRadius="full" bg="red.100" _dark={{ bg: "red.900/20" }}>
-                <BookOpen className="w-8 h-8 text-red-500" />
+              <Box
+                p={5}
+                borderRadius="2xl"
+                bg={useColorModeValue("red.50", "rgba(239, 68, 68, 0.1)")}
+              >
+                <BookOpen size={48} color="#ef4444" />
               </Box>
-              <Heading size="lg" color="red.600" _dark={{ color: "red.400" }}>Course not found</Heading>
-              <Text color="gray.600" _dark={{ color: "gray.400" }}>Please go back and select a course.</Text>
+              <VStack gap={2}>
+                <Heading fontSize="2xl" fontWeight="800">
+                  Course not found
+                </Heading>
+                <Text fontSize="md" color={mutedText}>
+                  Please go back and select a course.
+                </Text>
+              </VStack>
             </VStack>
           </Card.Body>
         </Card.Root>
@@ -164,146 +220,168 @@ export default function CourseTimeline() {
   // Main render
   // ---------------------------------------------------------------------------
   return (
-    <Box w="100%" minH="100vh" position="relative">
-      {/* Mobile Header */}
+    <Box minH="100vh">
+      {/* Header */}
       <Box
-        display={{ base: "block", lg: "none" }}
+        borderBottomWidth="1px"
+        borderColor={cardBorderColor}
+        bg={useColorModeValue("rgba(255, 255, 255, 0.85)", "rgba(10, 10, 10, 0.85)")}
+        backdropFilter="blur(12px)"
+        position="sticky"
         top={0}
         zIndex={20}
-        bg={cardBg}
-        borderBottom="1px solid"
-        borderColor={useColorModeValue("gray.200", "gray.700")}
-        px={4}
-        py={3}
       >
-        <HStack justify="space-between">
-          <HStack gap={2}>
-            <GraduationCap size={24} className="text-teal-600" />
-            <Heading fontSize="lg" fontWeight="bold" bgGradient={gradientText} bgClip="text">
-              {courseState.title}
-            </Heading>
-          </HStack>
-          <IconButton aria-label="Open course outline" size="sm" variant="ghost" onClick={() => setIsTOCOpen(true)}>
-            <Menu size={20} />
-          </IconButton>
-        </HStack>
-      </Box>
-
-      {/* Desktop Header */}
-      <Box display={{ base: "none", lg: "block" }} mb={4}>
-        <Card.Root bg={cardBg}>
-          <Card.Body>
-            <HStack justify="space-between" align="center" flexWrap="wrap" gap={4}>
-              <HStack gap={3}>
-                <Box p={3} borderRadius="xl" bg={useColorModeValue("teal.50", "teal.900/30")}>
-                  <GraduationCap size={32} className="text-teal-600" />
+          <VStack align="stretch" gap={0} p={{ base: 3, md: 4 }}>
+            <HStack justify="space-between" align="center" gap={3}>
+              {/* Left: Icon + Title */}
+              <HStack gap={2} flex={1} minW={0}>
+                <Box
+                  w={{ base: "32px", md: "36px" }}
+                  h={{ base: "32px", md: "36px" }}
+                  borderRadius="lg"
+                  bg={highlightBg}
+                  flexShrink={0}
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="center"
+                >
+                  <GraduationCap size={20} color={accentColor} />
                 </Box>
-                <VStack align="start" gap={0}>
-                  <Text fontSize="sm" fontWeight="semibold" color={useColorModeValue("gray.600", "gray.400")} letterSpacing="wide" textTransform="uppercase">Course</Text>
-                  <Heading fontSize={{ base: "2xl", md: "3xl", lg: "4xl" }} fontWeight="bold" bgGradient={gradientText} bgClip="text" lineHeight="1.2" letterSpacing="-0.02em" maxW="800px">
-                    {courseState.title}
-                  </Heading>
-                </VStack>
+                <Heading
+                  fontSize={{ base: "xl", sm: "2xl", md: "3xl" }}
+                  fontWeight="800"
+                  bgGradient={gradientText}
+                  bgClip="text"
+                  lineHeight="1.2"
+                  letterSpacing="-0.02em"
+                  flex={1}
+                  minW={0}
+                  truncate
+                >
+                  {courseState.title}
+                </Heading>
               </HStack>
-              <Stats stats={[
-                { label: "Modules", progress: completedPercentageModules },
-                { label: "Lessons", progress: completedPercentagesLessons },
-              ]} />
-            </HStack>
-          </Card.Body>
-        </Card.Root>
-      </Box>
 
-      {/* Main Content Area */}
-      <Box display="flex" flexDirection={{ base: "column", lg: "row" }} gap={{ base: 0, lg: 4 }} px={{ base: 0, lg: 4 }} pb={{ base: "80px", lg: 4 }} minH={{ base: "calc(100vh - 200px)", lg: "calc(100vh - 200px)" }}>
-        {/* Desktop TOC */}
-        <Box display={{ base: "none", lg: "block" }}>
-          <TOC
-            courseState={courseState}
-            setCourseState={setCourseState}
-            activeModuleIndex={activeModuleIndex}
-            setActiveModuleIndex={setActiveModuleIndex}
-            currentLessonIndex={currentLessonIndex}
-            setCurrentLessonIndex={setCurrentLessonIndex}
-            onLessonChange={handleLessonChange}
-          />
-        </Box>
+              {/* Desktop: Inline Progress */}
+              <HStack gap={3} display={{ base: "none", md: "flex" }} flexShrink={0}>
+                <HStack gap={2.5} pl={2} borderLeftWidth="1px" borderColor={cardBorderColor}>
+                  <VStack gap={0} align="center">
+                    <Text fontSize="2xs" color={mutedText} fontWeight="600" textTransform="uppercase" letterSpacing="wide">Modules</Text>
+                    <ProgressCircleComponent size="xl" value={completedPercentageModules} />
+                  </VStack>
+                  <VStack gap={0} align="center">
+                    <Text fontSize="2xs" color={mutedText} fontWeight="600" textTransform="uppercase" letterSpacing="wide">Lessons</Text>
+                    <ProgressCircleComponent size="xl" value={completedPercentagesLessons} />
+                  </VStack>
+                </HStack>
+              </HStack>
 
-        {/* Mobile TOC Drawer */}
-        <Drawer.Root open={isTOCOpen} onOpenChange={(e) => setIsTOCOpen(e.open)} size="full">
-          <Drawer.Backdrop />
-          <Drawer.Content>
-            <Drawer.Header>
-              <HStack justify="space-between" w="100%">
-                <Heading size="md" fontWeight="semibold">Course Outline</Heading>
-                <IconButton aria-label="Close" variant="ghost" size="sm" onClick={() => setIsTOCOpen(false)}>
-                  <X size={20} />
+              {/* Mobile: Progress + TOC button */}
+              <HStack gap={2} display={{ base: "flex", md: "none" }} flexShrink={0}>
+                <ProgressCircleComponent size="xl" value={completedPercentagesLessons} />
+                <IconButton
+                  aria-label="Open course outline"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setIsTOCOpen(true)}
+                  borderRadius="lg"
+                  _hover={{ bg: highlightBg }}
+                >
+                  <Menu size={20} />
                 </IconButton>
               </HStack>
-            </Drawer.Header>
-            <Drawer.Body p={0}>
-              <TOC
-                courseState={courseState}
-                setCourseState={setCourseState}
-                activeModuleIndex={activeModuleIndex}
-                setActiveModuleIndex={setActiveModuleIndex}
-                currentLessonIndex={currentLessonIndex}
-                setCurrentLessonIndex={setCurrentLessonIndex}
-                onLessonChange={handleLessonChange}
-                isMobileDrawer
-              />
-            </Drawer.Body>
-          </Drawer.Content>
-        </Drawer.Root>
+            </HStack>
+          </VStack>
+        </Box>
 
-        {/* Content Area */}
-        <Box flex="1" overflowY="auto" px={{ base: 1, lg: 0 }} pt={{ base: 1, lg: 0 }}>
-          {activeModuleIndex !== null && courseState.modules[activeModuleIndex]?.lessons && (
-            <CourseRenderer
+      {/* Main Content Area */}
+      <Box maxW="1400px" mx="auto" px={{ base: 4, md: 8 }} py={{ base: 4, md: 6 }}>
+        <Box
+          display="flex"
+          flexDirection={{ base: "column", lg: "row" }}
+          gap={{ base: 6, lg: 4 }}
+          minH={{ base: "auto", lg: "calc(100vh - 200px)" }}
+        >
+          {/* Desktop TOC */}
+          <Box display={{ base: "none", lg: "block" }}>
+            <TOC
               courseState={courseState}
               setCourseState={setCourseState}
-              currentModuleIndex={activeModuleIndex}
+              activeModuleIndex={activeModuleIndex}
+              setActiveModuleIndex={setActiveModuleIndex}
               currentLessonIndex={currentLessonIndex}
-              setShowQuiz={setShowQuiz}
+              setCurrentLessonIndex={setCurrentLessonIndex}
               onLessonChange={handleLessonChange}
-              onModuleComplete={handleModuleComplete}
-              generationQueue={generationQueue}
-              onQueueEntryClick={handleQueueEntryClick}
             />
-          )}
-        </Box>
-      </Box>
+          </Box>
 
-      {/* Mobile Bottom Stats Bar */}
-      <Box
-        display={{ base: "block", lg: "none" }}
-        position="fixed"
-        bottom={0}
-        left={0}
-        right={0}
-        bg={cardBg}
-        borderTop="1px solid"
-        borderColor={useColorModeValue("gray.200", "gray.700")}
-        p={3}
-        zIndex={15}
-        boxShadow="lg"
-      >
-        <HStack justify="space-around" gap={4}>
-          <VStack gap={0} flex={1}>
-            <Text fontSize="xs" color="gray.500" fontWeight="medium">Modules</Text>
-            <Text fontSize="lg" fontWeight="bold" color="teal.600">{completedPercentageModules}%</Text>
-          </VStack>
-          <Box w="1px" h="40px" bg="gray.200" _dark={{ bg: "gray.700" }} />
-          <VStack gap={0} flex={1}>
-            <Text fontSize="xs" color="gray.500" fontWeight="medium">Lessons</Text>
-            <Text fontSize="lg" fontWeight="bold" color="teal.600">{completedPercentagesLessons}%</Text>
-          </VStack>
-          <Box w="1px" h="40px" bg="gray.200" _dark={{ bg: "gray.700" }} />
-          <VStack gap={0} flex={1}>
-            <Text fontSize="xs" color="gray.500" fontWeight="medium">Progress</Text>
-            <Text fontSize="lg" fontWeight="bold" color="teal.600">{completedLessons}/{totalLessons}</Text>
-          </VStack>
-        </HStack>
+          {/* Mobile TOC Drawer */}
+          <Drawer.Root open={isTOCOpen} onOpenChange={(e) => setIsTOCOpen(e.open)} placement="bottom" size="full">
+            <Drawer.Backdrop />
+            <Drawer.Positioner>
+              <Drawer.Content borderTopRadius="2xl" maxH="85vh" h="85vh">
+                <Drawer.Header
+                  borderBottom="1px solid"
+                  borderColor={cardBorderColor}
+                  bg={cardBg}
+                >
+                  <HStack justify="space-between" w="100%">
+                    <HStack gap={2}>
+                      <Box p={1.5} borderRadius="lg" bg={highlightBg}>
+                        <BookOpen size={18} color="#14b8a6" />
+                      </Box>
+                      <Heading fontSize="lg" fontWeight="800">
+                        Course Outline
+                      </Heading>
+                    </HStack>
+                    <IconButton
+                      aria-label="Close"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsTOCOpen(false)}
+                      borderRadius="lg"
+                      _hover={{ bg: highlightBg }}
+                    >
+                      <X size={20} />
+                    </IconButton>
+                  </HStack>
+                </Drawer.Header>
+                <Drawer.Body p={0} overflow="auto" display="flex" flexDirection="column" bg={cardBg} flex={1}>
+                  <TOC
+                    courseState={courseState}
+                    setCourseState={setCourseState}
+                    activeModuleIndex={activeModuleIndex}
+                    setActiveModuleIndex={setActiveModuleIndex}
+                    currentLessonIndex={currentLessonIndex}
+                    setCurrentLessonIndex={setCurrentLessonIndex}
+                    onLessonChange={handleLessonChange}
+                    isMobileDrawer
+                  />
+                </Drawer.Body>
+              </Drawer.Content>
+            </Drawer.Positioner>
+          </Drawer.Root>
+
+          {/* Content Area */}
+          <Box
+            flex="1"
+            overflowY="auto"
+          >
+            {activeModuleIndex !== null && courseState.modules[activeModuleIndex]?.lessons && (
+              <CourseRenderer
+                courseState={courseState}
+                setCourseState={setCourseState}
+                currentModuleIndex={activeModuleIndex}
+                currentLessonIndex={currentLessonIndex}
+                setShowQuiz={setShowQuiz}
+                onLessonChange={handleLessonChange}
+                onModuleComplete={handleModuleComplete}
+                generationQueue={generationQueue}
+                onQueueEntryClick={handleQueueEntryClick}
+              />
+            )}
+          </Box>
+        </Box>
       </Box>
     </Box>
   );

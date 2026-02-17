@@ -19,7 +19,8 @@ self.addEventListener('install', (event) => {
       .then((cache) => {
         return cache.addAll(STATIC_ASSETS);
       })
-      .then(() => self.skipWaiting())
+      // Don't auto-activate - wait for user to click "Update" button
+      // skipWaiting() will be called via message event when user accepts update
   );
 });
 

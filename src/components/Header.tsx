@@ -33,79 +33,7 @@ import { type User } from "../types";
 import { Badge } from "@chakra-ui/react";
 import { HiStar } from "react-icons/hi";
 import { BiSolidCoinStack } from "react-icons/bi";
-import { BookOpen, Map, Shield, Clock } from "lucide-react";
-
-// Optimized Credits Reset Countdown Component
-const CreditsResetCountdown: React.FC<{
-  resetDate: string;
-}> = ({ resetDate }) => {
-  const [timeLeft, setTimeLeft] = useState("");
-  const yellowColor = useColorModeValue("yellow.600", "yellow.400");
-  const yellowBg = useColorModeValue("yellow.50", "rgba(251, 191, 36, 0.1)");
-  const textColor = useColorModeValue("gray.700", "gray.300");
-
-  useEffect(() => {
-    const calculateTimeLeft = () => {
-      const now = new Date().getTime();
-      const reset = new Date(resetDate).getTime();
-      const diff = reset - now;
-      if (diff <= 0) {
-        setTimeLeft("Reset now");
-        return;
-      }
-
-      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-
-      if (days > 0) {
-        setTimeLeft(`${days}d ${hours}h`);
-      } else if (hours > 0) {
-        setTimeLeft(`${hours}h ${minutes}m`);
-      } else if (minutes > 0) {
-        setTimeLeft(`${minutes}m ${seconds}s`);
-      } else {
-        setTimeLeft(`${seconds}s`);
-      }
-    };
-
-    calculateTimeLeft();
-    const interval = setInterval(calculateTimeLeft, 1000);
-
-    return () => clearInterval(interval);
-  }, [resetDate]);
-
-  return (
-    <HStack
-      gap={1.5}
-      px={{ base: 2, md: 2.5 }}
-      py={1}
-      borderRadius="md"
-      bg={yellowBg}
-      borderWidth="1px"
-      borderColor={yellowColor}
-    >
-      <Clock size={12} />
-      <Text
-        fontSize={{ base: "2xs", md: "xs" }}
-        color={textColor}
-        fontWeight="600"
-        display={{ base: "none", sm: "block" }}
-      >
-        Resets in
-      </Text>
-      <Text
-        fontSize={{ base: "2xs", md: "xs" }}
-        color={yellowColor}
-        fontWeight="700"
-        fontFamily="mono"
-      >
-        {timeLeft}
-      </Text>
-    </HStack>
-  );
-};
+import { BookOpen, Map, Shield } from "lucide-react";
 
 const NavItem: React.FC<{
   label: string;
@@ -179,12 +107,6 @@ const Header: React.FC = () => {
   const isActive = useCallback((path: string) =>
     location.pathname === path,
     [location.pathname]
-  );
-
-  // Check if user has credits_reset_at
-  const hasCreditsReset = useMemo(() =>
-    currentUser?.credits_reset_at,
-    [currentUser?.credits_reset_at]
   );
 
   // Close mobile menu on route change
@@ -283,28 +205,26 @@ const Header: React.FC = () => {
               <>
                 {currentUser ? (
                   <HStack gap={2}>
-                    {/* Credits and Reset Countdown */}
+                    {/* Credits Display */}
                     {currentUser.membership_plan === "free" && !isAdmin && (
-                      <HStack gap={2}>
-                        <Badge
-                          colorPalette="gray"
-                          variant="outline"
-                          px={2.5}
-                          py={1.5}
-                          borderRadius="lg"
-                          fontSize="xs"
-                          fontWeight="600"
-                          borderWidth="1px"
-                        >
-                          <HStack gap={1.5}>
-                            <BiSolidCoinStack size={14} />
-                            <Text fontWeight="700">{currentUser.credits ?? 0}</Text>
-                          </HStack>
-                        </Badge>
-                        {hasCreditsReset && (
-                          <CreditsResetCountdown resetDate={currentUser.credits_reset_at!} />
-                        )}
-                      </HStack>
+                      <Badge
+                        colorPalette="gray"
+                        variant="outline"
+                        px={2.5}
+                        py={1.5}
+                        borderRadius="lg"
+                        fontSize="xs"
+                        fontWeight="600"
+                        borderWidth="1px"
+                      >
+                        <HStack gap={1.5}>
+                          <BiSolidCoinStack size={14} />
+                          <Text fontWeight="700">{currentUser.credits ?? 0}</Text>
+                          <Text fontSize="2xs" color={subTextColor}>
+                            • Daily reset
+                          </Text>
+                        </HStack>
+                      </Badge>
                     )}
 
                     {/* Membership Badge */}
@@ -589,8 +509,10 @@ const Header: React.FC = () => {
                         )}
                       </HStack>
 
-                      {currentUser.membership_plan === "free" && !isAdmin && hasCreditsReset && (
-                        <CreditsResetCountdown resetDate={currentUser.credits_reset_at!} />
+                      {currentUser.membership_plan === "free" && !isAdmin && (
+                        <Text fontSize="xs" color={subTextColor} fontStyle="italic">
+                          Credits reset daily at login
+                        </Text>
                       )}
                     </VStack>
                   </Box>

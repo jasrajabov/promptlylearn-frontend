@@ -34,6 +34,7 @@ import {
     CheckCircle,
     TrendingUp,
     SearchX,
+    Map,
 } from "lucide-react";
 
 export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
@@ -313,17 +314,18 @@ const UserCourses: React.FC = () => {
                                     borderRadius="xl"
                                     px={6}
                                     height="48px"
-                                    bgGradient="linear(to-r, teal.500, cyan.500)"
+                                    bg="linear-gradient(to right, #14b8a6, #06b6d4)"
+                                    color="white"
                                     _hover={{
-                                        bgGradient: "linear(to-r, teal.600, cyan.600)",
+                                        bg: "linear-gradient(to right, #0d9488, #0891b2)",
                                         transform: "translateY(-2px)",
                                         boxShadow: "0 8px 24px rgba(20, 184, 166, 0.25)",
                                     }}
-                                    transition="all 0.3s"
+                                    transition="all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
                                 >
                                     <HStack gap={2}>
                                         <Plus size={18} />
-                                        <Text fontWeight="600">Create Course</Text>
+                                        <Text fontWeight="700">Create Course</Text>
                                     </HStack>
                                 </Button>
                             </HStack>
@@ -335,20 +337,18 @@ const UserCourses: React.FC = () => {
                                         flex="1"
                                         minW="160px"
                                         bg={cardBg}
-                                        p={4}
-                                        borderRadius="xl"
+                                        p={3.5}
+                                        borderRadius="lg"
                                         borderWidth="1px"
                                         borderColor={cardBorderColor}
-                                        transition="all 0.2s"
-                                        _hover={{
-                                            borderColor: accentColor,
-                                            transform: "translateY(-2px)",
-                                            boxShadow: "md",
-                                        }}
+                                        borderTop="2px solid"
+                                        borderTopColor="#14b8a6"
+                                        transition="all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
+                                        _hover={{ borderColor: accentColor }}
                                     >
                                         <HStack gap={2.5}>
                                             <Box p={2} borderRadius="lg" bg={highlightBg}>
-                                                <BookMarked size={20} color="#14b8a6" />
+                                                <Map size={20} color="#14b8a6" />
                                             </Box>
                                             <VStack align="start" gap={0}>
                                                 <Text
@@ -360,7 +360,7 @@ const UserCourses: React.FC = () => {
                                                 >
                                                     Total
                                                 </Text>
-                                                <Text fontSize="xl" fontWeight="800">
+                                                <Text fontSize="lg" fontWeight="800">
                                                     {totalCourses}
                                                 </Text>
                                             </VStack>
@@ -370,16 +370,14 @@ const UserCourses: React.FC = () => {
                                         flex="1"
                                         minW="160px"
                                         bg={cardBg}
-                                        p={4}
-                                        borderRadius="xl"
+                                        p={3.5}
+                                        borderRadius="lg"
                                         borderWidth="1px"
                                         borderColor={cardBorderColor}
-                                        transition="all 0.2s"
-                                        _hover={{
-                                            borderColor: accentColor,
-                                            transform: "translateY(-2px)",
-                                            boxShadow: "md",
-                                        }}
+                                        borderTop="2px solid"
+                                        borderTopColor="#3b82f6"
+                                        transition="all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
+                                        _hover={{ borderColor: accentColor }}
                                     >
                                         <HStack gap={2.5}>
                                             <Box p={2} borderRadius="lg" bg={highlightBg}>
@@ -395,7 +393,7 @@ const UserCourses: React.FC = () => {
                                                 >
                                                     In Progress
                                                 </Text>
-                                                <Text fontSize="xl" fontWeight="800">
+                                                <Text fontSize="lg" fontWeight="800">
                                                     {inProgressCourses}
                                                 </Text>
                                             </VStack>
@@ -405,16 +403,14 @@ const UserCourses: React.FC = () => {
                                         flex="1"
                                         minW="160px"
                                         bg={cardBg}
-                                        p={4}
-                                        borderRadius="xl"
+                                        p={3.5}
+                                        borderRadius="lg"
                                         borderWidth="1px"
                                         borderColor={cardBorderColor}
-                                        transition="all 0.2s"
-                                        _hover={{
-                                            borderColor: accentColor,
-                                            transform: "translateY(-2px)",
-                                            boxShadow: "md",
-                                        }}
+                                        borderTop="2px solid"
+                                        borderTopColor="#10b981"
+                                        transition="all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
+                                        _hover={{ borderColor: accentColor }}
                                     >
                                         <HStack gap={2.5}>
                                             <Box p={2} borderRadius="lg" bg={highlightBg}>
@@ -430,7 +426,7 @@ const UserCourses: React.FC = () => {
                                                 >
                                                     Completed
                                                 </Text>
-                                                <Text fontSize="xl" fontWeight="800">
+                                                <Text fontSize="lg" fontWeight="800">
                                                     {completedCourses}
                                                 </Text>
                                             </VStack>
@@ -583,20 +579,24 @@ const UserCourses: React.FC = () => {
                                         >
                                             {/* Top colored bar for status */}
                                             <Box
-                                                h="4px"
-                                                bgGradient={
+                                                h="3px"
+                                                bg={
                                                     isGenerating
-                                                        ? "linear(to-r, purple.400, pink.400)"
+                                                        ? "linear-gradient(to right, #a855f7, #ec4899)"
                                                         : progress === 100
-                                                            ? "linear(to-r, green.400, emerald.500)"
+                                                            ? "linear-gradient(to right, #22c55e, #10b981)"
                                                             : progress > 0
-                                                                ? "linear(to-r, blue.400, cyan.500)"
-                                                                : "linear(to-r, orange.400, amber.500)"
+                                                                ? "linear-gradient(to right, #3b82f6, #06b6d4)"
+                                                                : "linear-gradient(to right, #f97316, #f59e0b)"
                                                 }
-                                                animation={
+                                                boxShadow={
                                                     isGenerating
-                                                        ? "pulse 2s ease-in-out infinite"
-                                                        : undefined
+                                                        ? "0 1px 8px rgba(168, 85, 247, 0.4)"
+                                                        : progress === 100
+                                                            ? "0 1px 8px rgba(16, 185, 129, 0.3)"
+                                                            : progress > 0
+                                                                ? "0 1px 8px rgba(59, 130, 246, 0.3)"
+                                                                : "0 1px 8px rgba(249, 115, 22, 0.3)"
                                                 }
                                             />
 

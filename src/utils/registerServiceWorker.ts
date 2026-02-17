@@ -11,18 +11,9 @@ export function registerServiceWorker() {
         .then((registration) => {
           console.log("[SW] Service Worker registered successfully");
 
-          // Check for updates when user returns to the tab (better than polling)
-          document.addEventListener("visibilitychange", () => {
-            if (!document.hidden && registration) {
-              registration.update();
-            }
-          });
-
-          // Optional: Check for updates every 30 minutes (instead of 1 minute)
-          // You can remove this if you only want to check on visibility change
-          setInterval(() => {
-            registration.update();
-          }, 1800000); // 30 minutes
+          // Only check for updates on page reload, not on tab switches
+          // This prevents annoying "new version available" popups
+          // Updates will be detected naturally when user refreshes the page
 
           // Handle when a new service worker is found
           registration.addEventListener("updatefound", () => {

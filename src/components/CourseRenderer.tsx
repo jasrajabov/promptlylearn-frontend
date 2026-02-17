@@ -100,12 +100,12 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
   const isCurrentLessonGenerating = queueStatus === "queued" || queueStatus === "generating";
 
   // ---------------------------------------------------------------------------
-  // Theme
+  // Theme - Matching roadmap/course page modern style
   // ---------------------------------------------------------------------------
   const tealTextColor = useColorModeValue("teal.700", "teal.300");
-  const cardBg = useColorModeValue("white", "gray.950");
-  const cardBorderColor = useColorModeValue("gray.200", "gray.700");
-  const mutedText = useColorModeValue("gray.600", "gray.400");
+  const cardBg = useColorModeValue("white", "#111111");
+  const cardBorderColor = useColorModeValue("#e5e7eb", "#27272a");
+  const mutedText = useColorModeValue("#6b7280", "#9ca3af");
   const headingColor = useColorModeValue("gray.900", "white");
   const highlightBg = useColorModeValue("teal.50", "rgba(20, 184, 166, 0.1)");
   const nextHoverBg = useColorModeValue("teal.100", "teal.900/30");
@@ -312,11 +312,9 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
                   <HStack gap={3} flexWrap="wrap" flex={{ base: "1", md: "auto" }} w={{ base: "100%", md: "auto" }}>
                     {/* Generate button — never disabled by queue. Always clickable. */}
                     {isCurrentLessonGenerating ? (
-                      <Button disabled size="md" colorPalette="teal" variant="solid" borderRadius="xl" px={5} opacity={0.7} w={{ base: "100%", sm: "auto" }}>
-                        <Spinner size="sm" mr={2} />
-                        <Text fontWeight="600">
-                          {queueStatus === "queued" ? "Waiting in queue…" : "Generating Content…"}
-                        </Text>
+                      <Button disabled size="md" colorPalette="teal" variant="solid" borderRadius="xl" px={5} opacity={0.7} w={{ base: "100%", sm: "auto" }} gap={2}>
+                        <Spinner size="sm" />
+                        {queueStatus === "queued" ? "Waiting in queue…" : "Generating Content…"}
                       </Button>
                     ) : (
                       <Button
@@ -330,17 +328,18 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
                         _hover={{ transform: "translateY(-2px)", boxShadow: "md" }}
                         transition="all 0.2s"
                         w={{ base: "100%", sm: "auto" }}
+                        gap={2}
                       >
-                        <Sparkles size={16} style={{ marginRight: "8px" }} />
-                        <Text fontWeight="600">{lesson.content ? "Regenerate Content" : "Generate Content"}</Text>
+                        <Sparkles size={16} />
+                        {lesson.content ? "Regenerate Content" : "Generate Content"}
                       </Button>
                     )}
 
                     {/* Quiz button */}
                     {isLoadingCurrentQuiz ? (
-                      <Button disabled size="md" colorPalette="purple" variant="solid" borderRadius="xl" px={5} opacity={0.7} w={{ base: "100%", sm: "auto" }}>
-                        <Spinner size="sm" mr={2} />
-                        <Text fontWeight="600">Generating Quiz…</Text>
+                      <Button disabled size="md" colorPalette="purple" variant="solid" borderRadius="xl" px={5} opacity={0.7} w={{ base: "100%", sm: "auto" }} gap={2}>
+                        <Spinner size="sm" />
+                        Generating Quiz…
                       </Button>
                     ) : (
                       <Button
@@ -357,9 +356,10 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
                         disabled={!lesson.content}
                         opacity={!lesson.content ? 0.5 : 1}
                         cursor={!lesson.content ? "not-allowed" : "pointer"}
+                        gap={2}
                       >
-                        <Brain size={16} style={{ marginRight: "8px" }} />
-                        <Text fontWeight="600">{currentLessonQuiz ? "Regenerate Quiz" : "Generate Quiz"}</Text>
+                        <Brain size={16} />
+                        {currentLessonQuiz ? "Regenerate Quiz" : "Generate Quiz"}
                       </Button>
                     )}
 
@@ -375,9 +375,10 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
                       _hover={{ transform: "translateY(-2px)", boxShadow: "md" }}
                       transition="all 0.2s"
                       w={{ base: "100%", sm: "auto" }}
+                      gap={2}
                     >
-                      <MessageCircle size={16} style={{ marginRight: "8px" }} />
-                      <Text fontWeight="600">Ask AI Buddy</Text>
+                      <MessageCircle size={16} />
+                      Ask AI Buddy
                     </Button>
                   </HStack>
 
@@ -456,16 +457,51 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
           )}
 
           {/* Navigation */}
-          {!currentLessonQuiz && (currentLessonIndex > 0 || showNextLesson || showNextModule) && (
+          {!currentLessonQuiz && (
             <Card.Root bg={cardBg} borderRadius="2xl" borderWidth="1px" borderColor={cardBorderColor} boxShadow="sm">
               <Card.Body p={5}>
-                <HStack justify="space-between" gap={4} flexWrap="wrap" w="100%">
-                  {currentLessonIndex > 0 && (
-                    <Button onClick={handlePrevLesson} variant="outline" size={{ base: "md", md: "lg" }} borderRadius="xl" borderWidth="1.5px" px={5} _hover={{ transform: "translateY(-2px)", boxShadow: "md" }} transition="all 0.2s" w={{ base: "100%", sm: "auto" }}>
-                      <ChevronLeft size={18} style={{ marginRight: "8px" }} />
-                      <Text fontWeight="600">Previous Lesson</Text>
+                <VStack align="stretch" gap={4}>
+                  {/* Always-visible prev/next buttons */}
+                  <HStack justify="space-between" gap={3} w="100%">
+                    <Button
+                      onClick={handlePrevLesson}
+                      variant="outline"
+                      size="md"
+                      borderRadius="xl"
+                      borderWidth="1.5px"
+                      px={4}
+                      _hover={{ transform: "translateY(-2px)", boxShadow: "md" }}
+                      transition="all 0.2s"
+                      disabled={currentLessonIndex === 0}
+                      opacity={currentLessonIndex === 0 ? 0.4 : 1}
+                      flex="1"
+                    >
+                      <ChevronLeft size={18} style={{ marginRight: "4px" }} />
+                      <Text fontWeight="600">Previous</Text>
                     </Button>
-                  )}
+                    <Button
+                      onClick={() => {
+                        if (!isLastLesson) onLessonChange(currentLessonIndex + 1, currentModuleIndex);
+                        else if (nextModule) onLessonChange(0, currentModuleIndex + 1);
+                      }}
+                      variant="outline"
+                      colorPalette="teal"
+                      size="md"
+                      borderRadius="xl"
+                      borderWidth="1.5px"
+                      px={4}
+                      _hover={{ transform: "translateY(-2px)", boxShadow: "md" }}
+                      transition="all 0.2s"
+                      disabled={isLastLesson && !nextModule}
+                      opacity={isLastLesson && !nextModule ? 0.4 : 1}
+                      flex="1"
+                    >
+                      <Text fontWeight="600">{isLastLesson ? "Next Module" : "Next"}</Text>
+                      <ChevronRight size={18} style={{ marginLeft: "4px" }} />
+                    </Button>
+                  </HStack>
+
+                  {/* Detailed next lesson/module card (shown when completed) */}
                   {(showNextLesson || showNextModule) && (
                     <Box
                       as="button"
@@ -473,8 +509,7 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
                         if (showNextLesson) onLessonChange(currentLessonIndex + 1, currentModuleIndex);
                         else if (showNextModule) onLessonChange(0, currentModuleIndex + 1);
                       }}
-                      flex="1"
-                      minW={{ base: "100%", sm: "280px" }}
+                      w="100%"
                       p={5}
                       bg={highlightBg}
                       borderRadius="xl"
@@ -501,7 +536,7 @@ const CourseRenderer: React.FC<CourseRendererProps> = ({
                       </VStack>
                     </Box>
                   )}
-                </HStack>
+                </VStack>
               </Card.Body>
             </Card.Root>
           )}

@@ -40,7 +40,6 @@ import {
   X,
   Map as MapIcon,
   ChevronRight,
-  TrendingUp,
   ListFilter,
 } from "lucide-react";
 
@@ -370,7 +369,7 @@ export default function TrackRoadmap(): React.ReactElement {
                 <MapIcon size={20} color={accentColor} />
               </Box>
               <Heading
-                fontSize={{ base: "md", sm: "lg", md: "xl" }}
+                fontSize={{ base: "xl", sm: "2xl", md: "3xl" }}
                 fontWeight="800"
                 bgGradient={gradientText}
                 bgClip="text"
@@ -426,7 +425,7 @@ export default function TrackRoadmap(): React.ReactElement {
 
               {/* Inline Progress Ring */}
               <HStack gap={2.5} pl={2} borderLeftWidth="1px" borderColor={borderColor}>
-                <ProgressCircle.Root size="md" value={progressPercentage} colorPalette="teal">
+                <ProgressCircle.Root size="xl" value={progressPercentage} colorPalette="teal">
                   <ProgressCircle.Circle>
                     <ProgressCircle.Track />
                     <ProgressCircle.Range />
@@ -435,30 +434,20 @@ export default function TrackRoadmap(): React.ReactElement {
                     <ProgressCircle.ValueText fontSize="2xs" fontWeight="800" />
                   </AbsoluteCenter>
                 </ProgressCircle.Root>
-                <VStack gap={0} align="start">
-                  <Text fontSize="sm" fontWeight="800" color={headingColor}>
-                    {progressPercentage}%
-                  </Text>
-                  <Text fontSize="2xs" color={mutedText}>
-                    {completedNodes}/{totalNodes} done
-                  </Text>
-                </VStack>
               </HStack>
             </HStack>
 
-            {/* Mobile: Quick Stats + Filter */}
+            {/* Mobile: Progress Circle + Filter */}
             <HStack gap={2} display={{ base: "flex", md: "none" }} flexShrink={0}>
-              <VStack gap={0} align="end">
-                <HStack gap={1}>
-                  <TrendingUp size={14} color={accentColor} />
-                  <Text fontSize="lg" fontWeight="bold" color={headingColor}>
-                    {progressPercentage}%
-                  </Text>
-                </HStack>
-                <Text fontSize="2xs" color={mutedText}>
-                  {completedNodes}/{totalNodes}
-                </Text>
-              </VStack>
+              <ProgressCircle.Root size="xl" value={progressPercentage} colorPalette="teal">
+                <ProgressCircle.Circle>
+                  <ProgressCircle.Track />
+                  <ProgressCircle.Range />
+                </ProgressCircle.Circle>
+                <AbsoluteCenter>
+                  <ProgressCircle.ValueText fontSize="2xs" fontWeight="800" />
+                </AbsoluteCenter>
+              </ProgressCircle.Root>
               <IconButton
                 aria-label="Filters"
                 size="sm"

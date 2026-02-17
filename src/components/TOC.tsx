@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import {
   Box,
   VStack,
@@ -97,7 +97,7 @@ export const TOC = ({
     }
   };
 
-  const handleLessonToggle = (
+  const handleLessonToggle = useCallback((
     lessonIndex: number,
     moduleIndex: number,
     checked: boolean,
@@ -124,9 +124,9 @@ export const TOC = ({
       updateCourseInDB(updatedCourse);
       return updatedCourse;
     });
-  };
+  }, [setCourseState]);
 
-  const handleModuleClick = (idx: number) => {
+  const handleModuleClick = useCallback((idx: number) => {
     // Set as active and expand
     setActiveModuleIndex(idx);
     setCurrentLessonIndex(0);
@@ -149,7 +149,7 @@ export const TOC = ({
     if (onLessonChange) {
       onLessonChange(0, idx);
     }
-  };
+  }, [courseState.modules, onLessonChange, setCourseState, setActiveModuleIndex, setCurrentLessonIndex]);
 
   const toggleModuleExpansion = (idx: number, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -164,24 +164,24 @@ export const TOC = ({
     });
   };
 
-  const handleLessonClick = (lessonIndex: number, moduleIndex: number) => {
+  const handleLessonClick = useCallback((lessonIndex: number, moduleIndex: number) => {
     setCurrentLessonIndex(lessonIndex);
     setActiveModuleIndex(moduleIndex);
     if (onLessonChange) {
       onLessonChange(lessonIndex, moduleIndex);
     }
-  };
+  }, [onLessonChange, setCurrentLessonIndex, setActiveModuleIndex]);
 
   const getCompletedLessons = (module: Module) => {
     if (!module.lessons) return 0;
     return module.lessons.filter((l) => l.status === "COMPLETED").length;
   };
 
-  const totalCourseProgress = () => {
+  const totalCourseProgress = useMemo(() => {
     const totalLessons = courseState.modules.reduce((sum, m) => sum + (m.lessons?.length || 0), 0);
     const completedLessons = courseState.modules.reduce((sum, m) => sum + getCompletedLessons(m), 0);
     return totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
-  };
+  }, [courseState.modules]);
 
   return (
     <Box
@@ -189,13 +189,14 @@ export const TOC = ({
         base: "100%",
         lg: isCollapsed ? "80px" : "340px"
       }}
-      h={{ base: "100%", lg: "100vh" }}
+      h={{ base: isMobileDrawer ? "auto" : "auto", lg: "calc(100vh - 32px)" }}
+      maxH={{ base: isMobileDrawer ? "none" : "none", lg: "calc(100vh - 32px)" }}
       bg={isMobileDrawer ? "transparent" : bgColor}
       borderWidth={{ base: "0", lg: "1px" }}
       borderColor={borderColor}
       borderRadius={{ base: "0", lg: "12px" }}
       position={{ base: "relative", lg: "sticky" }}
-      top={0}
+      top={{ base: 0, lg: 4 }}
       left={0}
       flexShrink={0}
       display="flex"
@@ -223,7 +224,7 @@ export const TOC = ({
                 </HStack>
                 <HStack gap={2} w="full">
                   <Progress.Root
-                    value={totalCourseProgress()}
+                    value={totalCourseProgress}
                     size="xs"
                     colorPalette="teal"
                     borderRadius="full"
@@ -234,7 +235,7 @@ export const TOC = ({
                     </Progress.Track>
                   </Progress.Root>
                   <Text fontSize="xs" fontWeight="700" color={accentColor} minW="38px">
-                    {totalCourseProgress()}%
+                    {totalCourseProgress}%
                   </Text>
                 </HStack>
               </VStack>
@@ -263,7 +264,10 @@ export const TOC = ({
         flex={1}
         overflowY="auto"
         overflowX="hidden"
+        minH={0}
+        pb={{ base: isMobileDrawer ? 6 : 0, lg: 0 }}
         css={{
+          WebkitOverflowScrolling: 'touch',
           '&::-webkit-scrollbar': {
             width: '6px',
           },

@@ -35,7 +35,6 @@ import FilterControls from "../components/Filters";
 import { motion } from "framer-motion";
 
 const MotionBox = motion(Box);
-const MotionCard = motion(Card.Root);
 
 export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 

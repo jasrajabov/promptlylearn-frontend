@@ -265,10 +265,10 @@ const OpenAIStreamingMarkdown: React.FC<StreamingProps> = ({
                                 <Text fontSize="lg" fontWeight="semibold" color={t.headingColor}>Ready to Learn?</Text>
                                 <Text fontSize="sm" color={t.mutedTextColor} maxW="md">Click the "Generate Content" button above to create your personalized lesson content with AI.</Text>
                             </VStack>
-                            <HStack gap={2} mt={2}>
-                                <AlertCircle size={16} color={t.infoIconColor} />
-                                <Text fontSize="xs" color={t.mutedTextColor}>Content generation typically takes 10-30 seconds</Text>
-                            </HStack>
+                            <Text fontSize="xs" color={t.mutedTextColor} mt={2} display="inline-flex" alignItems="center" gap={1.5} justifyContent="center">
+                                <AlertCircle size={14} color={t.infoIconColor} style={{ verticalAlign: 'middle', flexShrink: 0 }} />
+                                Content generation typically takes 10-30 seconds
+                            </Text>
                         </VStack>
                     </Card.Body>
                 </Card.Root>
